@@ -1,0 +1,30 @@
+{
+  "name": "apinode",
+  "version": "1.0.0",
+  "description": "mise en place d'un site pour une organisation",
+  "main": "server.js",
+  "scripts": {
+    "test": "test",
+    "serve": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hectorberi01/projetannuel.git"
+  },
+  "keywords": [
+    "sport",
+    "football"
+  ],
+  "author": "Hector ADJAKPA,Ethan FRANCOIS",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Hectorberi01/projetannuel/issues"
+  },
+  "homepage": "https://github.com/Hectorberi01/projetannuel#readme",
+  "dependencies": {
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.2.0",
+    "helmet": "^7.1.0",
+    "xss-clean": "^0.1.4"
+  }
+}
