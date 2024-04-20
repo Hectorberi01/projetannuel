@@ -1,9 +1,47 @@
 {
+  "name": "apinode",
+  "version": "1.0.0",
+  "description": "mise en place d'un site pour une organisation",
+  "main": "server.js",
+  "scripts": {
+    "test": "test",
+    "serve": "node server.js",
+    "start:dev": "nodemon -e ts --exec ts-node src/index.ts",
+    "typeorm": "typeorm-ts-node-commonjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hectorberi01/projetannuel.git"
+  },
+  "keywords": [
+    "sport",
+    "football"
+  ],
+  "author": "Hector ADJAKPA,Ethan FRANCOIS",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Hectorberi01/projetannuel/issues"
+  },
+  "homepage": "https://github.com/Hectorberi01/projetannuel#readme",
   "dependencies": {
+    "bcrypt": "^5.1.1",
+    "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "typeorm": "^0.3.20"
+    "express-rate-limit": "^7.2.0",
+    "express-session": "^1.18.0",
+    "helmet": "^7.1.0",
+    "joi": "^17.12.3",
+    "joi-password": "^4.2.0",
+    "jsonwebtoken": "^9.0.2",
+    "mysql": "^2.18.1",
+    "typeorm": "^0.3.20",
+    "xss-clean": "^0.1.4"
   },
   "devDependencies": {
-    "@types/express": "^4.17.21"
+    "@types/bcrypt": "^5.0.2",
+    "@types/express": "^4.17.21",
+    "@types/express-session": "^1.18.0",
+    "@types/jsonwebtoken": "^9.0.6",
+    "nodemon": "^3.1.0"
   }
 }
