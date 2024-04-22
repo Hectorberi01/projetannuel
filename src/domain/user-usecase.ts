@@ -17,16 +17,7 @@ export class UseruseCase{
 
         const newUser = new User();
 
-        newUser.name = userData.name;
-        newUser.lastname = userData.lastname;
-        newUser.email = userData.email;
-        newUser.adress = userData.adress;
-        newUser.age = userData.age;
-        newUser.password = await hash(userData.password, 10);
-        newUser.matricule = userData.matricule;
-        newUser.role = userData.role;
-        newUser.anciennete = userData.anciennete;
-
+       
 
         return newUser
     }

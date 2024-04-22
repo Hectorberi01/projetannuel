@@ -4,7 +4,6 @@ import {useraccountRoutes} from "./handlers/useraccount-route";
 import {clubRoutes} from "./handlers/club-route";
 import {documentsRoutes} from "./handlers/document-route";
 import {formationcenterRoutes} from "./handlers/formationcenter-route";
-import {functionRoutes} from "./handlers/function-route";
 import {imageRoutes} from "./handlers/image-route";
 import {newletterRoutes} from "./handlers/newletter-route";
 import {playerRoutes} from "./handlers/player-route";
@@ -36,7 +35,6 @@ const main = async () => {
     clubRoutes(app)
     documentsRoutes(app)
     formationcenterRoutes(app)
-    functionRoutes(app)
     imageRoutes(app)
     newletterRoutes(app)
     playerRoutes(app)

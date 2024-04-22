@@ -2,13 +2,13 @@ import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm'
 import "reflect-metadata"
 
 @Entity()
-export class Event_UserAccount {
+export class Vote_UserAccount {
     @PrimaryGeneratedColumn() UserAccount_Id!: number
-    @Column() Id_Event!: number
+    @Column() Id_Vote!: number
 
 
-    constructor(useraccount_id?: number,id_event?: number) {
+    constructor(useraccount_id?: number,id_vote?: number) {
         if (useraccount_id) this.UserAccount_Id = useraccount_id;
-        if(id_event) this.Id_Event = id_event;
+        if(id_vote) this.Id_Vote = id_vote;
     }
 }
