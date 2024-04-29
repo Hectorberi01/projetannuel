@@ -18,9 +18,9 @@ export class User {
     @OneToMany(() => Token, token => token.user)
     tokens!: Token[]
 
-    constructor(id?: number, name?: string,lastname?: string,email?: string,birth_date?: Date,date_creation?: Date,adress?: string, id_role?: number,id_image?: number, matricule?: number, password?: string,tokens?: Token[]) {
+    constructor(id?: number, firstname?: string,lastname?: string,email?: string,birth_date?: Date,date_creation?: Date,adress?: string, id_role?: number,id_image?: number, matricule?: number, password?: string,tokens?: Token[]) {
         if (id) this.Id = id;
-        if (name) this.FirstName = name;
+        if (firstname) this.FirstName = firstname;
         if(lastname) this.Lastname = lastname;
         if(email) this.Email = email;
         if(birth_date) this.Birth_Date = birth_date;

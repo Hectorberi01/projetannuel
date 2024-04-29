@@ -1,27 +1,135 @@
-import { DataSource } from "typeorm";
+import { DataSource, DeleteResult, EntityNotFoundError } from "typeorm";
 import { User } from "../database/entities/useraccount";
 import express, { Request, Response} from "express";
 import session from 'express-session';
 import { compare, hash} from "bcrypt";
-import {UserValidator, LoginUserValidation}from "../handlers/validator/user-validator";
+import {UserValidator}from "../handlers/validator/useraccount-validator";
 import { AppDataSource } from "../database/database";
+import { UserRequest } from "../handlers/validator/useraccount-validator";
+import { Token } from "../database/entities/token";
 
+
+export interface ListUserCase {
+    limit: number;
+    page: number;
+}
 
 export class UseruseCase{
 
     constructor(private readonly db: DataSource){}
 
-    async createUser(userData: UserValidator): Promise<User | Error> {
+    async listUser(listuser: ListUserCase): Promise<{ user: User[], total: number }> {
 
-        const userRepository  = this.db.getRepository(User);
+        const query = this.db.getRepository(User).createQueryBuilder('user');
 
-        const newUser = new User();
+        query.skip((listuser.page - 1) * listuser.limit);
+        query.take(listuser.limit);
 
-       
-
-        return newUser
+        const [user, total] = await query.getManyAndCount();
+        return {
+            user,
+            total
+        };
     }
 
+    async createUser(userData: UserRequest): Promise<User | Error> {
+
+        const userRepository  = this.db.getRepository(User);
+        const newUser = new User();
+        newUser.FirstName = userData.FirstName,
+        newUser.Lastname = userData.LastName,
+        newUser.Email = userData.Email,
+        newUser.Birth_Date = userData.Birth_Date,
+        newUser.Creation_Date = userData.Creation_Date,
+        newUser.Adress = userData.Adress,
+        newUser.Id_Roles = userData.Id_Roles,
+        newUser.Id_Image = userData.Id_Image,
+        newUser.Matricule = await this.generateRandomNumber(),
+        newUser.Password = await hash(userData.Password, 10);
+
+        return userRepository.save(newUser);
+    }
+
+    async getUserById(userid: number): Promise<User> {
+        const userRepository  = this.db.getRepository(User);
+
+        const user = await userRepository.findOne({
+            where: { Id: userid }
+        });
+        if (!user) {
+            throw new EntityNotFoundError(User, userid);
+        }
+        return user;
+    }
+
+    async getUserByEmail(email: string): Promise<User> {
+        const userRepository  = this.db.getRepository(User);
+
+        const user = await userRepository.findOne({
+            where: { Email: email }
+        });
+
+        if (!user) {
+            throw new EntityNotFoundError(User, email);
+        }
+        return user;
+    }
+
+    // à impléménter
+    async logoutUser(){
+        const usertoken = this.db.getRepository(Token)
+        const userRepository  = this.db.getRepository(User);
+    }
+
+    // Pour la suppression des utilisateur
+    async DeleteUser(userid : number): Promise<DeleteResult>{
+
+        const userRepositoryToken  = this.db.getRepository(Token);
+        const userRepository  = this.db.getRepository(User);
+
+        try {
+            const result = await this.getUserById(userid);
+            if(result == null){
+                throw new Error(`${userid} not found`);
+            }
+            if (result instanceof User) {
+                const user = result;
+                await userRepositoryToken.delete({ user: user });
+            } else {
+                throw new Error(` not found`);
+            }
+
+            return await userRepository.delete(userid);
+        } catch (error) {
+            console.error("Failed to delete user with ID:", userid, error);
+            throw error;
+        }
+
+    }
+
+    async upDateUserData(userid : number,info : any){
+        try{
+            const userRepository = this.db.getRepository(User)
+            console.log("info",info)
+            const result  = await this.getUserById(userid)
+            console.log("result",result)
+            if(result instanceof User){
+                const user = result;
+                console.log("user = result",user)
+                Object.assign(user, info);
+                console.log("user",user)
+               await userRepository.save(user) 
+            }else {
+                throw new Error('User not found');
+            }
+        }catch(error){
+            console.error("Failed to update user with ID:", userid, error);
+        }
+    }
+
+    async generateRandomNumber(): Promise<number> {
+        return Math.floor(Math.random() * 900000) + 100000;
+    }
 
 }
 

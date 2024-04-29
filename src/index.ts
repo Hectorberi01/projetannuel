@@ -14,6 +14,8 @@ import {eventsRoutes} from "./handlers/events-route";
 import {sportRoutes} from "./handlers/sport-route";
 import { AppDataSource } from "./database/database";
 import 'dotenv/config';
+import { planningRoutes } from "./handlers/planning-route";
+import { voteRoutes } from "./handlers/vote-route";
 
 
 const main = async () => {
@@ -43,6 +45,8 @@ const main = async () => {
     dontsRoutes(app)
     eventsRoutes(app)
     sportRoutes(app)
+    planningRoutes(app)
+    voteRoutes(app)
 
     app.listen(port, () => {
         console.log(`Server running on port ${port}`)

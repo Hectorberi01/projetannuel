@@ -17,7 +17,7 @@ export const initRoutes = (app: express.Express) => {
     })
 
     //pour créer un utlisateur 
-    app.post("/users", async (req: Request, res: Response)=>{
+   /* app.post("/users", async (req: Request, res: Response)=>{
      
         try{
             const uservalidator =  UserValidator.validate(req.body)
@@ -101,6 +101,6 @@ export const initRoutes = (app: express.Express) => {
             console.log(error);
             res.status(500).send({ error: 'Internal server error' });
         }
-    });
+    });*/
     
 }
