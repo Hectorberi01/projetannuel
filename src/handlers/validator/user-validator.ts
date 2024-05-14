@@ -1,4 +1,5 @@
 import Joi, { number } from "joi";
+import { Roles } from "../../database/entities/roles";
 const { joiPasswordExtendCore } = require('joi-password');
 const joiPassword = Joi.extend(joiPasswordExtendCore);
 
@@ -11,7 +12,7 @@ export interface UserValidator {
     age: number,
     password: string,
     matricule: number,
-    role: string,
+    role: Roles,
     anciennete: Date,
 }
 
@@ -31,7 +32,7 @@ export const UserValidator = Joi.object<UserValidator>({
     .doesNotInclude(['password'])
     .required(),
     matricule: Joi.number().integer().required(),
-    role: Joi.string().required(),
+    role: Joi.object().required(),
     anciennete: Joi.date().required()
 });
 

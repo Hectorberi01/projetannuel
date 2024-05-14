@@ -16,7 +16,9 @@ export class FormationCenterUserCase{
     constructor(private readonly db: DataSource){}
 
     async ListeFormationCenter(listformation: ListFormationCenterCase): Promise<{ formation: FormationCenter[], total: number }> {
-        const query = this.db.getRepository(FormationCenter).createQueryBuilder('FormationCenter');
+        const query = this.db.getRepository(FormationCenter).createQueryBuilder('FormationCenter')
+        .leftJoinAndSelect('FormationCenter.Sports', 'sport');
+
 
         query.skip((listformation.page - 1) * listformation.limit);
         query.take(listformation.limit);
@@ -37,17 +39,17 @@ export class FormationCenterUserCase{
             newFormation.Name = formationData.Name;
             newFormation.Adress = formationData.Adress;
             newFormation.Sports = formationData.Sports;
+            newFormation.Email = formationData.Email;
             newFormation.Id_Image = formationData.Id_Image;
-            newFormation. Creation_Date = formationData. Creation_Date
-
-            newFormation.Sports.forEach(element => {
-                console.log("element.Id",element.Id)
-                const sport = sportUsecase.getSportById( element.Id)
-                console.log("sport",sport)
-                if(!sport){
-                    throw new EntityNotFoundError(Sport, element.Id);
-                }
-            });
+            newFormation.Creation_Date = formationData.Creation_Date
+            // newFormation.Sports.forEach(element => {
+            //     console.log("element.Id",element.Id)
+            //     const sport = sportUsecase.getSportById( element.Id)
+            //     console.log("sport",sport)
+            //     if(!sport){
+            //         throw new EntityNotFoundError(Sport, element.Id);
+            //     }
+            // });
 
             return formationRepository.save(newFormation);
         }catch(error){

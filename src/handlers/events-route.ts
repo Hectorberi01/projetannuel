@@ -12,7 +12,7 @@ export const eventsRoutes = (app: express.Express) => {
     })
 
     // lister les evenement
-    app.get("/event", async (req: Request, res: Response) =>{
+    app.get("/events", async (req: Request, res: Response) =>{
         try{
             const eventvalidator = listEventValidation.validate(req.query)
             const listeventRequest = eventvalidator.value
@@ -38,7 +38,7 @@ export const eventsRoutes = (app: express.Express) => {
     })
 
     //création d'un évenement
-    app.post("/event",async (req: Request, res: Response) =>{
+    app.post("/events",async (req: Request, res: Response) =>{
         try{
             const eventvalidation = EventValidator.validate(req.body)
             if(eventvalidation.error){
@@ -61,7 +61,7 @@ export const eventsRoutes = (app: express.Express) => {
     })
 
      // Route pour mettre à jour les informations de l'utilisateur
-    app.put("/event/:Id", async (req: Request, res: Response) => {
+    app.put("/events/:Id", async (req: Request, res: Response) => {
         try {
             const eventidvalidation  = EventIdValidation.validate(req.params)
             
@@ -99,7 +99,7 @@ export const eventsRoutes = (app: express.Express) => {
     });
 
     // sippression d'un utlisateur
-    app.delete("/event/:Id",async (req: Request, res : Response) =>{
+    app.delete("/events/:Id",async (req: Request, res : Response) =>{
         try{
             const eventidvalidation  = EventIdValidation.validate(req.params)
             
