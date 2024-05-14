@@ -7,6 +7,7 @@ import {UserValidator}from "../handlers/validator/useraccount-validator";
 import { AppDataSource } from "../database/database";
 import { UserRequest } from "../handlers/validator/useraccount-validator";
 import { Token } from "../database/entities/token";
+import { Roles } from "../database/entities/roles";
 
 
 export interface ListUserCase {
@@ -20,11 +21,10 @@ export class UseruseCase{
 
     async listUser(listuser: ListUserCase): Promise<{ user: User[], total: number }> {
 
-        const query = this.db.getRepository(User).createQueryBuilder('user');
-
-        query.skip((listuser.page - 1) * listuser.limit);
-        query.take(listuser.limit);
-
+        const query = this.db.getRepository(User).createQueryBuilder('user')
+        .leftJoinAndSelect('user.Roles','roles')
+        .skip((listuser.page - 1) * listuser.limit) // Pagination: commence à la bonne position
+        .take(listuser.limit);
         const [user, total] = await query.getManyAndCount();
         return {
             user,
@@ -33,21 +33,29 @@ export class UseruseCase{
     }
 
     async createUser(userData: UserRequest): Promise<User | Error> {
+        try{
+            if(userData.Role == null ){
+                throw ('role est null');
+            }
+            const userRepository  = this.db.getRepository(User);
+            const newUser = new User();
+            newUser.FirstName = userData.FirstName,
+            newUser.LastName = userData.LastName,
+            newUser.Email = userData.Email,
+            newUser.Birth_Date = userData.Birth_Date,
+            newUser.Creation_Date = userData.Creation_Date,
+            newUser.Address = userData.Address,
+            newUser.Roles = userData.Role,
+            newUser.Id_Image = userData.Id_Image,
+            newUser.Matricule = await this.generateRandomNumber(),
+            newUser.Password = await hash(userData.Password, 10);
 
-        const userRepository  = this.db.getRepository(User);
-        const newUser = new User();
-        newUser.FirstName = userData.FirstName,
-        newUser.Lastname = userData.LastName,
-        newUser.Email = userData.Email,
-        newUser.Birth_Date = userData.Birth_Date,
-        newUser.Creation_Date = userData.Creation_Date,
-        newUser.Adress = userData.Adress,
-        newUser.Id_Roles = userData.Id_Roles,
-        newUser.Id_Image = userData.Id_Image,
-        newUser.Matricule = await this.generateRandomNumber(),
-        newUser.Password = await hash(userData.Password, 10);
-
-        return userRepository.save(newUser);
+            return userRepository.save(newUser);
+        }catch(error){
+            console.error("Failed to creat user:",error);
+            throw error;
+        }
+        
     }
 
     async getUserById(userid: number): Promise<User> {
@@ -131,6 +139,18 @@ export class UseruseCase{
         return Math.floor(Math.random() * 900000) + 100000;
     }
 
+
+    async GetUserRole(idrole : number):Promise<Roles>{
+        const roleRepository  = this.db.getRepository(Roles);
+        const role  = await roleRepository.findOne({
+            where: {Id : idrole}
+        });
+        if(!role){
+            throw new Error('role not fund');
+        }
+
+        return role;
+    }
 }
 
 

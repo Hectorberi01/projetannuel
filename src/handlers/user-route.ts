@@ -6,12 +6,11 @@ import { UseruseCase } from "../domain/user-usecase";
 import bcrypt, { compare } from 'bcrypt';
 import jwt, { sign } from 'jsonwebtoken';
 import { Token } from "../database/entities/token";
-import { checkAuthentication } from "../middlwares/users-middlware";
 
 export const userRoutes = (app: express.Express) => {
 
     //Obternir la liste de tout les utlisateurs
-    app.get("/users/account",checkAuthentication, async(req :Request, res :Response) =>{
+    app.get("/users/account", async(req :Request, res :Response) =>{
         try{
             const uservalidator = listUserValidation.validate(req.query)
             const listuserRequest = uservalidator.value
@@ -43,7 +42,12 @@ export const userRoutes = (app: express.Express) => {
             if(uservalidation.error){
                 res.status(400).send(generateValidationErrorMessage(uservalidation.error.details))
             }
+
             const userdata = uservalidation.value
+            console.log("userdata",userdata)
+            if(userdata.Id_Image == null){
+                userdata.Id_Image = 0;
+            }
             const userUsecase = new UseruseCase(AppDataSource);
             const result = await  userUsecase.createUser(userdata)
             console.log(result)
@@ -67,23 +71,22 @@ export const userRoutes = (app: express.Express) => {
             }
            
             const user = await  userUsecase.getUserByEmail(userdata.Email);
+            
             if (!user) {
                 return res.status(401).json({ error: 'Invalid email or password for user' });
             }
-
             // Vérification du mot de passe
-            const passwordMatch = await bcrypt.compare(userdata.Password, user.Password);
+            const passwordMatch = bcrypt.compare(userdata.Password, user.Password);
             if (!passwordMatch) {
                 return null;
             }
 
             const secret = process.env.JWT_SECRET ?? ""
-            console.log(secret)
-
+            
             const token = sign({ userId: user.Id, email: user.Email }, secret, { expiresIn: '1d' });
 
             await AppDataSource.getRepository(Token).save({ token: token, user: user })
-            res.status(200).json({ token });
+            res.status(200).send(user);
         }catch(error){
             console.log(error)
             res.status(500).send({ "error": "internal error retry later" })

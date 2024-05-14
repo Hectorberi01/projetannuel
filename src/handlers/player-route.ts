@@ -3,6 +3,8 @@ import { PlayerIdValidation, PlayerValidator, listPlayerValidation } from "./val
 import { AppDataSource } from "../database/database";
 import { PlayerUseCase } from "../domain/player-usercase";
 import { generateValidationErrorMessage } from "./validator/generate-validation-message";
+import { SportUseCase } from "../domain/sport-usecase";
+import { FormationCenterUserCase } from "../domain/formationcenter-usecase";
 
 
 export const playerRoutes = (app: express.Express) => {
@@ -62,7 +64,7 @@ export const playerRoutes = (app: express.Express) => {
     })
 
     //création d'un profile player
-     app.post("/player",async (req: Request, res: Response) =>{
+     app.post("/players",async (req: Request, res: Response) =>{
         try{
             const playervalidator = PlayerValidator.validate(req.body)
             if(playervalidator.error){
@@ -84,7 +86,7 @@ export const playerRoutes = (app: express.Express) => {
     })
 
     // Route pour mettre à jour les informations
-    app.put("/player/:Id", async (req: Request, res: Response) => {
+    app.put("/players/:Id", async (req: Request, res: Response) => {
         try {
             const Playeridvalidation  = PlayerIdValidation.validate(req.params)
             

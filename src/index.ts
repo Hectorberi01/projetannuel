@@ -16,6 +16,7 @@ import { AppDataSource } from "./database/database";
 import 'dotenv/config';
 import { planningRoutes } from "./handlers/planning-route";
 import { voteRoutes } from "./handlers/vote-route";
+const cors = require('cors');
 
 
 const main = async () => {
@@ -32,6 +33,8 @@ const main = async () => {
     }
 
     app.use(express.json())
+    // Pour autoriser toutes les origines
+    app.use(cors());
     initRoutes(app)
     useraccountRoutes(app)
     clubRoutes(app)
@@ -54,3 +57,5 @@ const main = async () => {
 }
 
 main()
+
+

@@ -14,10 +14,13 @@ export class PlayerUseCase{
 
     async listPlayer(listplayer: ListPlayerCase): Promise<{ player: Player[], total: number }> {
 
-        const query = this.db.getRepository(Player).createQueryBuilder('player');
-
-        query.skip((listplayer.page - 1) * listplayer.limit);
-        query.take(listplayer.limit);
+        //const query = this.db.getRepository(Player).createQueryBuilder('player');
+        const query = this.db.getRepository(Player).createQueryBuilder('player')
+        .leftJoinAndSelect('player.FormationCenter', 'formationCenter') // Assurez-vous que le nom est exact
+        .leftJoinAndSelect('player.Sport', 'sport') // Utilisez le camelCase et vérifiez la correspondance avec l'entité Player
+        .leftJoinAndSelect('player.Image', 'image') // Utilisez le camelCase et vérifiez la correspondance avec l'entité Player
+        .skip((listplayer.page - 1) * listplayer.limit) // Pagination: commence à la bonne position
+        .take(listplayer.limit);
 
         const [player, total] = await query.getManyAndCount();
         return {
@@ -33,10 +36,13 @@ export class PlayerUseCase{
             const newPlayer = new Player();
             newPlayer.FirstName = playerData.FirstName,
             newPlayer.Lastname = playerData.LastName,
-            newPlayer.Birth_Date = playerData.Birth_Date,
-            newPlayer.Id_Sport = playerData.Id_Sport,
-            newPlayer.Id_Formationcenter = playerData.Id_Formationcenter,
-            newPlayer.Id_Image = playerData.Id_Image
+            newPlayer.BirthDate = playerData.Birth_Date,
+            newPlayer.Height = playerData.Height,
+            newPlayer.Weight = playerData.Weight,
+            newPlayer.Image = playerData.Image,
+            newPlayer.Sport = playerData.Sport,
+            newPlayer.stats = playerData.stats,
+            newPlayer.FormationCenter = playerData.FormationCenter
 
             return await playerRepository.save(newPlayer)
           

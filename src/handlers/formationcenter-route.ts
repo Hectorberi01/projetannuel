@@ -12,7 +12,7 @@ export const formationcenterRoutes = (app: express.Express) => {
     })
 
       // lister des centre de formation
-      app.get("/formation", async (req: Request, res: Response) =>{
+      app.get("/formations", async (req: Request, res: Response) =>{
         try{
             const formationvalidator = listFormationCenterValidation.validate(req.query)
             const listformationRequest = formationvalidator.value
@@ -63,7 +63,7 @@ export const formationcenterRoutes = (app: express.Express) => {
     })
 
     //création d'un compte poir un centre de formation
-     app.post("/formation",async (req: Request, res: Response) =>{
+     app.post("/formations",async (req: Request, res: Response) =>{
         try{
             const formationvalidator = FormationCenterValidator.validate(req.body)
             if(formationvalidator.error){
@@ -73,7 +73,7 @@ export const formationcenterRoutes = (app: express.Express) => {
             if(formationvalidatordata.Id_Image == null){
                 formationvalidatordata.Id_Image = 0;
             }
-        
+            console.log("formationvalidatordata",formationvalidatordata)
             const formationUseCase = new FormationCenterUserCase(AppDataSource)
             const result = await  formationUseCase.CreatFormationCenter(formationvalidatordata)
             return res.status(201).send(result);
@@ -85,7 +85,7 @@ export const formationcenterRoutes = (app: express.Express) => {
     })
 
     // Route pour mettre à jour les informations du centre de formation 
-    app.put("/formation/:Id", async (req: Request, res: Response) => {
+    app.put("/formations/:Id", async (req: Request, res: Response) => {
         try {
             const formationidvalidation  = FormationCenterIdValidation.validate(req.params)
             
@@ -119,7 +119,7 @@ export const formationcenterRoutes = (app: express.Express) => {
     });
 
     // sippression d'un centre de formation 
-    app.delete("/formation/:Id",async (req: Request, res : Response) =>{
+    app.delete("/formations/:Id",async (req: Request, res : Response) =>{
         try{
             const formationidvalidation  = FormationCenterIdValidation.validate(req.params)
             

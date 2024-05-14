@@ -1,8 +1,63 @@
-import { DataSource } from "typeorm";
+import { DataSource, EntityNotFoundError } from "typeorm";
 import express, { Request, Response} from "express";
 import { AppDataSource } from "../database/database";
+import {Image} from '../database/entities/image'
+import { ImageRequest } from "../handlers/validator/image-validator";
 
-export class Image{
+
+export interface ListImageUseCase {
+    limit: number;
+    page: number;
+}
+
+export class ImageUseCase{
 
     constructor(private readonly db: DataSource){}
+
+    async ListeImage(liste: ListImageUseCase): Promise<{ image: Image[], total: number }> {
+        const query = this.db.getRepository(Image).createQueryBuilder('Image');
+
+        query.skip((liste.page - 1) * liste.limit);
+        query.take(liste.limit);
+
+        const [image, total] = await query.getManyAndCount();
+        return {
+            image,
+            total
+        };
+    }
+
+    async CreatImage(sportData :ImageRequest ):Promise<Image | Error>{
+        try{
+            const imageRepository  = this.db.getRepository(Image);
+    
+            const newImage = new Image();
+    
+            newImage.Id = sportData.Id;
+            newImage.Path = sportData.Path;
+    
+            return imageRepository.save(newImage);
+        }catch(error){
+            console.error("Failed to creat image");
+            throw error;
+        }
+        
+    }
+
+    async getImageById(id: number): Promise<Image> {
+        try{
+            const imageRepository  = this.db.getRepository(Image);
+            const sport = await imageRepository.findOne({
+                where: { Id: id }
+            });
+
+            if (!sport) {
+                throw new EntityNotFoundError(Image, id);
+            }
+            return sport;
+        }catch(error){
+            console.error("Failed to image with ID:",id, error);
+            throw error;
+        }
+    }
 }
