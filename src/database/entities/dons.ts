@@ -16,8 +16,20 @@ export class Dons {
     @Column() Comments!: string
     @Column() Ip_Adresse!: string
 
-    constructor(id?:number,date?:Date,amount?:number,transaction_id?:number,transaction_status?:string,transaction_type?:string,payment_method?:string
-    ,creation_date?:Date,receipt_number?:number,payer_id?:number,comments?:string,ip_adresse?:string) 
+    constructor(
+        id?:number,
+        date?:Date,
+        amount?:number,
+        transaction_id?:number,
+        transaction_status?:string,
+        transaction_type?:string,
+        payment_method?:string,
+        creation_date?:Date,
+        receipt_number?:number,
+        payer_id?:number,
+        comments?:string,
+        ip_adresse?:string
+    ) 
     {
        if(id) this.Id = id;
        if(date) this.Date = date;

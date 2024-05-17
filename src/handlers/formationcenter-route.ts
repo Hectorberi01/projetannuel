@@ -73,7 +73,7 @@ export const formationcenterRoutes = (app: express.Express) => {
             if(formationvalidatordata.Id_Image == null){
                 formationvalidatordata.Id_Image = 0;
             }
-            console.log("formationvalidatordata",formationvalidatordata)
+
             const formationUseCase = new FormationCenterUserCase(AppDataSource)
             const result = await  formationUseCase.CreatFormationCenter(formationvalidatordata)
             return res.status(201).send(result);

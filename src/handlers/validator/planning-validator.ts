@@ -1,20 +1,37 @@
 import Joi from "joi"
+import { User } from "../../database/entities/useraccount"
 
 
 export interface PlanningRequest{
-    Id: number,
-    Description: string,
-    Date_Debut: Date,
-    Date_Fin: Date,
-    Id_User: number
+    id : number,
+    titre: string,
+    description: string,
+    date_debut: Date,
+    date_fin: Date,
+    lieu: string,
+    type_activite: string,
+    recurrence: string,
+    capacite_max: number,
+    statut: string,
+    users: User[]
 }
 
 export const PlanningValidator = Joi.object<PlanningRequest>({
-    Id: Joi.number().optional(),
-    Description: Joi.string().required(),
-    Date_Debut: Joi.date().required(),
-    Date_Fin: Joi.date().required(),
-    Id_User: Joi.number().optional(),
+    id: Joi.number().optional(),
+    titre: Joi.string().required(),
+    description: Joi.string().required(),
+    date_debut: Joi.date().required(),
+    date_fin: Joi.date().required(),
+    lieu: Joi.string().optional(),
+    type_activite: Joi.string().optional(),
+    recurrence: Joi.string().optional(),
+    capacite_max: Joi.number().optional(),
+    statut: Joi.string().optional(),
+    users: Joi.array().items(Joi.object({
+        id: Joi.number().required(),
+        nom: Joi.string().required(),
+        email: Joi.string().email().required()
+    })).optional()
 })
 
 export const listPlanningValidation = Joi.object<ListPlanningtRequest>({

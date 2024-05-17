@@ -76,14 +76,14 @@ export const userRoutes = (app: express.Express) => {
                 return res.status(401).json({ error: 'Invalid email or password for user' });
             }
             // Vérification du mot de passe
-            const passwordMatch = bcrypt.compare(userdata.Password, user.Password);
+            const passwordMatch = bcrypt.compare(userdata.Password, user.password);
             if (!passwordMatch) {
                 return null;
             }
 
             const secret = process.env.JWT_SECRET ?? ""
             
-            const token = sign({ userId: user.Id, email: user.Email }, secret, { expiresIn: '1d' });
+            const token = sign({ userId: user.Id, email: user.email }, secret, { expiresIn: '1d' });
 
             await AppDataSource.getRepository(Token).save({ token: token, user: user })
             res.status(200).send(user);

@@ -29,17 +29,17 @@ export class PlanninguseCase{
         const userUsecase = new UseruseCase(AppDataSource);
         const newPlanning = new Planning();
 
-        newPlanning.Id = planningData.Id;
-        newPlanning.Description = planningData.Description;
-        newPlanning.Date_Debut = planningData.Date_Debut;
-        newPlanning.Date_Fin = planningData.Date_Fin;
-        newPlanning.Id_User = planningData.Id_User;
+        newPlanning.id = planningData.id;
+        newPlanning.date_debut = planningData.date_debut;
+        newPlanning.date_fin = planningData.date_fin
+        newPlanning.description = planningData.description;
+        newPlanning.lieu= planningData.lieu;
+        newPlanning.recurrence = planningData.recurrence;
+        newPlanning.titre = planningData.titre;
+        newPlanning.statut = planningData.statut;
+        newPlanning.type_activite = planningData.type_activite;
+        newPlanning.users = planningData.users
 
-        // on vérifie si l'utlisateur existe 
-        const user = userUsecase.getUserById(newPlanning.Id_User)
-        if(!user){
-            throw new EntityNotFoundError(User, newPlanning.Id_User);
-        }
         return newPlanningRepository.save(newPlanning);
     }
 
@@ -47,7 +47,7 @@ export class PlanninguseCase{
         const eventRepository  = this.db.getRepository(Planning);
 
         const planning = await eventRepository.findOne({
-            where: { Id: id_planning }
+            where: { id: id_planning }
         });
         if (!planning) {
             throw new EntityNotFoundError(Planning, id_planning);
