@@ -38,16 +38,7 @@ export class ClubUseCase{
             newClub.Sports = clubData.Sports;
             newClub.Id_Image = clubData.Id_Image;
             newClub.creation_date = clubData.creation_date;
-
-            newClub.Sports.forEach(element => {
-                console.log("element.Id",element.Id)
-                const sport = sportUsecase.getSportById( element.Id)
-                console.log("sport",sport)
-                if(!sport){
-                    throw new EntityNotFoundError(Sport, element.Id);
-                }
-            });
-
+            newClub.events = clubData.events
             return newClubRepository.save(newClub);
         }catch(error){
             console.error("Failed to creat club account :", error);

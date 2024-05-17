@@ -16,10 +16,10 @@ export class PlayerUseCase{
 
         //const query = this.db.getRepository(Player).createQueryBuilder('player');
         const query = this.db.getRepository(Player).createQueryBuilder('player')
-        .leftJoinAndSelect('player.FormationCenter', 'formationCenter') // Assurez-vous que le nom est exact
-        .leftJoinAndSelect('player.Sport', 'sport') // Utilisez le camelCase et vérifiez la correspondance avec l'entité Player
-        .leftJoinAndSelect('player.Image', 'image') // Utilisez le camelCase et vérifiez la correspondance avec l'entité Player
-        .skip((listplayer.page - 1) * listplayer.limit) // Pagination: commence à la bonne position
+        .leftJoinAndSelect('player.FormationCenter', 'formationCenter') 
+        .leftJoinAndSelect('player.Sport', 'sport') 
+        .leftJoinAndSelect('player.Image', 'image') 
+        .skip((listplayer.page - 1) * listplayer.limit)
         .take(listplayer.limit);
 
         const [player, total] = await query.getManyAndCount();

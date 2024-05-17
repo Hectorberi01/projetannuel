@@ -52,18 +52,18 @@ export const imageRoutes = (app: express.Express) => {
 
             const image  = await imageUseCase.getImageById(imageid)
             console.log("image",image)
-            console.log("image.Path",image.Path)
+            console.log("image.Path",image.url)
             
             res.set('Content-Type', 'image/png');
         
-            const imageData = image.Path;
-            console.log("imageData",imageData.buffer);
+            const imageData = image.url;
+          
             //res.send(imageData);
             if (!image) {
                 res.status(404).send({ "error": "sport not found" });
                 return;
             }
-            res.status(200).send(imageData.buffer);
+            res.status(200).send(imageData);
 
         }catch(error){
             console.log(error)

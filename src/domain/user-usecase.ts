@@ -22,8 +22,11 @@ export class UseruseCase{
     async listUser(listuser: ListUserCase): Promise<{ user: User[], total: number }> {
 
         const query = this.db.getRepository(User).createQueryBuilder('user')
-        .leftJoinAndSelect('user.Roles','roles')
-        .skip((listuser.page - 1) * listuser.limit) // Pagination: commence à la bonne position
+        .leftJoinAndSelect('user.roles','roles')
+        .leftJoinAndSelect('user.image','image')
+        .leftJoinAndSelect('user.plannings','plannings')
+        .leftJoinAndSelect('user.events','events')
+        .skip((listuser.page - 1) * listuser.limit) 
         .take(listuser.limit);
         const [user, total] = await query.getManyAndCount();
         return {
@@ -34,21 +37,31 @@ export class UseruseCase{
 
     async createUser(userData: UserRequest): Promise<User | Error> {
         try{
-            if(userData.Role == null ){
+            const rolesRepository = this.db.getRepository(Roles);
+            if(userData.role == null ){
                 throw ('role est null');
+            }
+            // Vérifier que tous les rôles existent
+            const roles = [];
+            for (const roleData of userData.role) {
+                const role = await rolesRepository.findOne({ where: { Id: roleData.Id } });
+                if (!role) {
+                throw new Error(`Le rôle avec l'ID ${roleData.Id} n'existe pas`);
+                }
+                roles.push(role);
             }
             const userRepository  = this.db.getRepository(User);
             const newUser = new User();
-            newUser.FirstName = userData.FirstName,
-            newUser.LastName = userData.LastName,
-            newUser.Email = userData.Email,
-            newUser.Birth_Date = userData.Birth_Date,
-            newUser.Creation_Date = userData.Creation_Date,
-            newUser.Address = userData.Address,
-            newUser.Roles = userData.Role,
-            newUser.Id_Image = userData.Id_Image,
-            newUser.Matricule = await this.generateRandomNumber(),
-            newUser.Password = await hash(userData.Password, 10);
+            newUser.firstname = userData.firstname,
+            newUser.lastname = userData.lastname,
+            newUser.email = userData.email,
+            newUser.birth_date = userData.birth_date,
+            newUser.date_creation = userData.creation_date,
+            newUser.address = userData.address,
+            newUser.roles = roles,
+            newUser.image = userData.image,
+            newUser.matricule = await this.generateRandomNumber(),
+            newUser.password = await hash(userData.password, 10);
 
             return userRepository.save(newUser);
         }catch(error){
@@ -62,7 +75,8 @@ export class UseruseCase{
         const userRepository  = this.db.getRepository(User);
 
         const user = await userRepository.findOne({
-            where: { Id: userid }
+            where: { Id: userid },
+            relations: ['events', 'plannings', 'roles', 'image'] 
         });
         if (!user) {
             throw new EntityNotFoundError(User, userid);
@@ -74,7 +88,7 @@ export class UseruseCase{
         const userRepository  = this.db.getRepository(User);
 
         const user = await userRepository.findOne({
-            where: { Email: email }
+            where: { email: email }
         });
 
         if (!user) {

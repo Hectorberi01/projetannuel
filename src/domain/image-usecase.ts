@@ -15,10 +15,12 @@ export class ImageUseCase{
     constructor(private readonly db: DataSource){}
 
     async ListeImage(liste: ListImageUseCase): Promise<{ image: Image[], total: number }> {
-        const query = this.db.getRepository(Image).createQueryBuilder('Image');
-
-        query.skip((liste.page - 1) * liste.limit);
-        query.take(liste.limit);
+        const query = this.db.getRepository(Image).createQueryBuilder('Image')
+        .leftJoinAndSelect('image.players','players')
+        .leftJoinAndSelect('image.club','club')
+        .leftJoinAndSelect('image.user','user')
+        .skip((liste.page - 1) * liste.limit)
+        .take(liste.limit);
 
         const [image, total] = await query.getManyAndCount();
         return {
@@ -27,14 +29,17 @@ export class ImageUseCase{
         };
     }
 
-    async CreatImage(sportData :ImageRequest ):Promise<Image | Error>{
+    async CreatImage(Data :ImageRequest ):Promise<Image | Error>{
         try{
             const imageRepository  = this.db.getRepository(Image);
     
             const newImage = new Image();
     
-            newImage.Id = sportData.Id;
-            newImage.Path = sportData.Path;
+            newImage.Id = Data.Id;
+            newImage.url = Data.url;
+            newImage.club = Data.club;
+            newImage.players = Data.players;
+            newImage.user = Data.user
     
             return imageRepository.save(newImage);
         }catch(error){

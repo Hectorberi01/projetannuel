@@ -1,5 +1,6 @@
 import Joi from "joi"
 import { Sport } from "../../database/entities/sport"
+import { Events } from "../../database/entities/events"
 
 
 export interface ClubRequest{
@@ -7,6 +8,7 @@ export interface ClubRequest{
     Name: string,
     Adress: string,
     Sports: Sport[],
+    events: Events[],
     Id_Image: number
     creation_date:Date
 }
@@ -16,6 +18,7 @@ export const ClubValidator = Joi.object<ClubRequest>({
     Name: Joi.string().required(),
     Adress: Joi.string().required(),
     Sports: Joi.array().items(Joi.object()).required(), 
+    events:  Joi.array().items(Joi.object()).optional(), 
     Id_Image: Joi.number().optional(),
     creation_date: Joi.date().required(),
 })

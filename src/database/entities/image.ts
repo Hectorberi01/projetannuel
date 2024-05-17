@@ -1,21 +1,40 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm'
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, OneToOne, JoinColumn, ManyToMany, ManyToOne } from 'typeorm'
 import "reflect-metadata"
 import { Player } from './player'
+import { User } from './useraccount';
+import { Club } from './club';
 
 @Entity()
 export class Image {
-    @PrimaryGeneratedColumn() Id!: number
-   // @Column() Type!: string
-    @Column({ type: 'blob' })  // Spécifiez correctement le type pour des données binaires
-    Path!: Buffer;  //
-   // @Column() Name!: string
-    @OneToMany(() => Player, player => player.Image)  // Correction pour spécifier la propriété côté Player
-    players!: Player[];
+    @PrimaryGeneratedColumn() 
+    Id!: number
 
-    constructor(id?: number, type?: string,path?: Buffer, name?: string) {
+    @Column()  
+    url!: string;  
+
+    @ManyToOne(() => Player, player => player.Image) 
+    players!: Player;
+
+    @OneToOne(() => User, user => user.image)
+    @JoinColumn()
+    user!: User;
+
+    @OneToOne(() => Club, club => club.image)
+    @JoinColumn()
+    club!: Club;
+
+    constructor(
+        id?: number, 
+        url?: string, 
+        players?: Player,
+        user?: User,
+        club?: Club
+    ) 
+    {
         if (id) this.Id = id;
-        //if(type) this.Type = type;
-        if(path) this.Path = path;
-       // if (name) this.Name = name;
+        if(url) this.url = url;
+        if(players) this.players = players;
+        if(user) this.user = user;
+        if(club) this.club = club;
     }
 }

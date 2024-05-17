@@ -1,34 +1,35 @@
 import Joi, { number } from "joi";
 import { Roles } from "../../database/entities/roles";
+import { Image } from "../../database/entities/image";
 const { joiPasswordExtendCore } = require('joi-password');
 const joiPassword = Joi.extend(joiPasswordExtendCore);
 
 export interface UserRequest{
     Id: number,
-    FirstName: string,
-    LastName: string,
-    Email: string,
-    Birth_Date: Date,
-    Creation_Date: Date,
-    Address: string,
-    Role: Roles,
-    Id_Image: number,
-    Matricule: number,
-    Password: string,
+    firstname: string,
+    lastname: string,
+    email: string,
+    birth_date: Date,
+    creation_date: Date,
+    address: string,
+    role: Roles[],
+    image: Image,
+    matricule: number,
+    password: string,
 }
 
 export const UserValidator = Joi.object<UserRequest>({
     Id: Joi.number().optional(),
-    FirstName: Joi.string().required(),
-    LastName: Joi.string().required(),
-    Email: Joi.string().email().required(),
-    Birth_Date: Joi.date().required(),
-    Creation_Date: Joi.date().default(new Date(Date.now())),
-    Address: Joi.string().required(),
-    Role: Joi.object().required(),
-    Id_Image: Joi.number().optional(),
-    Matricule: Joi.number().integer(),
-    Password: joiPassword.string()
+    firstname: Joi.string().required(),
+    lastname: Joi.string().required(),
+    email: Joi.string().email().required(),
+    birth_date: Joi.date().required(),
+    creation_date: Joi.date().default(new Date(Date.now())),
+    address: Joi.string().required(),
+    role: Joi.array().items(Joi.object()).required(), 
+    image: Joi.object().optional(),
+    matricule: Joi.number().integer(),
+    password: joiPassword.string()
     .minOfSpecialCharacters(2)
     .minOfLowercase(2)
     .minOfUppercase(2)
