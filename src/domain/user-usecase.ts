@@ -59,7 +59,6 @@ export class UseruseCase{
             newUser.date_creation = userData.creation_date,
             newUser.address = userData.address,
             newUser.roles = roles,
-            newUser.image = userData.image,
             newUser.matricule = await this.generateRandomNumber(),
             newUser.password = await hash(userData.password, 10);
 

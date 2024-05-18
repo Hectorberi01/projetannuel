@@ -26,7 +26,7 @@ export const UserValidator = Joi.object<UserRequest>({
     birth_date: Joi.date().required(),
     creation_date: Joi.date().default(new Date(Date.now())),
     address: Joi.string().required(),
-    role: Joi.array().items(Joi.object()).required(), 
+    role: Joi.array().required(),
     image: Joi.object().optional(),
     matricule: Joi.number().integer(),
     password: joiPassword.string()
