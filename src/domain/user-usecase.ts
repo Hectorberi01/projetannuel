@@ -38,12 +38,12 @@ export class UseruseCase{
     async createUser(userData: UserRequest): Promise<User | Error> {
         try{
             const rolesRepository = this.db.getRepository(Roles);
-            if(userData.role == null ){
+            if(userData.roles == null ){
                 throw ('role est null');
             }
             // Vérifier que tous les rôles existent
             const roles = [];
-            for (const roleData of userData.role) {
+            for (const roleData of userData.roles) {
                 const role = await rolesRepository.findOne({ where: { Id: roleData.Id } });
                 if (!role) {
                 throw new Error(`Le rôle avec l'ID ${roleData.Id} n'existe pas`);

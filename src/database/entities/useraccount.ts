@@ -49,7 +49,7 @@ export class User {
     plannings!: Planning[]
     
     @ManyToMany(() => Events, event => event.participants)
-    events!: Event[];
+    events!: Events[];
 
     constructor(id?: number, 
         firstname?: string,

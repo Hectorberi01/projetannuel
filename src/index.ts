@@ -21,7 +21,7 @@ const cors = require('cors');
 
 const main = async () => {
     const app = express()
-    const port = 3000
+    const port = 4000
     try {
 
         await AppDataSource.initialize()

@@ -11,9 +11,11 @@ export interface EventRequest{
     startDate: Date, 
     endDate: Date,
     recurrence: string,
-    location: string,
+    lieu: string,
     capacity: number,
     type: string,
+    activity :string,
+    statut:string,
     participants: User[];
     clubs: Club[];
     trainingCenters: FormationCenter[];
@@ -26,7 +28,9 @@ export const EventValidator = Joi.object<EventRequest>({
     startDate: Joi.date().required(),
     endDate: Joi.date().required(),
     recurrence: Joi.string().optional(),
-    location: Joi.string().optional(),
+    statut: Joi.string().optional(),
+    lieu: Joi.string().optional(),
+    activity: Joi.string().optional(),
     capacity: Joi.number().integer().required(),
     type: Joi.string().optional(),
     participants:Joi.array().items(Joi.object()).optional(),
