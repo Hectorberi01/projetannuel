@@ -14,7 +14,7 @@ export const playerRoutes = (app: express.Express) => {
     })
 
      // lister des jouers
-     app.get("/player", async (req: Request, res: Response) =>{
+     app.get("/players", async (req: Request, res: Response) =>{
         try{
             const playervalidator = listPlayerValidation.validate(req.query)
             const listplayerequest = playervalidator.value
@@ -40,7 +40,7 @@ export const playerRoutes = (app: express.Express) => {
     });
 
     // obtenir le player par son id 
-    app.get("/player/:Id", async (req: Request , res : Response) =>{
+    app.get("/players/:Id", async (req: Request , res : Response) =>{
         try{
             const Playeridvalidation  = PlayerIdValidation.validate(req.params)
             
@@ -68,12 +68,14 @@ export const playerRoutes = (app: express.Express) => {
         try{
             const playervalidator = PlayerValidator.validate(req.body)
             if(playervalidator.error){
+                console.log("playervalidator",playervalidator)
                 res.status(400).send(generateValidationErrorMessage(playervalidator.error.details))
+                return
             }
             const playerdata = playervalidator.value
-            if(playerdata.Id_Image == null){
-                playerdata.Id_Image = 0;
-            }
+            // if(playerdata.Id_Image == null){
+            //     playerdata.Id_Image = 0;
+            // }
         console.log(playerdata)
             const playerUseCase = new PlayerUseCase(AppDataSource)
             const result = await  playerUseCase.createPlayer(playerdata)

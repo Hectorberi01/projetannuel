@@ -36,7 +36,7 @@ export class PlayerUseCase{
             const newPlayer = new Player();
             newPlayer.FirstName = playerData.FirstName,
             newPlayer.Lastname = playerData.LastName,
-            newPlayer.BirthDate = playerData.Birth_Date,
+            newPlayer.BirthDate = playerData.BirthDate,
             newPlayer.Height = playerData.Height,
             newPlayer.Weight = playerData.Weight,
             newPlayer.Image = playerData.Image,

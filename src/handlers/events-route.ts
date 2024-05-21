@@ -95,6 +95,7 @@ export const eventsRoutes = (app: express.Express) => {
             const eventidvalidation = EventIdValidation.validate(req.params)
 
             if (eventidvalidation.error) {
+                console.log("eventidvalidation",eventidvalidation)
                 res.status(400).send(generateValidationErrorMessage(eventidvalidation.error.details))
             }
 
