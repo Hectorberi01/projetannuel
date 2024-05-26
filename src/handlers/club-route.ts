@@ -4,6 +4,7 @@ import { ClubUseCase } from "../domain/club-usecase";
 import { AppDataSource } from "../database/database";
 import { generateValidationErrorMessage } from "./validator/generate-validation-message";
 import { SportUseCase } from "../domain/sport-usecase";
+import { upload } from "../middlewares/multer-config";
 
 
 export const clubRoutes = (app: express.Express) => {
@@ -12,7 +13,7 @@ export const clubRoutes = (app: express.Express) => {
         res.send({ "message": "clud" })
     })
 
-     app.get("/club", async (req: Request, res: Response) =>{
+     app.get("/clubs", async (req: Request, res: Response) =>{
         try{
             const clubvalidator = listClubValidation.validate(req.query)
             const listclubRequest = clubvalidator.value
@@ -38,7 +39,7 @@ export const clubRoutes = (app: express.Express) => {
     });
 
     // obtenir le club par son id 
-    app.get("/club/:Id", async (req: Request , res : Response) =>{
+    app.get("/clubs/:Id", async (req: Request , res : Response) =>{
         try{
             const clubidvalidation  = ClubIdValidation.validate(req.params)
             
@@ -63,19 +64,33 @@ export const clubRoutes = (app: express.Express) => {
     })
 
     //création d'un compte club
-     app.post("/club",async (req: Request, res: Response) =>{
+    app.post("/clubs",upload.single('image'),async (req: Request, res: Response) =>{
+        const clubUsecase = new ClubUseCase(AppDataSource);
         try{
+            // Convertir la chaîne JSON en tableau
+            if (typeof req.body.Sport === 'string') {
+                req.body.Sport = JSON.parse(req.body.Sport);
+            }
             const clubvalidation = ClubValidator.validate(req.body)
+
+            console.log("clubvalidation",clubvalidation)
             if(clubvalidation.error){
                 res.status(400).send(generateValidationErrorMessage(clubvalidation.error.details))
+                return
             }
             const clubdata = clubvalidation.value
-            if(clubdata.Id_Image == null){
-                clubdata.Id_Image = 0;
+
+            const Data = req.body;
+            console.log("req.file",req.file)
+            console.log("updatedData",Data)
+            // Ajouter le chemin du fichier téléchargé aux données de mise à jour
+            if (req.file) {
+                Data.imagePath = 'images/' + req.file.filename; // Assurez-vous que ce champ correspond à celui attendu par votre modèle Player
             }
-        
-            const clubUsecase = new ClubUseCase(AppDataSource);
-            const result = await  clubUsecase.CreatClub(clubdata)
+
+            
+            const result = await  clubUsecase.CreatClub(clubdata,Data)
+            //res.json(JSON.parse(JSON.stringify(result, removeCircularReferences())));
             return res.status(201).send(result);
         }catch(error){
             console.log(error)
@@ -84,19 +99,29 @@ export const clubRoutes = (app: express.Express) => {
         }
     })
 
+
     // Route pour mettre à jour les informations de l'utilisateur
-    app.put("/club/:Id", async (req: Request, res: Response) => {
+    app.put("/clubs/:Id",upload.single('image'), async (req: Request, res: Response) => {
         try {
             const clubidvalidation  = ClubIdValidation.validate(req.params)
             
             if(clubidvalidation.error){
+                console.log(clubidvalidation),
                 res.status(400).send(generateValidationErrorMessage(clubidvalidation.error.details))
+                return
             }
-            
-            const value =clubidvalidation.value;
-            const clubId = value.Id;
+
             const updatedData = req.body;
+            console.log("req.file",req.file)
+            console.log("updatedData",updatedData)
             
+            const value = clubidvalidation.value;
+            const clubId = value.Id;
+            
+            // Ajouter le chemin du fichier téléchargé aux données de mise à jour
+            if (req.file) {
+                updatedData.imagePath = 'images/' + req.file.filename; // Assurez-vous que ce champ correspond à celui attendu par votre modèle Player
+            }
             // Vérifier si l'ID de l'utilisateur est un nombre valide
             if (isNaN(clubId) || clubId <= 0) {
                 return res.status(400).json({ error: 'Invalid club ID' });

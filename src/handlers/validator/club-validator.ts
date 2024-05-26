@@ -1,25 +1,28 @@
 import Joi from "joi"
 import { Sport } from "../../database/entities/sport"
 import { Events } from "../../database/entities/events"
+import { Image } from "../../database/entities/image"
 
 
 export interface ClubRequest{
     Id: number,
     Name: string,
-    Adress: string,
-    Sports: Sport[],
+    Address: string,
+    Email:string,
+    Sport: Sport[],
     events: Events[],
-    Id_Image: number
+    Image: Image
     creation_date:Date
 }
 
 export const ClubValidator = Joi.object<ClubRequest>({
     Id: Joi.number().optional(),
     Name: Joi.string().required(),
-    Adress: Joi.string().required(),
-    Sports: Joi.array().items(Joi.object()).required(), 
+    Address: Joi.string().required(),
+    Email : Joi.string().required(),
+    Sport: Joi.array().items(Joi.object()).required(), 
     events:  Joi.array().items(Joi.object()).optional(), 
-    Id_Image: Joi.number().optional(),
+    Image: Joi.object().optional(),
     creation_date: Joi.date().required(),
 })
 

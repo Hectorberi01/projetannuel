@@ -29,7 +29,7 @@ export const PlayerValidator = Joi.object<PlayerRequest>({
     stats: Joi.object().optional(),
     Sport: Joi.object().required(), 
     FormationCenter: Joi.object().required(), 
-    Image : Joi.object().optional(), 
+    Image : Joi.object().optional(),
 })
 
 export const listPlayerValidation = Joi.object<ListPlayerRequest>({

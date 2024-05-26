@@ -5,6 +5,7 @@ import { PlayerUseCase } from "../domain/player-usercase";
 import { generateValidationErrorMessage } from "./validator/generate-validation-message";
 import { SportUseCase } from "../domain/sport-usecase";
 import { FormationCenterUserCase } from "../domain/formationcenter-usecase";
+import { upload } from "../middlewares/multer-config";
 
 
 export const playerRoutes = (app: express.Express) => {
@@ -73,9 +74,7 @@ export const playerRoutes = (app: express.Express) => {
                 return
             }
             const playerdata = playervalidator.value
-            // if(playerdata.Id_Image == null){
-            //     playerdata.Id_Image = 0;
-            // }
+  
         console.log(playerdata)
             const playerUseCase = new PlayerUseCase(AppDataSource)
             const result = await  playerUseCase.createPlayer(playerdata)
@@ -88,16 +87,23 @@ export const playerRoutes = (app: express.Express) => {
     })
 
     // Route pour mettre à jour les informations
-    app.put("/players/:Id", async (req: Request, res: Response) => {
+    app.put("/players/:Id",upload.single('image'), async (req: Request, res: Response) => {
         try {
             const Playeridvalidation  = PlayerIdValidation.validate(req.params)
-            
             if(Playeridvalidation.error){
                 res.status(400).send(generateValidationErrorMessage(Playeridvalidation.error.details))
             }
             const playerUseCase = new PlayerUseCase(AppDataSource)
             const playerid = Playeridvalidation.value.Id;
+
             const updatedData = req.body;
+            console.log("req.file",req.file)
+            console.log("updatedData",updatedData)
+            
+            // Ajouter le chemin du fichier téléchargé aux données de mise à jour
+            if (req.file) {
+                updatedData.imagePath = 'images/' + req.file.filename; // Assurez-vous que ce champ correspond à celui attendu par votre modèle Player
+            }
             
             // Vérifier si l'ID un nombre valide
             if (isNaN(playerid) || playerid <= 0) {
@@ -119,7 +125,7 @@ export const playerRoutes = (app: express.Express) => {
     });
 
     // sippression d'un centre de formation 
-    app.delete("/player/:Id",async (req: Request, res : Response) =>{
+    app.delete("/players/:Id",async (req: Request, res : Response) =>{
         try{
             const Playeridvalidation  = PlayerIdValidation.validate(req.params)
             
@@ -130,7 +136,7 @@ export const playerRoutes = (app: express.Express) => {
             const playerid = Playeridvalidation.value.Id;
 
             const  player  = await playerUseCase.DeletePlayer( playerid)
-        
+            console.log("player",player)
             // Vérifier si ça été supprimé avec succès
             if (player.affected === 0) {
                 return res.status(404).json({ error: 'player not found' });

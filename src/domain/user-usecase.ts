@@ -24,7 +24,7 @@ export class UseruseCase{
         const query = this.db.getRepository(User).createQueryBuilder('user')
         .leftJoinAndSelect('user.roles','roles')
         .leftJoinAndSelect('user.image','image')
-        .leftJoinAndSelect('user.plannings','plannings')
+        //.leftJoinAndSelect('user.plannings','plannings')
         .leftJoinAndSelect('user.events','events')
         .skip((listuser.page - 1) * listuser.limit) 
         .take(listuser.limit);
@@ -76,7 +76,7 @@ export class UseruseCase{
 
         const user = await userRepository.findOne({
             where: { Id: userid },
-            relations: ['events', 'plannings', 'roles', 'image'] 
+            relations: ['events','roles', 'image'] 
         });
         if (!user) {
             throw new EntityNotFoundError(User, userid);

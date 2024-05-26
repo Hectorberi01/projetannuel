@@ -1,8 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, ManyToMany, OneToOne, JoinTable } from 'typeorm'
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, ManyToMany, OneToOne, JoinTable, JoinColumn } from 'typeorm'
 import { Token } from "./token"
 import "reflect-metadata"
 import { Roles } from './roles'
-import { Planning } from './planning'
+//import { Planning } from './planning'
 import { Image } from './image'
 import { Events } from './events'
 
@@ -34,6 +34,7 @@ export class User {
     roles!: Roles[];
 
     @OneToOne(() => Image, image => image.user, { cascade: true })
+    @JoinColumn()
     image!: Image;
 
     @Column({ unique: true }) 
@@ -45,8 +46,8 @@ export class User {
     @OneToMany(() => Token, token => token.user)
     tokens!: Token[]
 
-    @ManyToMany(() => Planning, planning => planning.users)
-    plannings!: Planning[]
+    // @ManyToMany(() => Planning, planning => planning.users)
+    // plannings!: Planning[]
     
     @ManyToMany(() => Events, event => event.participants)
     events!: Events[];
