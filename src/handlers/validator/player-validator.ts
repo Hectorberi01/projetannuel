@@ -11,7 +11,7 @@ export interface PlayerRequest{
     LastName: string,
     Height: number,
     Weight: number,
-    Birth_Date: Date,
+    BirthDate: Date,
     Sport: Sport,
     FormationCenter: FormationCenter,
     Image : Image,
@@ -25,11 +25,11 @@ export const PlayerValidator = Joi.object<PlayerRequest>({
     LastName: Joi.string().required(),
     Height: Joi.number().required(),
     Weight:Joi.number().required(),
-    Birth_Date: Joi.date().required(),
+    BirthDate: Joi.date().required(),
     stats: Joi.object().optional(),
     Sport: Joi.object().required(), 
     FormationCenter: Joi.object().required(), 
-    Image : Joi.object().optional(), 
+    Image : Joi.object().optional(),
 })
 
 export const listPlayerValidation = Joi.object<ListPlayerRequest>({

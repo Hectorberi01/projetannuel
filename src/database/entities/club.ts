@@ -13,14 +13,14 @@ export class Club {
     Name!: string
 
     @Column() 
-    Adress!: string
+    Address!: string
+
+    @Column()
+    Email!: string
 
     @ManyToMany(() => Sport)
     @JoinTable()
     Sports!: Sport[];
-
-    @Column()
-    Id_Image! : number
 
     @Column() 
     creation_date!:Date
@@ -30,22 +30,24 @@ export class Club {
 
     @OneToOne(() => Image, image => image.club, { cascade: true })
     @JoinColumn()
-    image!: Image;
+    Image!: Image;
 
     constructor(
         id?: number, 
         name?: string,
-        adress?: string, 
+        address?: string, 
         sport?: Sport[],
-        id_image?: number, 
-        creation_date?: Date
+        image?: Image, 
+        creation_date?: Date,
+        email?: string
     ) 
     {
         if (id) this.Id = id;
         if (name) this.Name = name;
-        if(adress) this.Adress = adress;
+        if(address) this.Address = address;
         if(sport) this.Sports = sport;
-        if(id_image) this.Id_Image = id_image;
+        if(image) this.Image = image;
         if(creation_date) this.creation_date = creation_date;
+        if(email) this.Email = email
     }
 }

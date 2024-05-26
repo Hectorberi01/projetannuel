@@ -12,15 +12,14 @@ export class Image {
     @Column()  
     url!: string;  
 
-    @ManyToOne(() => Player, player => player.Image) 
+    @OneToOne(() => Player, player => player.Image) 
     players!: Player;
 
     @OneToOne(() => User, user => user.image)
-    @JoinColumn()
     user!: User;
 
-    @OneToOne(() => Club, club => club.image)
-    @JoinColumn()
+    @OneToOne(() => Club, club => club.Image)
+
     club!: Club;
 
     constructor(

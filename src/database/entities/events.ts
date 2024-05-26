@@ -23,7 +23,7 @@ export class Events {
     endDate!: Date;
 
     @Column()
-    location!: string;
+    lieu!: string;
 
     @Column({ nullable: true })
     type!: string;
@@ -32,8 +32,13 @@ export class Events {
     recurrence!: string;
 
     @Column({ nullable: true })
+    activity!: string;
+
+    @Column({ nullable: true })
     capacity!: number;
 
+    @Column({ nullable: true })
+    statut!: string;
 
     @ManyToMany(() => User, user => user.events)
     @JoinTable()
@@ -59,7 +64,11 @@ export class Events {
         location?: string,
         capacity?: number,
         type?: string,
+        statut?: string,
+        activity?: string,
         participants?: User[],
+        clubs?: Club[],
+        trainingCenters?: FormationCenter[]
     ) {
         if (id) this.Id = id;
         if (title) this.title = title;
@@ -67,10 +76,13 @@ export class Events {
         if (startDate) this.startDate = startDate;
         if (endDate) this.endDate = endDate;
         if (recurrence) this.recurrence = recurrence;
-        if (location) this.location = location;
+        if (location) this.lieu = location;
         if (capacity) this.capacity = capacity;
         if (type) this.type = type;
+        if (statut) this.statut = statut
+        if (activity) this.activity =activity
         if (participants) this.participants = participants;
-
+        if (clubs) this.clubs;
+        if (trainingCenters) this.trainingCenters
     }
 }

@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne } from 'typeorm'
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, OneToOne, JoinColumn } from 'typeorm'
 import { Token } from "./token"
 import "reflect-metadata"
 import { Sport } from './sport'
@@ -34,7 +34,8 @@ export class Player {
     @ManyToOne(() => Sport, sport => sport.players)
     Sport!: Sport;
 
-    @OneToMany(() => Image, image => image.players)
+    @OneToOne(() => Image, image => image.players,{ cascade: true })
+    @JoinColumn()
     Image!: Image;
 
 

@@ -3,6 +3,9 @@ import express, { Request, Response} from "express";
 import { AppDataSource } from "../database/database";
 import { EventRequest } from "../handlers/validator/events-validator";
 import { Events } from "../database/entities/events";
+import { User } from "../database/entities/useraccount";
+import { FormationCenter } from "../database/entities/formationcenter";
+import { Club } from "../database/entities/club";
 
 
 export interface ListEventUseCase {
@@ -38,15 +41,22 @@ export class EventuseCase{
             newEvent.description = eventData.description;
             newEvent.startDate = eventData.startDate;
             newEvent.endDate = eventData.endDate;
-            newEvent.location = eventData.location;
+            newEvent.lieu = eventData.lieu;
             newEvent.recurrence = eventData.recurrence;
+            newEvent.activity = eventData.activity
             newEvent.clubs = eventData.clubs; // les club
             newEvent.participants = eventData.participants // les utilisateurs
             newEvent.trainingCenters = eventData.trainingCenters // les centres de formations
             newEvent.capacity= eventData.capacity
+            newEvent.statut = eventData.statut
             newEvent.type = eventData.type
-            return eventRepository.save(newEvent);
-
+            
+            const result = await eventRepository.save(newEvent);
+            if(result != null){
+                return result;
+            }else{
+                return
+            }
         }catch(error){
             console.log("erreur")
             return
@@ -76,9 +86,13 @@ export class EventuseCase{
         const eventRepository  = this.db.getRepository(Events);
 
         try {
-            const result = await this.getEventrById(eventid);
-            if(result == null){
-                throw new Error(`${eventid} not found`);
+            const event = await eventRepository.findOne({
+                where: { Id: eventid },
+                relations: ['participants', 'clubs', 'trainingCenters']
+            });
+
+            if(!event){
+                throw new Error(`Event with ID ${eventid} not found`);
             }
 
             return await eventRepository.delete(eventid);

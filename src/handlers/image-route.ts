@@ -72,29 +72,48 @@ export const imageRoutes = (app: express.Express) => {
         }
     })
 
-    app.post("/images",upload.single('image'),async (req: Request, res: Response) =>{
-        try{
-            const imagevalidation = ImageValidator.validate(req.body)
-            console.log("imagevalidation",imagevalidation)
-            
-            if(imagevalidation.error){
-                res.status(400).send(generateValidationErrorMessage(imagevalidation.error.details))
+    app.post("/images",async (req: Request, res: Response) =>{
+        try {
+            console.log('req.body:', req.body);
+            console.log('req.file:', req.file);
+    
+            if (!req.file) {
+                return res.status(400).send({ message: 'No file uploaded' });
             }
-            const imagedata = imagevalidation.value;
-
-            console.log("imagedata",imagedata);
-
-            const imageUseCase = new ImageUseCase(AppDataSource)
-
-            const result = await  imageUseCase.CreatImage(imagedata)
-
-            console.log("result",result)
-            
-            return res.status(201).send(result);
-        }catch(error){
-            console.log(error)
-            res.status(500).send({ "error": "internal error retry later" })
-            return
+    
+            // Vous pouvez enregistrer les informations du fichier dans la base de données ici
+            // const image = new Image();
+            // image.url = req.file.path; // ou une autre logique pour enregistrer l'URL du fichier
+            // await image.save();
+    
+            res.status(200).send({ message: 'File uploaded successfully', file: req.file });
+        } catch (error) {
+            console.error('Error uploading file:', error);
+            res.status(500).send({ message: 'Error uploading file' });
         }
+        // try{
+        //     console.log(req.file)
+        //     const imagevalidation = ImageValidator.validate(req.body)
+        //     console.log("imagevalidation",imagevalidation)
+            
+        //     if(imagevalidation.error){
+        //         res.status(400).send(generateValidationErrorMessage(imagevalidation.error.details))
+        //     }
+        //     const imagedata = imagevalidation.value;
+
+        //     console.log("imagedata",imagedata);
+
+        //     const imageUseCase = new ImageUseCase(AppDataSource)
+
+        //     const result = await  imageUseCase.CreatImage(imagedata)
+
+        //     console.log("result",result)
+            
+        //     return res.status(201).send(result);
+        // }catch(error){
+        //     console.log(error)
+        //     res.status(500).send({ "error": "internal error retry later" })
+        //     return
+        // }
     });
 }

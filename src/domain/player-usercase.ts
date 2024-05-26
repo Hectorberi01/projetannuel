@@ -1,6 +1,7 @@
 import { DataSource, DeleteResult, EntityNotFoundError } from "typeorm";
 import { Player } from "../database/entities/player";
 import { PlayerRequest } from "../handlers/validator/player-validator";
+import { Image } from "../database/entities/image";
 
 export interface ListPlayerCase {
     limit: number;
@@ -10,11 +11,14 @@ export interface ListPlayerCase {
 
 export class PlayerUseCase{
 
-    constructor(private readonly db: DataSource){}
+    private db: any;
+
+    constructor(db: any) {
+        this.db = db;
+    }
 
     async listPlayer(listplayer: ListPlayerCase): Promise<{ player: Player[], total: number }> {
 
-        //const query = this.db.getRepository(Player).createQueryBuilder('player');
         const query = this.db.getRepository(Player).createQueryBuilder('player')
         .leftJoinAndSelect('player.FormationCenter', 'formationCenter') 
         .leftJoinAndSelect('player.Sport', 'sport') 
@@ -36,7 +40,7 @@ export class PlayerUseCase{
             const newPlayer = new Player();
             newPlayer.FirstName = playerData.FirstName,
             newPlayer.Lastname = playerData.LastName,
-            newPlayer.BirthDate = playerData.Birth_Date,
+            newPlayer.BirthDate = playerData.BirthDate,
             newPlayer.Height = playerData.Height,
             newPlayer.Weight = playerData.Weight,
             newPlayer.Image = playerData.Image,
@@ -57,7 +61,8 @@ export class PlayerUseCase{
         const playerRepository  = this.db.getRepository(Player);
 
         const player = await playerRepository.findOne({
-            where: { Id: playerid }
+            where: { Id: playerid },
+            relations: ['FormationCenter', 'Sport', 'Image'] 
         });
         if (!player) {
             throw new EntityNotFoundError(Player, playerid);
@@ -91,21 +96,52 @@ export class PlayerUseCase{
 
     }
 
-    async upDatePlayerData(playerid : number,info : any){
+    async upDatePlayerData(playerId : number,info : any){
+
+        const playerRepository = this.db.getRepository(Player);
+        const imageRepository = this.db.getRepository(Image);
         try{
-            const playerRepository = this.db.getRepository(Player)
-            const result  = await this.getPlayerById(playerid)
-            if(result instanceof Player){
-                const player = result;
-              
+            let image = null;
+            if (info.imagePath) {
+                image = new Image();
+                image.url = info.imagePath;
+                await imageRepository.save(image);
+            }
+
+            const queryRunner = this.db.createQueryRunner();
+            await queryRunner.connect();
+            await queryRunner.startTransaction();
+
+            try{
+                const player = await playerRepository.findOne({
+                    where: { Id: playerId },
+                    relations: ['FormationCenter', 'Sport', 'Image'],
+                });
+    
+                if (!player) {
+                    throw new EntityNotFoundError(Player, playerId);
+                }
+    
                 Object.assign(player, info);
-            
-               await playerRepository.save(player) 
-            }else {
-                throw new Error('player not found');
+    
+                if (image) {
+                    player.Image = image;
+                    image.players = player;
+                    await queryRunner.manager.save(image);
+                }
+    
+                await queryRunner.manager.save(player);
+                await queryRunner.commitTransaction();
+            }catch(error){
+                await queryRunner.rollbackTransaction();
+                console.error("Failed to update player with ID:", playerId, error);
+                throw error;
+            }finally{
+                await queryRunner.release();
             }
         }catch(error){
-            console.error("Failed to update player with ID:", playerid, error);
+            console.error("Failed to save image or update player with ID:", playerId, error);
+            throw error
         }
     }
 }

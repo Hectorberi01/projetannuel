@@ -14,14 +14,15 @@ import {eventsRoutes} from "./handlers/events-route";
 import {sportRoutes} from "./handlers/sport-route";
 import { AppDataSource } from "./database/database";
 import 'dotenv/config';
-import { planningRoutes } from "./handlers/planning-route";
+//import { planningRoutes } from "./handlers/planning-route";
 import { voteRoutes } from "./handlers/vote-route";
 const cors = require('cors');
+import path from 'path';
 
 
 const main = async () => {
     const app = express()
-    const port = 3000
+    const port = 4000
     try {
 
         await AppDataSource.initialize()
@@ -33,6 +34,9 @@ const main = async () => {
     }
 
     app.use(express.json())
+    //app.use('/images', express.static(path.join(__dirname, 'src/images')));
+    app.use('/images', express.static(path.join(__dirname, 'images'))); // Utilise le chemin relatif
+
     // Pour autoriser toutes les origines
     app.use(cors());
     initRoutes(app)
@@ -40,7 +44,7 @@ const main = async () => {
     clubRoutes(app)
     documentsRoutes(app)
     formationcenterRoutes(app)
-    imageRoutes(app)
+    //imageRoutes(app)
     newletterRoutes(app)
     playerRoutes(app)
     roleRoutes(app)
@@ -48,7 +52,7 @@ const main = async () => {
     dontsRoutes(app)
     eventsRoutes(app)
     sportRoutes(app)
-    planningRoutes(app)
+    //planningRoutes(app)
     voteRoutes(app)
 
     app.listen(port, () => {

@@ -1,4 +1,4 @@
-import express, { Request, Response } from "express";
+import express, { NextFunction, Request, Response } from "express";
 import { EventIdValidation, EventValidator, listEventValidation } from "./validator/events-validator";
 import { generateValidationErrorMessage } from "./validator/generate-validation-message";
 import { AppDataSource } from "../database/database";
@@ -65,24 +65,26 @@ export const eventsRoutes = (app: express.Express) => {
     })
 
     //création d'un évenement
-    app.post("/events", async (req: Request, res: Response) => {
+    app.post("/events", async (req: Request, res: Response,next: NextFunction) => {
         try {
             const eventvalidation = EventValidator.validate(req.body)
             if (eventvalidation.error) {
                 res.status(400).send(generateValidationErrorMessage(eventvalidation.error.details))
-            }
-            const eventdata = eventvalidation.value
-            if (eventdata.Id_Image == null) {
-                eventdata.Id_Image = 0;
+                return
             }
 
+            const eventdata = eventvalidation.value
             const eventUsecase = new EventuseCase(AppDataSource);
             const result = await eventUsecase.CreatEvent(eventdata)
-            console.log(result)
-            return res.status(201).send(result);
+            
+            if (result) {
+                return res.status(201).send(result);
+            } else {
+                return res.status(500).send({ "error": "Failed to create event" });
+            }
+
         } catch (error) {
-            console.log(error)
-            res.status(500).send({ "error": "internal error retry later" })
+            res.status(500).send({ "error": "internal error retry later: " })
             return
         }
     })
@@ -93,6 +95,7 @@ export const eventsRoutes = (app: express.Express) => {
             const eventidvalidation = EventIdValidation.validate(req.params)
 
             if (eventidvalidation.error) {
+                console.log("eventidvalidation",eventidvalidation)
                 res.status(400).send(generateValidationErrorMessage(eventidvalidation.error.details))
             }
 
