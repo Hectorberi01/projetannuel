@@ -1,11 +1,16 @@
-import express, { Request, Response, response } from "express";
-import { generateValidationErrorMessage } from "./validator/generate-validation-message";
-import { AppDataSource } from "../database/database";
-import { createSondageValidation, listSondageValidation, idSondageValidation, voteSondageValidation } from "./validator/sondage-validator";
-import { SondageUseCase } from "../domain/sondage-usecase";
+import express, {Request, Response} from "express";
+import {generateValidationErrorMessage} from "./validator/generate-validation-message";
+import {AppDataSource} from "../database/database";
+import {
+    createSondageValidation,
+    idSondageValidation,
+    listSondageValidation,
+    voteSondageValidation
+} from "./validator/sondage-validator";
+import {SondageUseCase} from "../domain/sondage-usecase";
 
 
-export const sondageRoutes = (app: express.Express) => {
+export const sondagesRoutes = (app: express.Express) => {
 
     app.post("/sondages", async (req: Request, res: Response) => {
 
@@ -44,7 +49,7 @@ export const sondageRoutes = (app: express.Express) => {
             const page = listSondageRequest.page ?? 1
             try {
                 const sondageUseCase = new SondageUseCase(AppDataSource)
-                const listplayer = await sondageUseCase.getAllSondages({ ...listSondageRequest, page, limit })
+                const listplayer = await sondageUseCase.getAllSondages({...listSondageRequest, page, limit})
                 res.status(200).send(listplayer)
             } catch (error) {
                 console.log(error)
@@ -56,7 +61,7 @@ export const sondageRoutes = (app: express.Express) => {
         }
     })
 
-    app.get("sondages/:id", async (req: Request, res: Response) => {
+    app.get("/sondages/:id", async (req: Request, res: Response) => {
 
         const sondageIdValidation = idSondageValidation.validate(req.params);
 
@@ -77,22 +82,21 @@ export const sondageRoutes = (app: express.Express) => {
 
     app.put("/sondages/:id/vote", async (req: Request, res: Response) => {
 
-        const voteIdValidation = voteSondageValidation.validate(req.params);
-
-        if (voteIdValidation.error) {
-            res.status(500).send(generateValidationErrorMessage(voteIdValidation.error.details))
+        const voteValidation = voteSondageValidation.validate(req.body);
+        if (voteValidation.error) {
+            return res.status(400).send(generateValidationErrorMessage(voteValidation.error.details));
         }
 
-        const voteIdQuestion = voteIdValidation.value.idQuestion;
-        const voteIdUser = voteIdValidation.value.idUser;
-        const voteIdSondage = voteIdValidation.value.idSondage;
+        const voteData = voteValidation.value;
+
         const sondageUseCase = new SondageUseCase(AppDataSource);
 
         try {
-            const result = await sondageUseCase.voteForSondage(voteIdSondage, voteIdQuestion, voteIdUser);
-            res.status(200).send(result);
+            const result = await sondageUseCase.voteForSondage(voteData.idSondage, voteData.idQuestion, voteData.idUser);
+            return res.status(200).send(result);
         } catch (error) {
-            res.status(500).send(error);
+            console.error(error);
+            return res.status(500).send(error);
         }
     })
 }

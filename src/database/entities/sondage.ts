@@ -1,34 +1,33 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable, ManyToOne } from 'typeorm'
-import { User } from "./useraccount";
-import { Question } from './question';
-import { Answer } from './answer';
+import {Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn} from 'typeorm';
+import {User} from "./useraccount";
+import {Question} from './question';
+import {Answer} from './answer';
 
 @Entity()
 export class Sondage {
-
     @PrimaryGeneratedColumn()
-    id!: number
+    id!: number;
 
     @Column()
-    name!: string
+    name!: string;
 
     @Column()
-    startDate!: Date
+    startDate!: Date;
 
     @Column()
-    endDate!: Date
+    endDate!: Date;
 
     @Column()
-    createdAt!: Date
+    createdAt!: Date;
 
     @ManyToOne(() => User, user => user.sondages)
-    createdBy!: User
+    createdBy!: User;
 
     @OneToMany(() => Question, question => question.sondage)
     questions!: Question[];
-    
+
     @OneToMany(() => Answer, answer => answer.sondage)
-    answers!: Answer[]
+    answers!: Answer[];
 
     constructor(id?: number, name?: string, startDate?: Date, endDate?: Date, createdAt?: Date, createdBy?: User, questions?: Question[], answers?: Answer[]) {
         if (id) this.id = id;

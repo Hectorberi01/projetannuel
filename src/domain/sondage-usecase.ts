@@ -16,7 +16,7 @@ export class SondageUseCase {
     constructor(private readonly db: DataSource) { }
 
     async getAllSondages(listSondageRequest: listSondage): Promise<{ sondages: Sondage[], total: number }> {
-        const query = this.db.createQueryBuilder(Sondage, 'room');
+        const query = this.db.createQueryBuilder(Sondage, 'sondage');
 
         query.leftJoinAndSelect('sondage.questions', 'questions');
 
@@ -89,11 +89,11 @@ export class SondageUseCase {
         }
 
         // on vérifie si le user à déjà voté pour ce sondage
-        const potentiaAnwser = answerRepository.findOne({
+        const potentiaAnwser = await answerRepository.findOne({
             where: { user: user, sondage: sondage }
         });
 
-        if (!potentiaAnwser) {
+        if (potentiaAnwser != null) {
             throw new Error("User already voted")
         }
 
@@ -104,7 +104,7 @@ export class SondageUseCase {
         answer.user = user;
         answer.createdAt = new Date();
 
-        const result = await answerRepository.create(answer);
+        const result = await answerRepository.save(answer);
 
         if (!result) {
             throw new Error("Error while creating answer")
