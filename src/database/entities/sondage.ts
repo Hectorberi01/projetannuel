@@ -1,6 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable } from 'typeorm'
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable, ManyToOne } from 'typeorm'
 import { User } from "./useraccount";
 import { Question } from './question';
+import { Answer } from './answer';
 
 @Entity()
 export class Sondage {
@@ -20,15 +21,16 @@ export class Sondage {
     @Column()
     createdAt!: Date
 
-    @Column()
+    @ManyToOne(() => User, user => user.sondages)
     createdBy!: User
 
-    @Column()
     @OneToMany(() => Question, question => question.sondage)
     questions!: Question[];
+    
+    @OneToMany(() => Answer, answer => answer.sondage)
+    answers!: Answer[]
 
-
-    constructor(id?: number, name?: string, startDate?: Date, endDate?: Date, createdAt?: Date, createdBy?: User, questions?: Question[]) {
+    constructor(id?: number, name?: string, startDate?: Date, endDate?: Date, createdAt?: Date, createdBy?: User, questions?: Question[], answers?: Answer[]) {
         if (id) this.id = id;
         if (name) this.name = name;
         if (startDate) this.startDate = startDate;
@@ -36,5 +38,6 @@ export class Sondage {
         if (createdAt) this.createdAt = createdAt;
         if (createdBy) this.createdBy = createdBy;
         if (questions) this.questions = questions;
+        if (answers) this.answers = answers;
     }
 }

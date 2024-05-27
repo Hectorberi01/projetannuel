@@ -75,7 +75,7 @@ export class UseruseCase{
         const userRepository  = this.db.getRepository(User);
 
         const user = await userRepository.findOne({
-            where: { Id: userid },
+            where: { id: userid },
             relations: ['events','roles', 'image'] 
         });
         if (!user) {

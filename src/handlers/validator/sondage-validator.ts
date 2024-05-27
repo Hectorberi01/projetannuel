@@ -36,3 +36,15 @@ export const idSondageValidation = Joi.object<IdSondageRequest>({
 export interface IdSondageRequest {
     Id: number
 }
+
+export const voteSondageValidation = Joi.object<VoteSondageRequest>({
+    idSondage: Joi.number().required(),
+    idUser: Joi.number().required(),
+    idQuestion: Joi.number().required(),
+})
+
+export interface VoteSondageRequest {
+    idSondage: number,
+    idUser: number,
+    idQuestion: number
+}

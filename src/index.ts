@@ -13,6 +13,7 @@ import {dontsRoutes} from "./handlers/donts-route";
 import {eventsRoutes} from "./handlers/events-route";
 import {sportRoutes} from "./handlers/sport-route";
 import { AppDataSource } from "./database/database";
+import 'reflect-metadata';
 import 'dotenv/config';
 //import { planningRoutes } from "./handlers/planning-route";
 import { voteRoutes } from "./handlers/vote-route";

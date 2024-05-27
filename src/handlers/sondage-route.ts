@@ -1,15 +1,11 @@
 import express, { Request, Response, response } from "express";
 import { generateValidationErrorMessage } from "./validator/generate-validation-message";
 import { AppDataSource } from "../database/database";
-import { createSondageValidation, listSondageValidation, idSondageValidation } from "./validator/sondage-validator";
+import { createSondageValidation, listSondageValidation, idSondageValidation, voteSondageValidation } from "./validator/sondage-validator";
 import { SondageUseCase } from "../domain/sondage-usecase";
 
 
 export const sondageRoutes = (app: express.Express) => {
-
-    app.get("/healthdonts", (req: Request, res: Response) => {
-        res.send({ "message": "donts" })
-    })
 
     app.post("/sondages", async (req: Request, res: Response) => {
 
@@ -74,6 +70,27 @@ export const sondageRoutes = (app: express.Express) => {
         try {
             const result = await sondageUseCase.getSondageById(sondageIdRequest);
             res.status(200).send(result)
+        } catch (error) {
+            res.status(500).send(error);
+        }
+    })
+
+    app.put("/sondages/:id/vote", async (req: Request, res: Response) => {
+
+        const voteIdValidation = voteSondageValidation.validate(req.params);
+
+        if (voteIdValidation.error) {
+            res.status(500).send(generateValidationErrorMessage(voteIdValidation.error.details))
+        }
+
+        const voteIdQuestion = voteIdValidation.value.idQuestion;
+        const voteIdUser = voteIdValidation.value.idUser;
+        const voteIdSondage = voteIdValidation.value.idSondage;
+        const sondageUseCase = new SondageUseCase(AppDataSource);
+
+        try {
+            const result = await sondageUseCase.voteForSondage(voteIdSondage, voteIdQuestion, voteIdUser);
+            res.status(200).send(result);
         } catch (error) {
             res.status(500).send(error);
         }
