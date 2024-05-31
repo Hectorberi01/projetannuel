@@ -1,9 +1,9 @@
-import { DataSource, QueryResult } from "typeorm";
-import { Sondage } from "../database/entities/sondage";
-import { CreateSondageRequest } from "../handlers/validator/sondage-validator";
-import { Answer } from "../database/entities/answer";
-import { User } from "../database/entities/useraccount";
-import { Question } from "../database/entities/question";
+import {DataSource} from "typeorm";
+import {Sondage} from "../database/entities/sondage";
+import {CreateSondageRequest} from "../handlers/validator/sondage-validator";
+import {Answer} from "../database/entities/answer";
+import {User} from "../database/entities/useraccount";
+import {Question} from "../database/entities/question";
 
 export interface listSondage {
     limit: number;
@@ -13,7 +13,8 @@ export interface listSondage {
 
 export class SondageUseCase {
 
-    constructor(private readonly db: DataSource) { }
+    constructor(private readonly db: DataSource) {
+    }
 
     async getAllSondages(listSondageRequest: listSondage): Promise<{ sondages: Sondage[], total: number }> {
         const query = this.db.createQueryBuilder(Sondage, 'sondage');
@@ -53,8 +54,10 @@ export class SondageUseCase {
         const sondageRepository = this.db.getRepository(Sondage);
 
         const sondage = await sondageRepository.findOne({
-            where: { id: id },
-            relations: ['Questions']
+            where: {id: id},
+            relations: {
+                questions: true
+            }
         });
 
         if (!sondage) {
@@ -64,37 +67,34 @@ export class SondageUseCase {
     }
 
     async voteForSondage(idSondage: number, idQuestion: number, idUser: number): Promise<Answer | null> {
-
         const sondageRepository = this.db.getRepository(Sondage);
         const answerRepository = this.db.getRepository(Answer);
         const userRepository = this.db.getRepository(User);
         const questionRepository = this.db.getRepository(Question)
 
-        const sondage = await sondageRepository.findOneBy({ id: idSondage });
+        const sondage = await sondageRepository.findOneBy({id: idSondage});
 
         if (!sondage) {
             throw new Error("Unknown pool");
         }
 
-        const question = await questionRepository.findOneBy({ id: idQuestion });
+        const question = await questionRepository.findOneBy({id: idQuestion});
 
         if (!question) {
             throw new Error("Unkown answer");
         }
 
-        const user = await userRepository.findOneBy({ id: idUser });
+        const user = await userRepository.findOneBy({id: idUser});
 
         if (!user) {
             throw new Error("Unknown user");
         }
 
         // on vérifie si le user à déjà voté pour ce sondage
-        const potentiaAnwser = await answerRepository.findOne({
-            where: { user: user, sondage: sondage }
-        });
+        const potentiaAnwser = await this.verifyIfUserAlreadyVoted(sondage.id, user.id);
 
-        if (potentiaAnwser != null) {
-            throw new Error("User already voted")
+        if (potentiaAnwser) {
+            throw new Error("Vous avez déjà voté");
         }
 
         // on creer le vote du user
@@ -111,5 +111,50 @@ export class SondageUseCase {
         } else {
             return result;
         }
+    }
+
+    async getAnswersOfSondage(idSondage: number): Promise<{ answers: Answer[], total: number } | null> {
+        const answerRepository = this.db.getRepository(Answer);
+        const sondage = await this.getSondageById(idSondage);
+
+        if (!sondage) {
+            throw new Error("Unknown pool");
+        }
+
+        const [answers, total] = await answerRepository.findAndCount({
+            where: {sondage: sondage},
+            relations: {
+                question: true
+            }
+        });
+
+        return {
+            answers,
+            total,
+        };
+    }
+
+    async verifyIfUserAlreadyVoted(idSondage: number, idUser: number): Promise<boolean> {
+
+        const userRepository = this.db.getRepository(User);
+        const sondageRepository = this.db.getRepository(Sondage);
+        const answerRepository = this.db.getRepository(Answer);
+
+        const user = await userRepository.findOneBy({id: idUser});
+
+        if (!user) {
+            throw new Error("Unknown user");
+        }
+
+        const sondage = await sondageRepository.findOneBy({id: idSondage});
+
+        if (!sondage) {
+            throw new Error("Unknown sondage");
+        }
+        const potentialAnwser = await answerRepository.findOne({
+            where: {user: user, sondage: sondage}
+        });
+
+        return potentialAnwser != null;
     }
 }

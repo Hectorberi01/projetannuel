@@ -1,6 +1,5 @@
 import Joi from "joi"
-import { User } from "../../database/entities/useraccount"
-import { Sondage } from "../../database/entities/sondage"
+import {User} from "../../database/entities/useraccount"
 
 
 export interface CreateSondageRequest {
@@ -30,11 +29,11 @@ export interface ListSondageRequest {
 }
 
 export const idSondageValidation = Joi.object<IdSondageRequest>({
-    Id: Joi.number().required(),
+    id: Joi.number().required(),
 })
 
 export interface IdSondageRequest {
-    Id: number
+    id: number
 }
 
 export const voteSondageValidation = Joi.object<VoteSondageRequest>({
@@ -47,4 +46,14 @@ export interface VoteSondageRequest {
     idSondage: number,
     idUser: number,
     idQuestion: number
+}
+
+export const userAlreadyVoted = Joi.object<UserAlreadyVotedRequest>({
+    idSondage: Joi.number().required(),
+    idUser: Joi.number().required(),
+})
+
+export interface UserAlreadyVotedRequest {
+    idSondage: number,
+    idUser: number,
 }

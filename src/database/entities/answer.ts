@@ -1,14 +1,14 @@
-import {Column, Entity, ManyToOne, OneToOne, PrimaryGeneratedColumn} from 'typeorm';
-import {User} from "./useraccount";
-import {Question} from "./question";
-import {Sondage} from "./sondage";
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { User } from "./useraccount";
+import { Question } from "./question";
+import { Sondage } from "./sondage";
 
 @Entity()
 export class Answer {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @OneToOne(() => Question, question => question.answers)
+    @ManyToOne(() => Question, question => question.answers)
     question!: Question;
 
     @ManyToOne(() => User, user => user.answers)

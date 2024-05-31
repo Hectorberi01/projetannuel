@@ -1,11 +1,16 @@
-import express, { Request, Response } from "express";
-import { UserValidator, UserLoginlValidation, UserIdValidation, listUserValidation } from "../handlers/validator/useraccount-validator"
-import { generateValidationErrorMessage } from "./validator/generate-validation-message";
-import { AppDataSource } from "../database/database";
-import { UseruseCase } from "../domain/user-usecase";
-import bcrypt, { compare } from 'bcrypt';
-import jwt, { sign } from 'jsonwebtoken';
-import { Token } from "../database/entities/token";
+import express, {Request, Response} from "express";
+import {
+    listUserValidation,
+    UserIdValidation,
+    UserLoginlValidation,
+    UserValidator
+} from "../handlers/validator/useraccount-validator"
+import {generateValidationErrorMessage} from "./validator/generate-validation-message";
+import {AppDataSource} from "../database/database";
+import {UseruseCase} from "../domain/user-usecase";
+import bcrypt from 'bcrypt';
+import {sign} from 'jsonwebtoken';
+import {Token} from "../database/entities/token";
 
 export const userRoutes = (app: express.Express) => {
 
@@ -21,16 +26,16 @@ export const userRoutes = (app: express.Express) => {
             const page = listuserRequest.page ?? 1
             try {
                 const userUseCase = new UseruseCase(AppDataSource)
-                const listUser = await userUseCase.listUser({ ...listuserRequest, page, limit })
+                const listUser = await userUseCase.listUser({...listuserRequest, page, limit})
                 res.status(200).send(listUser)
             } catch (error) {
                 console.log(error)
-                res.status(500).send({ "error": "internal error for list user retry later" })
+                res.status(500).send({"error": "internal error for list user retry later"})
                 return
             }
         } catch (error) {
             console.log(error)
-            res.status(500).send({ "error": "internal error retry later" })
+            res.status(500).send({"error": "internal error retry later"})
             return
         }
     })
@@ -54,7 +59,7 @@ export const userRoutes = (app: express.Express) => {
             return res.status(201).send(result);
         } catch (error) {
             console.log(error)
-            res.status(500).send({ "error": "internal error retry later" })
+            res.status(500).send({"error": "internal error retry later"})
             return
         }
     })
@@ -73,12 +78,12 @@ export const userRoutes = (app: express.Express) => {
             const user = await userUsecase.getUserByEmail(userdata.email);
 
             if (!user) {
-                return res.status(401).json({ error: 'Invalid email or password' });
+                return res.status(401).json({error: 'Identifiant ou mot de passe incorrect'});
             }
 
             const passwordMatch = await bcrypt.compare(userdata.password, user.password);
             if (!passwordMatch) {
-                return res.status(401).json({ error: 'Invalid email or password' });
+                return res.status(401).json({error: 'Identifiant ou mot de passe incorrect'});
             }
 
             const secret = process.env.JWT_SECRET;
@@ -86,13 +91,13 @@ export const userRoutes = (app: express.Express) => {
                 throw new Error('JWT_SECRET is not defined');
             }
 
-            const token = sign({ userId: user.id, email: user.email }, secret, { expiresIn: '1d' });
-            await AppDataSource.getRepository(Token).save({ token: token, user: user });
+            const token = sign({userId: user.id, email: user.email}, secret, {expiresIn: '1d'});
+            await AppDataSource.getRepository(Token).save({token: token, user: user});
 
-            return res.status(200).json({ token: token, user: user });
+            return res.status(200).json({token: token, user: user});
         } catch (error) {
             console.error(error);
-            return res.status(500).send({ error: 'Internal error, please try again later' });
+            return res.status(500).send({error: 'Internal error, please try again later'});
         }
     })
 
@@ -116,14 +121,14 @@ export const userRoutes = (app: express.Express) => {
             const userid = useridvalidation.value.Id;
             const user = await userUsecase.getUserById(userid)
             if (!user) {
-                res.status(404).send({ "error": "User not found" });
+                res.status(404).send({"error": "User not found"});
                 return;
             }
             res.status(200).send(user);
 
         } catch (error) {
             console.log(error)
-            res.status(500).send({ "error": "internal error retry later" })
+            res.status(500).send({"error": "internal error retry later"})
             return
         }
     })
@@ -142,13 +147,13 @@ export const userRoutes = (app: express.Express) => {
 
             // Vérifier si l'utilisateur a été supprimé avec succès
             if (user.affected === 0) {
-                return res.status(404).json({ error: 'User not found' });
+                return res.status(404).json({error: 'User not found'});
             }
             // Répondre avec succès
-            return res.status(200).json({ message: 'User deleted successfully' });
+            return res.status(200).json({message: 'User deleted successfully'});
         } catch (error) {
             console.log(error)
-            res.status(500).send({ "error": "internal error retry later" })
+            res.status(500).send({"error": "internal error retry later"})
             return
         }
     })
@@ -172,12 +177,12 @@ export const userRoutes = (app: express.Express) => {
 
             // Vérifier si l'ID de l'utilisateur est un nombre valide
             if (isNaN(userId) || userId <= 0) {
-                return res.status(400).json({ error: 'Invalid user ID' });
+                return res.status(400).json({error: 'Invalid user ID'});
             }
 
             // Vérifier si les données à mettre à jour sont fournies
             if (!updatedData || Object.keys(updatedData).length === 0) {
-                return res.status(400).json({ error: 'Updated data not provided' });
+                return res.status(400).json({error: 'Updated data not provided'});
             }
 
             // Appeler la fonction upDateUserData pour récupérer l'utilisateur à mettre à jour
@@ -186,10 +191,10 @@ export const userRoutes = (app: express.Express) => {
             userUsecase.upDateUserData(userId, updatedData)
 
             // Répondre avec succès et renvoyer les informations mises à jour de l'utilisateur
-            return res.status(200).json({ "message": "les information sont enrégistées avec succès" });
+            return res.status(200).json({"message": "les information sont enrégistées avec succès"});
         } catch (error) {
             console.error("Failed to update user:", error);
-            return res.status(500).json({ error: 'Internal server error. Please retry later.' });
+            return res.status(500).json({error: 'Internal server error. Please retry later.'});
         }
     });
 

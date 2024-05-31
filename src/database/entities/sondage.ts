@@ -1,7 +1,7 @@
-import {Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn} from 'typeorm';
-import {User} from "./useraccount";
-import {Question} from './question';
-import {Answer} from './answer';
+import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { User } from "./useraccount";
+import { Question } from './question';
+import { Answer } from './answer';
 
 @Entity()
 export class Sondage {

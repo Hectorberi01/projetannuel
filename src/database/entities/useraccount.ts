@@ -1,36 +1,33 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, ManyToMany, OneToOne, JoinTable, JoinColumn } from 'typeorm'
-import { Token } from "./token"
-import "reflect-metadata"
-import { Roles } from './roles'
-//import { Planning } from './planning'
-import { Image } from './image'
-import { Events } from './events'
-import { Question } from './question'
-import { Answer } from './answer'
-import { Sondage } from './sondage'
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable, OneToOne, JoinColumn } from 'typeorm';
+import { Token } from "./token";
+import { Roles } from './roles';
+import { Image } from './image';
+import { Events } from './events';
+import { Answer } from './answer';
+import { Sondage } from './sondage';
 
 @Entity()
 export class User {
     @PrimaryGeneratedColumn()
-    id!: number
+    id!: number;
 
     @Column()
-    firstname!: string
+    firstname!: string;
 
     @Column()
-    lastname!: string
+    lastname!: string;
 
     @Column({ unique: true })
-    email!: string
+    email!: string;
 
     @Column()
-    birth_date!: Date
+    birth_date!: Date;
 
     @Column()
-    date_creation!: Date
+    date_creation!: Date;
 
     @Column()
-    address!: string
+    address!: string;
 
     @ManyToMany(() => Roles, roles => roles.User)
     @JoinTable()
@@ -41,22 +38,19 @@ export class User {
     image!: Image;
 
     @Column({ unique: true })
-    matricule!: number
+    matricule!: number;
 
     @Column()
-    password!: string
+    password!: string;
 
     @OneToMany(() => Token, token => token.user)
-    tokens!: Token[]
+    tokens!: Token[];
 
-    @ManyToOne(() => Answer, answer => answer.user)
-    answers!: Answer[]
+    @OneToMany(() => Answer, answer => answer.user)
+    answers!: Answer[];
 
     @OneToMany(() => Sondage, sondage => sondage.createdBy)
     sondages!: Sondage[];
-
-    // @ManyToMany(() => Planning, planning => planning.users)
-    // plannings!: Planning[]
 
     @ManyToMany(() => Events, event => event.participants)
     events!: Events[];
@@ -87,8 +81,8 @@ export class User {
         if (image) this.image = image;
         if (matricule) this.matricule = matricule;
         if (password) this.password = password;
-        if (tokens) this.tokens = tokens
-        if (answers) this.answers = answers
-        if (sondages) this.sondages = sondages
+        if (tokens) this.tokens = tokens;
+        if (answers) this.answers = answers;
+        if (sondages) this.sondages = sondages;
     }
 }
