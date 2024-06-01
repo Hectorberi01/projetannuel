@@ -1,21 +1,21 @@
 import express from "express";
-import { useraccountRoutes } from "./handlers/useraccount-route";
-import { clubRoutes } from "./handlers/club-route";
-import { documentsRoutes } from "./handlers/document-route";
-import { formationcenterRoutes } from "./handlers/formationcenter-route";
-import { imageRoutes } from "./handlers/image-route";
-import { newletterRoutes } from "./handlers/newletter-route";
-import { playerRoutes } from "./handlers/player-route";
-import { roleRoutes } from "./handlers/roles-route";
-import { userRoutes } from "./handlers/user-route";
-import { dontsRoutes } from "./handlers/donts-route";
-import { eventsRoutes } from "./handlers/events-route";
-import { sportRoutes } from "./handlers/sport-route";
-import { AppDataSource } from "./database/database";
+import {useraccountRoutes} from "./handlers/useraccount-route";
+import {clubRoutes} from "./handlers/club-route";
+import {documentsRoutes} from "./handlers/document-route";
+import {formationcenterRoutes} from "./handlers/formationcenter-route";
+import {newletterRoutes} from "./handlers/newletter-route";
+import {playerRoutes} from "./handlers/player-route";
+import {roleRoutes} from "./handlers/roles-route";
+import {userRoutes} from "./handlers/user-route";
+import {dontsRoutes} from "./handlers/donts-route";
+import {eventsRoutes} from "./handlers/events-route";
+import {sportRoutes} from "./handlers/sport-route";
+import {AppDataSource} from "./database/database";
 import 'reflect-metadata';
 import 'dotenv/config';
 import path from 'path';
-import { sondagesRoutes } from "./handlers/sondage-route";
+import {sondagesRoutes} from "./handlers/sondage-route";
+import {questionsRoutes} from "./handlers/question-route";
 
 const cors = require('cors');
 require('dotenv').config();
@@ -57,6 +57,7 @@ const main = async () => {
         eventsRoutes(app);
         sportRoutes(app);
         sondagesRoutes(app);
+        questionsRoutes(app);
         console.log("Routes are set up successfully");
     } catch (error) {
         console.error("Error setting up routes:", error);

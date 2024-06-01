@@ -1,19 +1,18 @@
 import Joi from "joi"
-import {User} from "../../database/entities/useraccount"
 
 
 export interface CreateSondageRequest {
     name: string,
     startDate: Date,
     endDate: Date,
-    createdBy: User,
+    userId: number
 }
 
 export const createSondageValidation = Joi.object<CreateSondageRequest>({
-    name: Joi.string().required,
-    startDate: Joi.date().required,
-    endDate: Joi.date().required,
-    /* createdBy = Joi.User */
+    name: Joi.string().required(),
+    startDate: Joi.date().required(),
+    endDate: Joi.date().required(),
+    userId: Joi.number().required(),
 })
 
 export const listSondageValidation = Joi.object<ListSondageRequest>({
