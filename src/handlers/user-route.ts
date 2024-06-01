@@ -115,7 +115,7 @@ export const userRoutes = (app: express.Express) => {
 
             const secret = process.env.ACCESS_TOKEN_SECRET ?? ""
             
-            const token = jwt.sign({ userId: user.Id, email: user.email }, secret, { expiresIn: '1d' });
+            const token = jwt.sign({ userId: user.id, email: user.email }, secret, { expiresIn: '1d' });
 
             await AppDataSource.getRepository(Token).save({ token: token, user: user })
             res.status(200).send(user);
