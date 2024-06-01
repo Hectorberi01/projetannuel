@@ -12,7 +12,7 @@ import { authMiddleware } from "../middlewares/auth-middleware";
 export const userRoutes = (app: express.Express) => {
 
     //Obternir la liste de tout les utlisateurs
-    app.get("/users/account",authMiddleware, async(req :Request, res :Response) =>{
+    app.get("/users/account", async(req :Request, res :Response) =>{
         try{
             const uservalidator = listUserValidation.validate(req.query)
             if(uservalidator.error){
@@ -43,7 +43,7 @@ export const userRoutes = (app: express.Express) => {
     })
 
     // pour la création d'un compte utilisateur
-    app.post("/users/auth/signup",authMiddleware,upload.single('image'),async(req: Request, res : Response) =>{
+    app.post("/users/auth/signup",upload.single('image'),async(req: Request, res : Response) =>{
         const userUsecase = new UseruseCase(AppDataSource);
         console.log("req.file",req.file)
         try{
@@ -128,7 +128,7 @@ export const userRoutes = (app: express.Express) => {
 
     // à revoir
     // api pour la déconnecter l'utilisateur
-    app.post("/users/auth/logout",authMiddleware, async (req: Request, res: Response) => {
+    app.post("/users/auth/logout", async (req: Request, res: Response) => {
         req.session.destroy(function(){
             res.redirect('/auth/login');
           });  
