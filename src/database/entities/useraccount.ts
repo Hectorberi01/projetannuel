@@ -1,33 +1,33 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, ManyToMany, OneToOne, JoinTable, JoinColumn } from 'typeorm'
-import { Token } from "./token"
-import "reflect-metadata"
-import { Roles } from './roles'
-//import { Planning } from './planning'
-import { Image } from './image'
-import { Events } from './events'
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable, OneToOne, JoinColumn } from 'typeorm';
+import { Token } from "./token";
+import { Roles } from './roles';
+import { Image } from './image';
+import { Events } from './events';
+import { Answer } from './answer';
+import { Sondage } from './sondage';
 
 @Entity()
 export class User {
     @PrimaryGeneratedColumn()
-    Id!: number
+    id!: number;
 
-    @Column() 
-    firstname!: string
+    @Column()
+    firstname!: string;
 
-    @Column() 
-    lastname!: string
+    @Column()
+    lastname!: string;
 
-    @Column({ unique: true }) 
-    email!: string
+    @Column({ unique: true })
+    email!: string;
 
-    @Column() 
-    birth_date!: Date
+    @Column()
+    birth_date!: Date;
 
-    @Column() 
-    date_creation! : Date
+    @Column()
+    date_creation!: Date;
 
-    @Column() 
-    address!: string
+    @Column()
+    address!: string;
 
     @ManyToMany(() => Roles, roles => roles.User)
     @JoinTable()
@@ -37,46 +37,52 @@ export class User {
     @JoinColumn()
     image!: Image;
 
-    @Column({ unique: true }) 
-    matricule!: number
+    @Column({ unique: true })
+    matricule!: number;
 
-    @Column() 
-    password!: string
+    @Column()
+    password!: string;
 
     @OneToMany(() => Token, token => token.user)
-    tokens!: Token[]
+    tokens!: Token[];
 
-    // @ManyToMany(() => Planning, planning => planning.users)
-    // plannings!: Planning[]
-    
+    @OneToMany(() => Answer, answer => answer.user)
+    answers!: Answer[];
+
+    @OneToMany(() => Sondage, sondage => sondage.createdBy)
+    sondages!: Sondage[];
+
     @ManyToMany(() => Events, event => event.participants)
     events!: Events[];
 
-    constructor(id?: number, 
+    constructor(id?: number,
         firstname?: string,
         lastname?: string,
         email?: string,
         birth_date?: Date,
         date_creation?: Date,
-        address?: string, 
+        address?: string,
         role?: Roles[],
-        image?: Image, 
-        matricule?: number, 
+        image?: Image,
+        matricule?: number,
         password?: string,
-        tokens?: Token[]
-        )
-        {
-            if (id) this.Id = id;
-            if (firstname) this.firstname = firstname;
-            if(lastname) this.lastname = lastname;
-            if(email) this.email = email;
-            if(birth_date) this.birth_date = birth_date;
-            if(date_creation) this.date_creation = date_creation;
-            if(address) this.address = address;
-            if(role) this.roles = role;
-            if(image) this.image = image;
-            if(matricule) this.matricule =matricule;
-            if(password) this.password = password;
-            if(tokens) this.tokens = tokens
-        }
+        tokens?: Token[],
+        answers?: Answer[],
+        sondages?: Sondage[],
+    ) {
+        if (id) this.id = id;
+        if (firstname) this.firstname = firstname;
+        if (lastname) this.lastname = lastname;
+        if (email) this.email = email;
+        if (birth_date) this.birth_date = birth_date;
+        if (date_creation) this.date_creation = date_creation;
+        if (address) this.address = address;
+        if (role) this.roles = role;
+        if (image) this.image = image;
+        if (matricule) this.matricule = matricule;
+        if (password) this.password = password;
+        if (tokens) this.tokens = tokens;
+        if (answers) this.answers = answers;
+        if (sondages) this.sondages = sondages;
+    }
 }
