@@ -1,5 +1,5 @@
 import express from "express";
-import { initRoutes } from "./handlers/routes";
+//import { initRoutes } from "./handlers/routes";
 import {useraccountRoutes} from "./handlers/useraccount-route";
 import {clubRoutes} from "./handlers/club-route";
 import {documentsRoutes} from "./handlers/document-route";
@@ -19,6 +19,7 @@ import { voteRoutes } from "./handlers/vote-route";
 const cors = require('cors');
 import path from 'path';
 
+require('dotenv').config();
 
 const main = async () => {
     const app = express()
@@ -32,14 +33,18 @@ const main = async () => {
         console.error("Cannot contact database")
         process.exit(1)
     }
-
+    
+    if (!process.env.ACCESS_TOKEN_SECRET) {
+        process.exit(1);
+    }
+    
     app.use(express.json())
-    //app.use('/images', express.static(path.join(__dirname, 'src/images')));
+
     app.use('/images', express.static(path.join(__dirname, 'images'))); // Utilise le chemin relatif
 
     // Pour autoriser toutes les origines
     app.use(cors());
-    initRoutes(app)
+    //initRoutes(app)
     useraccountRoutes(app)
     clubRoutes(app)
     documentsRoutes(app)

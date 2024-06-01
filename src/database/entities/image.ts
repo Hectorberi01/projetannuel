@@ -16,7 +16,7 @@ export class Image {
     players!: Player;
 
     @OneToOne(() => User, user => user.image)
-    user!: User;
+    users!: User;
 
     @OneToOne(() => Club, club => club.Image)
 
@@ -33,7 +33,7 @@ export class Image {
         if (id) this.Id = id;
         if(url) this.url = url;
         if(players) this.players = players;
-        if(user) this.user = user;
+        if(user) this.users = user;
         if(club) this.club = club;
     }
 }

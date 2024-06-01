@@ -23,7 +23,7 @@ export class User {
     @Column() 
     birth_date!: Date
 
-    @Column() 
+    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' }) 
     date_creation! : Date
 
     @Column() 
@@ -33,7 +33,7 @@ export class User {
     @JoinTable()
     roles!: Roles[];
 
-    @OneToOne(() => Image, image => image.user, { cascade: true })
+    @OneToOne(() => Image, image => image.users, { cascade: true })
     @JoinColumn()
     image!: Image;
 

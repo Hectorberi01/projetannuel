@@ -90,7 +90,6 @@ export const clubRoutes = (app: express.Express) => {
 
             
             const result = await  clubUsecase.CreatClub(clubdata,Data)
-            //res.json(JSON.parse(JSON.stringify(result, removeCircularReferences())));
             return res.status(201).send(result);
         }catch(error){
             console.log(error)
@@ -117,7 +116,7 @@ export const clubRoutes = (app: express.Express) => {
             
             const value = clubidvalidation.value;
             const clubId = value.Id;
-            
+
             // Ajouter le chemin du fichier téléchargé aux données de mise à jour
             if (req.file) {
                 updatedData.imagePath = 'images/' + req.file.filename; // Assurez-vous que ce champ correspond à celui attendu par votre modèle Player

@@ -1,20 +1,20 @@
-import express, { Request, Response} from "express";
-import session from 'express-session';
-import {UserValidator, LoginUserValidation}from "./validator/user-validator";
-import { generateValidationErrorMessage } from "./validator/generate-validation-message";
-import { User } from "../database/entities/useraccount";
-import { AppDataSource } from "../database/database";
-import { compare, hash} from "bcrypt";
-import { sign} from "jsonwebtoken";
-import { Token } from "../database/entities/token";
-import {UseruseCase, } from "../domain/user-usecase"
+// import express, { Request, Response} from "express";
+// import session from 'express-session';
+// import {UserValidator, LoginUserValidation}from "./validator/user-validator";
+// import { generateValidationErrorMessage } from "./validator/generate-validation-message";
+// import { User } from "../database/entities/useraccount";
+// import { AppDataSource } from "../database/database";
+// import { compare, hash} from "bcrypt";
+// import { sign} from "jsonwebtoken";
+// import { Token } from "../database/entities/token";
+// import {UseruseCase, } from "../domain/user-usecase"
 
 
-export const initRoutes = (app: express.Express) => {
+// export const initRoutes = (app: express.Express) => {
      
-    app.get("/health", (req: Request, res: Response) => {
-        res.send({ "message": "hello world hector" })
-    })
+//     app.get("/health", (req: Request, res: Response) => {
+//         res.send({ "message": "hello world hector" })
+//     })
 
     //pour créer un utlisateur 
    /* app.post("/users", async (req: Request, res: Response)=>{
@@ -101,6 +101,6 @@ export const initRoutes = (app: express.Express) => {
             console.log(error);
             res.status(500).send({ error: 'Internal server error' });
         }
-    });*/
+    });
     
-}
+}*/
