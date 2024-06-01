@@ -1,16 +1,13 @@
-import express, {Request, Response} from "express";
-import {
-    listUserValidation,
-    UserIdValidation,
-    UserLoginlValidation,
-    UserValidator
-} from "../handlers/validator/useraccount-validator"
-import {generateValidationErrorMessage} from "./validator/generate-validation-message";
-import {AppDataSource} from "../database/database";
-import {UseruseCase} from "../domain/user-usecase";
-import bcrypt from 'bcrypt';
-import {sign} from 'jsonwebtoken';
-import {Token} from "../database/entities/token";
+import express, { Request, Response} from "express";
+import {UserValidator, UserLoginlValidation, UserIdValidation, listUserValidation} from "../handlers/validator/useraccount-validator"
+import { generateValidationErrorMessage } from "./validator/generate-validation-message";
+import { AppDataSource } from "../database/database";
+import { UseruseCase } from "../domain/user-usecase";
+import bcrypt, { compare } from 'bcrypt';
+import jwt, { sign } from 'jsonwebtoken';
+import { Token } from "../database/entities/token";
+import { upload } from "../middlewares/multer-config";
+import { authMiddleware } from "../middlewares/auth-middleware";
 
 export const userRoutes = (app: express.Express) => {
 
@@ -18,6 +15,11 @@ export const userRoutes = (app: express.Express) => {
     app.get("/users/account", async (req: Request, res: Response) => {
         try {
             const uservalidator = listUserValidation.validate(req.query)
+            if(uservalidator.error){
+                console.log("uservalidator",uservalidator)
+                res.status(400).send(generateValidationErrorMessage(uservalidator.error.details))
+                return
+            }
             const listuserRequest = uservalidator.value
             let limit = 50
             if (listuserRequest.limit) {
@@ -41,21 +43,44 @@ export const userRoutes = (app: express.Express) => {
     })
 
     // pour la création d'un compte utilisateur
-    app.post("/users/auth/signup", async (req: Request, res: Response) => {
-        try {
+    app.post("/users/auth/signup",upload.single('image'),async(req: Request, res : Response) =>{
+        const userUsecase = new UseruseCase(AppDataSource);
+        console.log("req.file",req.file)
+        try{
+            console.log("userdata",req.body)
+  
+            if (typeof req.body.roles === 'string') {
+                try {
+                    req.body.roles = JSON.parse(req.body.roles);
+                } catch (e) {
+                    return res.status(400).send({ error: "Roles must be a valid JSON array1" });
+                }
+            }
+            
+            //Validate the parsed roles as an array
+            if (!Array.isArray(req.body.roles)) {
+                return res.status(400).send({ error: "Roles must be a valid JSON array2" });
+            }
             const uservalidation = UserValidator.validate(req.body)
-            if (uservalidation.error) {
+            
+            if(uservalidation.error){
+                console.log("uservalidation",uservalidation)
                 res.status(400).send(generateValidationErrorMessage(uservalidation.error.details))
+                return
+            }
+            const userdata = uservalidation.value
+            const Data = req.body;
+
+            console.log("req.file",req.file)
+            console.log("userdata",userdata)
+
+            if (req.file) {
+                Data.imagePath = 'images/' + req.file.filename; 
             }
 
-            const userdata = uservalidation.value
-            console.log("userdata", userdata)
-            if (userdata.Id_Image == null) {
-                userdata.Id_Image = 0;
-            }
-            const userUsecase = new UseruseCase(AppDataSource);
-            const result = await userUsecase.createUser(userdata)
-            console.log(result)
+            const result = await  userUsecase.createUser(userdata, req.file)
+
+            const jsonString = JSON.stringify(result, getCircularReplacer());
             return res.status(201).send(result);
         } catch (error) {
             console.log(error)
@@ -65,39 +90,39 @@ export const userRoutes = (app: express.Express) => {
     })
 
     // connexion de l'utlisateur
-    app.post("/users/auth/login", async (req: Request, res: Response) => {
-        try {
-            const useremailvalidation = UserLoginlValidation.validate(req.body);
-            const userdata = useremailvalidation.value;
-
-            if (useremailvalidation.error) {
-                return res.status(400).send(generateValidationErrorMessage(useremailvalidation.error.details));
+    app.post("/users/auth/login", async (req : Request, res : Response) =>{
+        const userUsecase = new UseruseCase(AppDataSource);
+        try{
+            const useremailvalidation = UserLoginlValidation.validate(req.body)
+            
+            if(useremailvalidation.error){
+                console.log("useremailvalidation",useremailvalidation)
+                return res.status(400).send(generateValidationErrorMessage(useremailvalidation.error.details))
             }
 
-            const userUsecase = new UseruseCase(AppDataSource);
-            const user = await userUsecase.getUserByEmail(userdata.email);
-
+            const userdata = useremailvalidation.value;
+           
+            const user = await  userUsecase.getUserByEmail(userdata.email);
+            
             if (!user) {
                 return res.status(401).json({error: 'Identifiant ou mot de passe incorrect'});
             }
-
-            const passwordMatch = await bcrypt.compare(userdata.password, user.password);
+            // Vérification du mot de passe
+            const passwordMatch = bcrypt.compare(userdata.password, user.password);
             if (!passwordMatch) {
-                return res.status(401).json({error: 'Identifiant ou mot de passe incorrect'});
+                return res.status(400);
             }
 
-            const secret = process.env.JWT_SECRET;
-            if (!secret) {
-                throw new Error('JWT_SECRET is not defined');
-            }
+            const secret = process.env.ACCESS_TOKEN_SECRET ?? ""
+            
+            const token = jwt.sign({ userId: user.Id, email: user.email }, secret, { expiresIn: '1d' });
 
-            const token = sign({userId: user.id, email: user.email}, secret, {expiresIn: '1d'});
-            await AppDataSource.getRepository(Token).save({token: token, user: user});
-
-            return res.status(200).json({token: token, user: user});
-        } catch (error) {
-            console.error(error);
-            return res.status(500).send({error: 'Internal error, please try again later'});
+            await AppDataSource.getRepository(Token).save({ token: token, user: user })
+            res.status(200).send(user);
+        }catch(error){
+            console.log(error)
+            res.status(500).send({ "error": "internal error retry later" })
+            return
         }
     })
 
@@ -134,11 +159,11 @@ export const userRoutes = (app: express.Express) => {
     })
 
     // suppression d'un utlisateur
-    app.delete("/users/:Id", async (req: Request, res: Response) => {
-
-        try {
-            const useridvalidation = UserIdValidation.validate(req.params)
-            if (useridvalidation.error) {
+    app.delete("/users/:Id",authMiddleware,async (req: Request, res : Response) =>{
+        
+        try{
+            const useridvalidation  = UserIdValidation.validate(req.params) 
+            if(useridvalidation.error){
                 res.status(400).send(generateValidationErrorMessage(useridvalidation.error.details))
             }
             const userUsecase = new UseruseCase(AppDataSource);
@@ -159,7 +184,7 @@ export const userRoutes = (app: express.Express) => {
     })
 
     // Route pour mettre à jour les informations de l'utilisateur
-    app.put("/users/:Id", async (req: Request, res: Response) => {
+    app.put("/users/:Id",authMiddleware, async (req: Request, res: Response) => {
         try {
             const useridvalidation = UserIdValidation.validate(req.params)
             console.log("userId")
@@ -197,5 +222,22 @@ export const userRoutes = (app: express.Express) => {
             return res.status(500).json({error: 'Internal server error. Please retry later.'});
         }
     });
+
+    // Utility function to handle circular references
+function getCircularReplacer() {
+    const seen = new WeakSet();
+    return (key: any, value: object | null) => {
+        if (typeof value === "object" && value !== null) {
+            if (seen.has(value)) {
+                return;
+            }
+            seen.add(value);
+        }
+        return value;
+    };
+}
+
+    // Utility function to handle circular references
+
 
 }

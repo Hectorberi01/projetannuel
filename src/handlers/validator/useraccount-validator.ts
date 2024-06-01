@@ -10,7 +10,7 @@ export interface UserRequest {
     lastname: string,
     email: string,
     birth_date: Date,
-    creation_date: Date,
+    date_creation: Date,
     address: string,
     roles: Roles[],
     image: Image,
@@ -24,7 +24,7 @@ export const UserValidator = Joi.object<UserRequest>({
     lastname: Joi.string().required(),
     email: Joi.string().email().required(),
     birth_date: Joi.date().required(),
-    creation_date: Joi.date().default(new Date(Date.now())),
+    date_creation: Joi.date().default(new Date(Date.now())),
     address: Joi.string().required(),
     roles: Joi.array().items(Joi.object()).required(),
     image: Joi.object().optional(),
@@ -60,8 +60,13 @@ export interface UserIdRequest {
 export const UserLoginlValidation = Joi.object<UserEmailRequest>({
     email: Joi.string().email(),
     password: joiPassword.string()
-        .doesNotInclude(['password'])
-        .required(),
+    .minOfSpecialCharacters(2)
+    .minOfLowercase(2)
+    .minOfUppercase(2)
+    .minOfNumeric(2)
+    .noWhiteSpaces()
+    .doesNotInclude(['password'])
+    .required(),
 })
 
 export interface UserEmailRequest {

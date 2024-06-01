@@ -1,4 +1,4 @@
-import { DataSource, DeleteResult, EntityNotFoundError } from "typeorm";
+import { DataSource, DeleteResult, EntityNotFoundError, In } from "typeorm";
 import { User } from "../database/entities/useraccount";
 import express, { Request, Response} from "express";
 import session from 'express-session';
@@ -8,6 +8,8 @@ import { AppDataSource } from "../database/database";
 import { UserRequest } from "../handlers/validator/useraccount-validator";
 import { Token } from "../database/entities/token";
 import { Roles } from "../database/entities/roles";
+import { Image } from "../database/entities/image";
+import { UserDTO } from "./TDO";
 
 
 export interface ListUserCase {
@@ -24,7 +26,6 @@ export class UseruseCase{
         const query = this.db.getRepository(User).createQueryBuilder('user')
         .leftJoinAndSelect('user.roles','roles')
         .leftJoinAndSelect('user.image','image')
-        //.leftJoinAndSelect('user.plannings','plannings')
         .leftJoinAndSelect('user.events','events')
         .skip((listuser.page - 1) * listuser.limit) 
         .take(listuser.limit);
@@ -35,38 +36,69 @@ export class UseruseCase{
         };
     }
 
-    async createUser(userData: UserRequest): Promise<User | Error> {
-        try{
-            const rolesRepository = this.db.getRepository(Roles);
-            if(userData.roles == null ){
-                throw ('role est null');
-            }
-            // Vérifier que tous les rôles existent
-            const roles = [];
-            for (const roleData of userData.roles) {
-                const role = await rolesRepository.findOne({ where: { Id: roleData.Id } });
-                if (!role) {
-                throw new Error(`Le rôle avec l'ID ${roleData.Id} n'existe pas`);
-                }
-                roles.push(role);
-            }
-            const userRepository  = this.db.getRepository(User);
-            const newUser = new User();
-            newUser.firstname = userData.firstname,
-            newUser.lastname = userData.lastname,
-            newUser.email = userData.email,
-            newUser.birth_date = userData.birth_date,
-            newUser.date_creation = userData.creation_date,
-            newUser.address = userData.address,
-            newUser.roles = roles,
-            newUser.image = userData.image,
-            newUser.matricule = await this.generateRandomNumber(),
-            newUser.password = await hash(userData.password, 10);
+    async createUser(userData: any,info : any): Promise<UserDTO | Error> {
+        const rolesRepository = this.db.getRepository(Roles);
+        const userRepository  = this.db.getRepository(User);
+        const imageRepository = this.db.getRepository(Image);
+        let image: Image | null = null;
 
-            return userRepository.save(newUser);
+        try{
+            if (info.path) {
+                console.log(image)
+                image = new Image();
+                image.url = info.path;
+                await imageRepository.save(image);
+            }
+
+            const queryRunner = this.db.createQueryRunner();
+            await queryRunner.connect();
+            await queryRunner.startTransaction();
+            
+            try{
+                const newUser = new User();
+
+                Object.assign(newUser,userData);
+
+                const roleIds = userData.roles.map((role: Roles) => role.Id);
+                const roles = await rolesRepository.find({
+                    where: { Id: In(roleIds) }
+                });
+
+                newUser.roles = roles
+                
+                // Générer un matricule et hacher le mot de passe
+                newUser.matricule = await this.generateRandomNumber();
+                newUser.password = await hash(userData.password, 10);
+
+                // Assurez-vous que date_creation est définie
+                if (!newUser.date_creation) {
+                    newUser.date_creation = new Date();
+                }
+
+                // Si une image a été créée, l'associer à l'utilisateur
+                if (image) {
+                    newUser.image = image;
+                    image.users = newUser;
+                    await queryRunner.manager.save(image);
+                }
+
+                // Sauvegarder le nouveau club
+                await queryRunner.manager.save(newUser);
+                await queryRunner.commitTransaction();
+
+                //return newUser
+                return new UserDTO(newUser);
+            }catch(error){
+                await queryRunner.rollbackTransaction();
+                console.error("Failed to creat club :", error);
+                throw error
+            }finally{
+                await queryRunner.release();
+            }
+
         }catch(error){
             console.error("Failed to creat user:",error);
-            throw error;
+            return new Error("Failed to create user");
         }
         
     }
