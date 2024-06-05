@@ -12,7 +12,7 @@ export const sportRoutes = (app: express.Express) => {
     })
 
     // lister les sport disponible
-    app.get("/sport", async (req: Request, res: Response) => {
+    app.get("/sports", async (req: Request, res: Response) => {
         try {
             const sportvalidator = listSportalidation.validate(req.query)
             const listsportRequest = sportvalidator.value
@@ -37,7 +37,7 @@ export const sportRoutes = (app: express.Express) => {
         }
     });
 
-    app.get("/sport/:Id", async (req: Request, res: Response) => {
+    app.get("/sports/:Id", async (req: Request, res: Response) => {
         try {
             const sportidvalidation = SportIdValidation.validate(req.params)
 
@@ -63,7 +63,7 @@ export const sportRoutes = (app: express.Express) => {
 
 
     //création d'un sport
-    app.post("/sport", async (req: Request, res: Response) => {
+    app.post("/sports", async (req: Request, res: Response) => {
         try {
             const sportvalidation = SportValidator.validate(req.body)
             if (sportvalidation.error) {
@@ -83,7 +83,7 @@ export const sportRoutes = (app: express.Express) => {
     });
 
     // Route pour mettre à jour les informations du sport
-    app.put("/sport/:Id", async (req: Request, res: Response) => {
+    app.put("/sports/:Id", async (req: Request, res: Response) => {
         try {
             const sportidvalidation = SportIdValidation.validate(req.params)
 
@@ -118,7 +118,7 @@ export const sportRoutes = (app: express.Express) => {
     });
 
     // sippression du sport
-    app.delete("/sport/:Id", async (req: Request, res: Response) => {
+    app.delete("/sports/:Id", async (req: Request, res: Response) => {
         try {
             const sportidvalidation = SportIdValidation.validate(req.params)
 

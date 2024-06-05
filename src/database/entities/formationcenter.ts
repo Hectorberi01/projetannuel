@@ -7,26 +7,26 @@ import { Events } from './events'
 @Entity()
 export class FormationCenter {
     @PrimaryGeneratedColumn()
-    Id!: number
+    id!: number
 
     @Column()
-    Name!: string
+    name!: string
 
     @Column()
-    Adress!: string
+    address!: string
 
     @Column()
-    Email!: string
+    email!: string
 
     @ManyToMany(() => Sport, sport => sport.formationCenters)
     @JoinTable()
-    Sports!: Sport[];
+    sports!: Sport[];
 
     @Column()
-    Creation_Date!: Date
+    createDate!: Date
 
     @Column()
-    Id_Image!: number
+    idImage!: number
 
     @OneToMany(() => Player, player => player.FormationCenter)
     players!: Player[];
@@ -34,13 +34,13 @@ export class FormationCenter {
     @ManyToMany(() => Events, event => event.trainingCenters)
     events!: Events[];
 
-    constructor(id?: number, name?: string, adress?: string, sport?: Sport[], creation_date?: Date, id_Image?: number, email?: string) {
-        if (id) this.Id = id;
-        if (name) this.Name = name;
-        if (adress) this.Adress = adress;
-        if (email) this.Email = email
-        if (sport) this.Sports = sport;
-        if (creation_date) this.Creation_Date = creation_date;
-        if (id_Image) this.Id_Image = id_Image;
+    constructor(id?: number, name?: string, address?: string, sport?: Sport[], creationDate?: Date, idImage?: number, email?: string) {
+        if (id) this.id = id;
+        if (name) this.name = name;
+        if (address) this.address = address;
+        if (email) this.email = email
+        if (sport) this.sports = sport;
+        if (creationDate) this.createDate = creationDate;
+        if (idImage) this.idImage = idImage;
     }
 }

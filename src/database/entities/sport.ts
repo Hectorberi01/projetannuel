@@ -12,7 +12,7 @@ export class Sport {
     @OneToMany(() => Player, player => player.Sport)
     players!: Player[];
 
-    @ManyToMany(() => FormationCenter, formationCenter => formationCenter.Sports)
+    @ManyToMany(() => FormationCenter, formationCenter => formationCenter.sports)
     formationCenters!: FormationCenter[];
 
 

@@ -33,9 +33,9 @@ export interface ListFormationCenterRequesRequest {
 }
 
 export const FormationCenterIdValidation = Joi.object<FormationCenterIdRequest>({
-    Id: Joi.number().required(),
+    id: Joi.number().required(),
 })
 
 export interface FormationCenterIdRequest {
-    Id: number
+    id: number
 }
