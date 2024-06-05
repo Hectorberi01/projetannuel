@@ -12,15 +12,15 @@ export class SportUseCase{
 
     constructor(private readonly db: DataSource){}
 
-    async ListeSport(listesport: ListSportUseCase): Promise<{ sport: Sport[], total: number }> {
+    async ListeSport(listesport: ListSportUseCase): Promise<{ sports: Sport[], total: number }> {
         const query = this.db.getRepository(Sport).createQueryBuilder('Sport');
 
         query.skip((listesport.page - 1) * listesport.limit);
         query.take(listesport.limit);
 
-        const [sport, total] = await query.getManyAndCount();
+        const [sports, total] = await query.getManyAndCount();
         return {
-            sport,
+            sports,
             total
         };
     }

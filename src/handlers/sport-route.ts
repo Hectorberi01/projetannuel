@@ -1,84 +1,83 @@
-import express, { Request, Response} from "express";
-import { SportIdValidation, SportValidator, listSportalidation } from "./validator/sport-validator";
-import { generateValidationErrorMessage } from "./validator/generate-validation-message";
-import { SportUseCase } from "../domain/sport-usecase";
-import { AppDataSource } from "../database/database";
+import express, {Request, Response} from "express";
+import {listSportalidation, SportIdValidation, SportValidator} from "./validator/sport-validator";
+import {generateValidationErrorMessage} from "./validator/generate-validation-message";
+import {SportUseCase} from "../domain/sport-usecase";
+import {AppDataSource} from "../database/database";
 
 
 export const sportRoutes = (app: express.Express) => {
-     
+
     app.get("/healthsport", (req: Request, res: Response) => {
-        res.send({ "message": "sport route" })
+        res.send({"message": "sport route"})
     })
 
     // lister les sport disponible
-    app.get("/sport", async (req: Request, res: Response) =>{
-        try{
+    app.get("/sport", async (req: Request, res: Response) => {
+        try {
             const sportvalidator = listSportalidation.validate(req.query)
             const listsportRequest = sportvalidator.value
             let limit = 50
-            if(listsportRequest.limit){
+            if (listsportRequest.limit) {
                 limit = listsportRequest.limit
             }
             const page = listsportRequest.page ?? 1
-            try{
+            try {
                 const sportUseCase = new SportUseCase(AppDataSource)
-                const listsport = await sportUseCase.ListeSport({ ...listsportRequest, page, limit })
+                const listsport = await sportUseCase.ListeSport({...listsportRequest, page, limit})
                 res.status(200).send(listsport)
-            }catch(error){
+            } catch (error) {
                 console.log(error)
-                res.status(500).send({ "error": "internal error for list event retry later" })
+                res.status(500).send({"error": "internal error for list event retry later"})
                 return
             }
-        }catch(error){
+        } catch (error) {
             console.log(error)
-            res.status(500).send({ "error": "internal error retry later" })
+            res.status(500).send({"error": "internal error retry later"})
             return
         }
     });
 
-     // obtenir le planning par l'id du planning
-     app.get("/sport/:Id", async (req: Request , res : Response) =>{
-        try{
-            const sportidvalidation  = SportIdValidation.validate(req.params)
-            
-            if(sportidvalidation.error){
+    app.get("/sport/:Id", async (req: Request, res: Response) => {
+        try {
+            const sportidvalidation = SportIdValidation.validate(req.params)
+
+            if (sportidvalidation.error) {
                 res.status(400).send(generateValidationErrorMessage(sportidvalidation.error.details))
             }
 
             const sportUsecase = new SportUseCase(AppDataSource);
             const sportid = sportidvalidation.value.Id;
-            const sport  = await sportUsecase.getSportById(sportid)
+            const sport = await sportUsecase.getSportById(sportid)
             if (!sport) {
-                res.status(404).send({ "error": "sport not found" });
+                res.status(404).send({"error": "sport not found"});
                 return;
             }
             res.status(200).send(sport);
 
-        }catch(error){
+        } catch (error) {
             console.log(error)
-            res.status(500).send({ "error": "internal error retry later" })
+            res.status(500).send({"error": "internal error retry later"})
             return
         }
     })
 
 
     //création d'un sport
-    app.post("/sport",async (req: Request, res: Response) =>{
-        try{
+    app.post("/sport", async (req: Request, res: Response) => {
+        try {
             const sportvalidation = SportValidator.validate(req.body)
-            if(sportvalidation.error){
+            if (sportvalidation.error) {
                 res.status(400).send(generateValidationErrorMessage(sportvalidation.error.details))
             }
             const sportdata = sportvalidation.value
 
             const sportdataUsecase = new SportUseCase(AppDataSource);
-            const result = await  sportdataUsecase.CreatSport(sportdata)
-            console.log("result",result)
+            const result = await sportdataUsecase.CreatSport(sportdata)
+            console.log("result", result)
             return res.status(201).send(result);
-        }catch(error){
+        } catch (error) {
             console.log(error)
-            res.status(500).send({ "error": "internal error retry later" })
+            res.status(500).send({"error": "internal error retry later"})
             return
         }
     });
@@ -86,60 +85,60 @@ export const sportRoutes = (app: express.Express) => {
     // Route pour mettre à jour les informations du sport
     app.put("/sport/:Id", async (req: Request, res: Response) => {
         try {
-            const sportidvalidation  = SportIdValidation.validate(req.params)
-            
-            if(sportidvalidation.error){
+            const sportidvalidation = SportIdValidation.validate(req.params)
+
+            if (sportidvalidation.error) {
                 res.status(400).send(generateValidationErrorMessage(sportidvalidation.error.details))
             }
-            
-            const value =sportidvalidation.value;
+
+            const value = sportidvalidation.value;
             const sportId = value.Id;
             const updatedData = req.body;
-            
+
             // Vérifier si l'ID du sport est un nombre valide
             if (isNaN(sportId) || sportId <= 0) {
-                return res.status(400).json({ error: 'Invalid user ID' });
+                return res.status(400).json({error: 'Invalid user ID'});
             }
 
             // Vérifier si les données à mettre à jour sont fournies
             if (!updatedData || Object.keys(updatedData).length === 0) {
-                return res.status(400).json({ error: 'Updated data not provided' });
+                return res.status(400).json({error: 'Updated data not provided'});
             }
 
             // Appeler la fonction SportUseCase pour récupérer le sport à mettre à jour
             const sportUsecase = new SportUseCase(AppDataSource);
-            
-            sportUsecase.upDateSportData(sportId,updatedData)
 
-            return res.status(200).json({"message":"les information sont enrégistées avec succès"});
+            sportUsecase.upDateSportData(sportId, updatedData)
+
+            return res.status(200).json({"message": "les information sont enrégistées avec succès"});
         } catch (error) {
             console.error("Failed to planning user:", error);
-            return res.status(500).json({ error: 'Internal server error. Please retry later.' });
+            return res.status(500).json({error: 'Internal server error. Please retry later.'});
         }
     });
 
     // sippression du sport
-    app.delete("/sport/:Id",async (req: Request, res : Response) =>{
-        try{
-            const sportidvalidation  = SportIdValidation.validate(req.params)
-            
-            if(sportidvalidation.error){
+    app.delete("/sport/:Id", async (req: Request, res: Response) => {
+        try {
+            const sportidvalidation = SportIdValidation.validate(req.params)
+
+            if (sportidvalidation.error) {
                 res.status(400).send(generateValidationErrorMessage(sportidvalidation.error.details))
             }
-            
+
             const sportUsecase = new SportUseCase(AppDataSource);
             const sportid = sportidvalidation.value.Id;
-            const sport  = await sportUsecase.DeleteSport(sportid)
-        
+            const sport = await sportUsecase.DeleteSport(sportid)
+
             // Vérifier si l'utilisateur a été supprimé avec succès
             if (sport.affected === 0) {
-                return res.status(404).json({ error: 'planning not found' });
+                return res.status(404).json({error: 'planning not found'});
             }
             // Répondre avec succès
-            return res.status(200).json({ message: 'sport deleted successfully' });
-        }catch(error){
+            return res.status(200).json({message: 'sport deleted successfully'});
+        } catch (error) {
             console.log(error)
-            res.status(500).send({ "error": "internal error retry later" })
+            res.status(500).send({"error": "internal error retry later"})
             return
         }
     })

@@ -45,9 +45,7 @@ export const userRoutes = (app: express.Express) => {
     // pour la création d'un compte utilisateur
     app.post("/users/auth/signup",upload.single('image'),async(req: Request, res : Response) =>{
         const userUsecase = new UseruseCase(AppDataSource);
-        console.log("req.file",req.file)
         try{
-            console.log("userdata",req.body)
   
             if (typeof req.body.roles === 'string') {
                 try {
@@ -70,9 +68,6 @@ export const userRoutes = (app: express.Express) => {
             }
             const userdata = uservalidation.value
             const Data = req.body;
-
-            console.log("req.file",req.file)
-            console.log("userdata",userdata)
 
             if (req.file) {
                 Data.imagePath = 'images/' + req.file.filename; 
@@ -124,7 +119,7 @@ export const userRoutes = (app: express.Express) => {
             res.status(500).send({ "error": "internal error retry later" })
             return
         }
-    })
+     })
 
     // à revoir
     // api pour la déconnecter l'utilisateur
