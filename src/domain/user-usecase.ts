@@ -120,7 +120,8 @@ export class UseruseCase{
         const userRepository  = this.db.getRepository(User);
 
         const user = await userRepository.findOne({
-            where: { email: email }
+            where: { email: email },
+            relations: ['events','roles', 'image'] 
         });
 
         if (!user) {

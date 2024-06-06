@@ -21,7 +21,7 @@ export class UserDTO {
     events!: Events[];
 
     constructor(user: User) {
-        this.Id = user.Id;
+        this.Id = user.id;
         this.firstname = user.firstname;
         this.lastname = user.lastname;
         this.email = user.email;

@@ -16,7 +16,6 @@ import { AppDataSource } from "./database/database";
 import 'reflect-metadata';
 import 'dotenv/config';
 //import { planningRoutes } from "./handlers/planning-route";
-import { voteRoutes } from "./handlers/vote-route";
 const cors = require('cors');
 import path from 'path';
 import {sondagesRoutes} from "./handlers/sondage-route";
@@ -60,7 +59,6 @@ const main = async () => {
     eventsRoutes(app)
     sportRoutes(app)
     //planningRoutes(app)
-    voteRoutes(app)
     sondagesRoutes(app)
 
     app.listen(port, () => {
