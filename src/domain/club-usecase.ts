@@ -1,6 +1,8 @@
 import {DataSource} from "typeorm";
 import {Club} from "../database/entities/club";
 import {CreateClubRequest, UpdateClubRequest} from "../handlers/validator/club-validator";
+import {ImageUseCase} from "./image-usecase";
+import {AppDataSource} from "../database/database";
 
 
 export interface ListClubRequest {
@@ -26,8 +28,9 @@ export class ClubUseCase {
         };
     }
 
-    async createClub(clubData: CreateClubRequest): Promise<Club | Error> {
+    async createClub(clubData: CreateClubRequest, file: Express.Multer.File | undefined): Promise<Club | Error> {
         const clubRepository = this.db.getRepository(Club);
+        const imageUseCase = new ImageUseCase(AppDataSource);
         let club = new Club();
         club.creationDate = new Date();
         club.email = clubData.email;
@@ -36,8 +39,14 @@ export class ClubUseCase {
         club.events = [];
         club.sports = clubData.sports;
 
+        if (file != null) {
+            const uploadedImage = await imageUseCase.createImage(file);
+            if (uploadedImage != null) {
+                // @ts-ignore
+                club.image = uploadedImage;
+            }
+        }
         return clubRepository.save(club);
-
     }
 
     async getClubById(clubId: number): Promise<Club> {

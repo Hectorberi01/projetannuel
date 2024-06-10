@@ -1,8 +1,8 @@
-import { Column, Entity, ManyToOne, OneToOne, PrimaryGeneratedColumn, JoinColumn } from 'typeorm';
-import "reflect-metadata";
-import { Sport } from './sport';
-import { FormationCenter } from './formationcenter';
-import { User } from './user';
+import {Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn} from 'typeorm';
+import {Sport} from './sport';
+import {FormationCenter} from './formationcenter';
+import {User} from './user';
+import {Image} from './image';
 
 @Entity()
 export class Player {
@@ -15,16 +15,16 @@ export class Player {
     @Column()
     lastName!: string;
 
-    @Column({ nullable: true })
+    @Column({nullable: true})
     height!: number;
 
-    @Column({ nullable: true })
+    @Column({nullable: true})
     weight!: number;
 
-    @Column({ type: 'date' })
+    @Column({type: 'date'})
     birthDate!: Date;
 
-    @Column({ type: 'json', nullable: true })
+    @Column({type: 'json', nullable: true})
     stats!: string;
 
     @ManyToOne(() => FormationCenter, formationCenter => formationCenter.players)
@@ -34,16 +34,21 @@ export class Player {
     sport!: Sport;
 
     @OneToOne(() => User, user => user.player)
-    @JoinColumn() // Ajoutez cette ligne pour spécifier la colonne de jointure
+    @JoinColumn()
     user!: User;
 
-    constructor(id?: number,
-                firstName?: string,
-                lastName?: string,
-                birthDate?: Date,
-                formationCenter?: FormationCenter,
-                sport?: Sport,
-                user?: User,
+    @OneToMany(() => Image, image => image.player)
+    image!: Image[];
+
+    constructor(
+        id?: number,
+        firstName?: string,
+        lastName?: string,
+        birthDate?: Date,
+        formationCenter?: FormationCenter,
+        sport?: Sport,
+        user?: User,
+        image?: Image[]
     ) {
         if (id) this.id = id;
         if (firstName) this.firstName = firstName;
@@ -52,5 +57,6 @@ export class Player {
         if (formationCenter) this.formationCenter = formationCenter;
         if (sport) this.sport = sport;
         if (user) this.user = user;
+        if (image) this.image = image;
     }
 }

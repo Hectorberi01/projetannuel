@@ -4,6 +4,7 @@ import {AppDataSource} from "../database/database";
 import {idSportValidation} from "./validator/sport-validator";
 import {createClubValidation, listClubValidation, updateClubValidation} from "./validator/club-validator";
 import {ClubUseCase} from "../domain/club-usecase";
+import {upload} from "../middlewares/multer-config";
 
 
 export const clubRoutes = (app: express.Express) => {
@@ -50,15 +51,14 @@ export const clubRoutes = (app: express.Express) => {
         }
     })
 
-    app.post("/clubs", async (req: Request, res: Response) => {
+    app.post("/clubs", upload.single("image"), async (req: Request, res: Response) => {
         try {
             const createClubValidate = createClubValidation.validate(req.body)
             if (createClubValidate.error) {
                 res.status(400).send(generateValidationErrorMessage(createClubValidate.error.details))
             }
-
             const clubUseCase = new ClubUseCase(AppDataSource);
-            const result = await clubUseCase.createClub(createClubValidate.value)
+            const result = await clubUseCase.createClub(createClubValidate.value, req.file)
             return res.status(201).send(result);
         } catch (error) {
             res.status(500).send({"error": "internal error retry later"})

@@ -18,7 +18,27 @@ import {statsRoutes} from "./handlers/stats-route";
 const cors = require('cors');
 require('dotenv').config();
 
+const validateEnvVariables = () => {
+    const requiredEnvVars = [
+        'ACCESS_TOKEN_SECRET',
+        'R2_ACCOUNT_ID',
+        'R2_ACCESS_KEY_ID',
+        'R2_SECRET_ACCESS_KEY',
+        'R2_BUCKET_NAME',
+        'R2_BUCKET_PUBLIC_URL'
+    ];
+
+    const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+
+    if (missingEnvVars.length > 0) {
+        console.error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
+        process.exit(1);
+    }
+};
+
 const main = async () => {
+    validateEnvVariables(); // Appeler la fonction de validation ici
+
     const app = express();
     const port = 4000;
     try {

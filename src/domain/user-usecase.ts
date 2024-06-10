@@ -8,6 +8,7 @@ import {FormationCenterUseCase} from "./formationcenter-usecase";
 import {PlayerUseCase} from "./player-usercase";
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import {ImageUseCase} from "./image-usecase";
 
 export interface ListUserCase {
     limit: number;
@@ -33,9 +34,10 @@ export class UseruseCase {
         };
     }
 
-    async createUser(userData: CreateUserRequest): Promise<User> {
+    async createUser(userData: CreateUserRequest, file: Express.Multer.File | undefined): Promise<User> {
 
         const userRepository = this.db.getRepository(User);
+        const imageUseCase = new ImageUseCase(AppDataSource);
         const roleUseCase = new RoleUseCase(AppDataSource);
 
         const alreadyExist = await this.getUserByEmail(userData.email);
@@ -58,18 +60,15 @@ export class UseruseCase {
         if (role.role === "CLUB") {
             const clubUseCase = new ClubUseCase(AppDataSource);
             // @ts-ignore
-            const club = await clubUseCase.getClubById(parseInt(userData.clubId));
-            user.club = club;
+            user.club = await clubUseCase.getClubById(parseInt(userData.clubId));
         } else if (role.role === "FOMATIONCENTER") {
             const formationCenterUseCase = new FormationCenterUseCase(AppDataSource);
             // @ts-ignore
-            const formationCenter = await formationCenterUseCase.getFormationCenterById(parseInt(userData.formationCenterId));
-            user.formationCenter = formationCenter;
+            user.formationCenter = await formationCenterUseCase.getFormationCenterById(parseInt(userData.formationCenterId));
         } else if (role.role === "PLAYER") {
             const playerUseCase = new PlayerUseCase(AppDataSource);
             // @ts-ignore
-            const player = await playerUseCase.getPlayerById(parseInt(userData.playerId));
-            user.player = player;
+            user.player = await playerUseCase.getPlayerById(parseInt(userData.playerId));
         } else if (role.role === "ADMIN") {
 
         } else {
@@ -80,6 +79,14 @@ export class UseruseCase {
         user.password = await this.hashPassword(tmpPassword);
         user.matricule = await this.generateUserMatricule(user);
         user.deleted = false;
+
+        if (file != null) {
+            const uploadedImage = await imageUseCase.createImage(file);
+            if (uploadedImage) {
+                // @ts-ignore
+                user.image = uploadedImage
+            }
+        }
         return userRepository.save(user);
     }
 
@@ -96,13 +103,13 @@ export class UseruseCase {
             throw new Error("Email ou mot de passe incorrect");
         }
 
-        const token = this.generateToken(potentialUser);
+        const token = await this.generateToken(potentialUser);
         potentialUser.password = "{noop}"
 
         return {user: potentialUser, token};
     }
 
-    generateToken(user: User): string {
+    async generateToken(user: User): Promise<string> {
         const payload = {
             userId: user.id,
             role: user.role.role
@@ -113,16 +120,20 @@ export class UseruseCase {
         return jwt.sign(payload, secret, options);
     }
 
-    async getUserById(userid: number): Promise<User> {
+    async getUserById(userId: number): Promise<User> {
         const userRepository = this.db.getRepository(User);
-        const user = await userRepository.findOneById(userid);
-
+        const user = await userRepository.findOne({
+            where: {id: userId},
+            relations: ['role']
+        })
         if (!user) {
-            throw new EntityNotFoundError(User, userid);
+            throw new EntityNotFoundError(User, userId);
         }
 
         return user;
     }
+
+
 
     async getUserByEmail(email: string): Promise<User | null> {
         const userRepository = this.db.getRepository(User);

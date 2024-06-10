@@ -4,6 +4,7 @@ import {CreatePlayerRequest, UpdatePlayerRequest} from "../handlers/validator/pl
 import {SportUseCase} from "./sport-usecase";
 import {AppDataSource} from "../database/database";
 import {FormationCenterUseCase} from "./formationcenter-usecase";
+import {ImageUseCase} from "./image-usecase";
 
 export interface ListPlayerCase {
     limit: number;
@@ -33,10 +34,11 @@ export class PlayerUseCase {
         };
     }
 
-    async createPlayer(playerData: CreatePlayerRequest): Promise<Player | Error> {
+    async createPlayer(playerData: CreatePlayerRequest, file: Express.Multer.File | undefined): Promise<Player | Error> {
 
         try {
             const sportUseCase = new SportUseCase(AppDataSource);
+            const imageUseCase = new ImageUseCase(AppDataSource);
             const formationCenterUseCase = new FormationCenterUseCase(AppDataSource);
             const playerRepository = this.db.getRepository(Player);
 
@@ -63,8 +65,15 @@ export class PlayerUseCase {
 
             if (playerData.stats) newPlayer.stats = playerData.stats;
 
-            return await playerRepository.save(newPlayer)
+            if (file != null) {
+                const uploadedImage = await imageUseCase.createImage(file);
+                if (uploadedImage) {
+                    // @ts-ignore
+                    newPlayer.image = uploadedImage
+                }
+            }
 
+            return await playerRepository.save(newPlayer)
         } catch (error) {
             console.error("Failed to create player  with ID:", error);
             throw error;

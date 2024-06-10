@@ -1,11 +1,12 @@
-import { Column, Entity, JoinTable, ManyToMany, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn, JoinColumn } from 'typeorm';
-import { Role } from './roles';
-import { Event } from './event';
-import { Answer } from './answer';
-import { Sondage } from './sondage';
-import { Club } from './club';
-import { FormationCenter } from './formationcenter';
-import { Player } from './player';
+import {Column, Entity, JoinColumn, ManyToMany, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn} from 'typeorm';
+import {Role} from './roles';
+import {Event} from './event';
+import {Answer} from './answer';
+import {Sondage} from './sondage';
+import {Club} from './club';
+import {FormationCenter} from './formationcenter';
+import {Player} from './player';
+import {Image} from './image';
 
 @Entity()
 export class User {
@@ -18,23 +19,22 @@ export class User {
     @Column()
     lastname!: string;
 
-    @Column({ unique: true })
+    @Column({unique: true})
     email!: string;
 
-    @Column({ type: 'timestamp' })
+    @Column({type: 'timestamp'})
     birthDate!: Date;
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-    createDate!: Date
+    @Column({type: 'timestamp', default: () => 'CURRENT_TIMESTAMP'})
+    createDate!: Date;
 
     @Column()
     address!: string;
 
     @ManyToOne(() => Role, role => role.users)
-    @JoinTable()
-    role!: Role
+    role!: Role;
 
-    @Column({ unique: true })
+    @Column({unique: true})
     matricule!: string;
 
     @Column()
@@ -56,32 +56,40 @@ export class User {
     deleted!: boolean;
 
     @ManyToOne(() => Club, club => club.users)
+    @JoinColumn({name: 'clubId'})
     club!: Club;
 
     @ManyToOne(() => FormationCenter, formationCenter => formationCenter.users)
+    @JoinColumn({name: 'formationCenterId'})
     formationCenter!: FormationCenter;
 
     @OneToOne(() => Player, player => player.user)
-    @JoinColumn() // Ajoutez cette ligne pour spécifier la colonne de jointure
-    player!: Player
+    @JoinColumn({name: 'playerId'})
+    player!: Player;
 
-    constructor(id?: number,
-                firstname?: string,
-                lastname?: string,
-                email?: string,
-                birth_date?: Date,
-                date_creation?: Date,
-                address?: string,
-                role?: Role,
-                matricule?: string,
-                password?: string,
-                answers?: Answer[],
-                sondages?: Sondage[],
-                newsletter?: boolean,
-                deleted?: boolean,
-                club?: Club,
-                formationCenter?: FormationCenter,
-                player?: Player
+    @OneToOne(() => Image, image => image.user)
+    @JoinColumn({name: 'imageId'})
+    image!: Image;
+
+    constructor(
+        id?: number,
+        firstname?: string,
+        lastname?: string,
+        email?: string,
+        birth_date?: Date,
+        date_creation?: Date,
+        address?: string,
+        role?: Role,
+        matricule?: string,
+        password?: string,
+        answers?: Answer[],
+        sondages?: Sondage[],
+        newsletter?: boolean,
+        deleted?: boolean,
+        club?: Club,
+        formationCenter?: FormationCenter,
+        player?: Player,
+        image?: Image
     ) {
         if (id) this.id = id;
         if (firstname) this.firstname = firstname;
@@ -100,5 +108,6 @@ export class User {
         if (club) this.club = club;
         if (formationCenter) this.formationCenter = formationCenter;
         if (player) this.player = player;
+        if (image) this.image = image;
     }
 }

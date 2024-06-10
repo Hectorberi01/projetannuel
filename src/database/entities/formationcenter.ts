@@ -1,30 +1,29 @@
-import {Column, Entity, JoinTable, ManyToMany, OneToMany, PrimaryGeneratedColumn} from 'typeorm'
-import "reflect-metadata"
-import {Sport} from './sport'
-import {Player} from './player'
-import {Event} from './event'
-import {User} from './user'
+import {Column, Entity, JoinTable, ManyToMany, OneToMany, PrimaryGeneratedColumn} from 'typeorm';
+import {Sport} from './sport';
+import {Player} from './player';
+import {Event} from './event';
+import {User} from './user';
 
 @Entity()
 export class FormationCenter {
     @PrimaryGeneratedColumn()
-    id!: number
+    id!: number;
 
     @Column()
-    name!: string
+    name!: string;
 
     @Column()
-    address!: string
+    address!: string;
 
     @Column()
-    email!: string
+    email!: string;
 
     @ManyToMany(() => Sport, sport => sport.formationCenters)
     @JoinTable()
     sports!: Sport[];
 
     @Column()
-    createDate!: Date
+    createDate!: Date;
 
     @OneToMany(() => Player, player => player.formationCenter)
     players!: Player[];
@@ -39,7 +38,7 @@ export class FormationCenter {
         if (id) this.id = id;
         if (name) this.name = name;
         if (address) this.address = address;
-        if (email) this.email = email
+        if (email) this.email = email;
         if (sport) this.sports = sport;
         if (creationDate) this.createDate = creationDate;
         if (users) this.users = users;

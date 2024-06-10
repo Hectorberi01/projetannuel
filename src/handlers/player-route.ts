@@ -8,10 +8,11 @@ import {
 import {AppDataSource} from "../database/database";
 import {PlayerUseCase} from "../domain/player-usercase";
 import {generateValidationErrorMessage} from "./validator/generate-validation-message";
+import {upload} from "../middlewares/multer-config";
 
 
 export const playerRoutes = (app: express.Express) => {
-    
+
     // lister des jouers
     app.get("/players", async (req: Request, res: Response) => {
         try {
@@ -63,7 +64,7 @@ export const playerRoutes = (app: express.Express) => {
     })
 
     //création d'un profile player
-    app.post("/players", async (req: Request, res: Response) => {
+    app.post("/players", upload.single('image'), async (req: Request, res: Response) => {
         try {
             const playervalidator = createPlayerValidation.validate(req.body)
             if (playervalidator.error) {
@@ -75,7 +76,7 @@ export const playerRoutes = (app: express.Express) => {
 
             console.log(playerdata)
             const playerUseCase = new PlayerUseCase(AppDataSource)
-            const result = await playerUseCase.createPlayer(playerdata)
+            const result = await playerUseCase.createPlayer(playerdata, req.file)
             return res.status(201).send(result);
         } catch (error) {
             console.log(error)
@@ -87,7 +88,7 @@ export const playerRoutes = (app: express.Express) => {
     // Route pour mettre à jour les informations
     app.put("/players/:id", async (req: Request, res: Response) => {
         try {
-                const playerIdValidate = playerIdValidation.validate(req.params)
+            const playerIdValidate = playerIdValidation.validate(req.params)
 
             if (playerIdValidate.error) {
                 res.status(400).send(generateValidationErrorMessage(playerIdValidate.error.details))
@@ -95,7 +96,7 @@ export const playerRoutes = (app: express.Express) => {
 
             const playerUpdateValidate = updatePlayerValidation.validate(req.body);
 
-            if (playerUpdateValidate.error){
+            if (playerUpdateValidate.error) {
                 res.status(400).send(generateValidationErrorMessage(playerUpdateValidate.error.details))
             }
             const playerUseCase = new PlayerUseCase(AppDataSource)

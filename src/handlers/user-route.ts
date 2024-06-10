@@ -9,6 +9,7 @@ import {
     listUserValidation,
     loginUserValidation
 } from "./validator/user-validator";
+import {upload} from "../middlewares/multer-config";
 
 export const userRoutes = (app: express.Express) => {
 
@@ -45,22 +46,21 @@ export const userRoutes = (app: express.Express) => {
         }
     })
 
-    app.post("/users/auth/signup", async (req: Request, res: Response) => {
+    app.post("/users/auth/signup", upload.single('image'), async (req: Request, res: Response) => {
         try {
-
             const createUserValidate = createUserValidation.validate(req.body);
 
             if (createUserValidate.error) {
-                res.status(400).send(generateValidationErrorMessage(createUserValidate.error.details))
+                return res.status(400).send(generateValidationErrorMessage(createUserValidate.error.details));
             }
 
             const userUseCase = new UseruseCase(AppDataSource);
-            const result = await userUseCase.createUser(createUserValidate.value);
-            res.status(200).send(result);
+            const result = await userUseCase.createUser(createUserValidate.value, req.file);
+            return res.status(200).send(result);
         } catch (error) {
-            res.status(500).send(error);
+            return res.status(500).send(error);
         }
-    })
+    });
 
     app.get("/users/:id", async (req: Request, res: Response) => {
         try {
