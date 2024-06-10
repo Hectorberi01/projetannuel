@@ -1,6 +1,9 @@
-import { DataSource, DeleteResult, EntityNotFoundError } from "typeorm";
-import { Sport } from "../database/entities/sport";
-import { SportRequest } from "../handlers/validator/sport-validator";
+import {DataSource, DeleteResult, EntityNotFoundError} from "typeorm";
+import {Sport} from "../database/entities/sport";
+import {FormationCenter} from "../database/entities/formationcenter";
+import {Player} from "../database/entities/player";
+import {CreateSportRequest} from "../handlers/validator/sport-validator";
+import {Club} from "../database/entities/club";
 
 
 export interface ListSportUseCase {
@@ -8,11 +11,12 @@ export interface ListSportUseCase {
     page: number;
 }
 
-export class SportUseCase{
+export class SportUseCase {
 
-    constructor(private readonly db: DataSource){}
+    constructor(private readonly db: DataSource) {
+    }
 
-    async ListeSport(listesport: ListSportUseCase): Promise<{ sports: Sport[], total: number }> {
+    async getAllSports(listesport: ListSportUseCase): Promise<{ sports: Sport[], total: number }> {
         const query = this.db.getRepository(Sport).createQueryBuilder('Sport');
 
         query.skip((listesport.page - 1) * listesport.limit);
@@ -25,76 +29,108 @@ export class SportUseCase{
         };
     }
 
-    async CreatSport(sportData :SportRequest ):Promise<Sport | Error>{
-        try{
-            const sportRepository  = this.db.getRepository(Sport);
-    
+    async createSport(sportData: CreateSportRequest): Promise<Sport | Error> {
+        try {
+            const sportRepository = this.db.getRepository(Sport);
+
             const newSport = new Sport();
-    
-            newSport.Id = sportData.Id;
-            newSport.Name = sportData.Name;
-    
+
+            newSport.name = sportData.name;
+
             return sportRepository.save(newSport);
-        }catch(error){
+        } catch (error) {
             console.error("Failed to creat sport:");
             throw error;
         }
-        
+
     }
 
-    async getSportById(id_sport: number): Promise<Sport> {
-        try{
-            const sportRepository  = this.db.getRepository(Sport);
+    async getSportById(sportId: number): Promise<Sport> {
+        try {
+            const sportRepository = this.db.getRepository(Sport);
 
             const sport = await sportRepository.findOne({
-                where: { Id: id_sport }
+                where: {id: sportId}
             });
 
             if (!sport) {
-                throw new EntityNotFoundError(Sport, id_sport);
+                throw new EntityNotFoundError(Sport, sport);
             }
             return sport;
-        }catch(error){
-            console.error("Failed to sport with ID:",id_sport, error);
-            throw error;
-        }
-    }
-
-    async DeleteSport(id_sport : number): Promise<DeleteResult>{
-
-        const sportRepository  = this.db.getRepository(Sport);
-
-        try {
-            const result = await this.getSportById(id_sport);
-            if(result == null){
-                throw new Error(`${id_sport} not found`);
-            }
-
-            return await sportRepository.delete(id_sport);
         } catch (error) {
-            console.error("Failed to delete planning with ID:", id_sport, error);
+            console.error("Failed to sport with ID:", sportId, error);
             throw error;
         }
     }
 
-    async upDateSportData(id_sport : number,info : any){
-        try{
-            const sportRepository  = this.db.getRepository(Sport);
-            console.log("info",info)
-            const result  = await this.getSportById(id_sport)
-            console.log("result",result)
+    async deleteSport(sportId: number): Promise<DeleteResult> {
 
-            if(result instanceof Sport){
+        const sportRepository = this.db.getRepository(Sport);
+        const result = await this.getSportById(sportId);
+        if (result == null) {
+            throw new Error(`${sportId} not found`);
+        }
+
+        return await sportRepository.delete(sportId);
+    }
+
+    async updateSport(sportId: number, info: any) {
+        try {
+            const sportRepository = this.db.getRepository(Sport);
+            console.log("info", info)
+            const result = await this.getSportById(sportId)
+            console.log("result", result)
+
+            if (result instanceof Sport) {
                 const sport = result;
-                console.log("planning = result",sport)
+                console.log("planning = result", sport)
                 Object.assign(sport, info);
-                console.log("id_planning",sport)
-               await sportRepository.save(sport) 
-            }else {
+                console.log("id_planning", sport)
+                await sportRepository.save(sport)
+            } else {
                 throw new Error('planning not found');
             }
-        }catch(error){
-            console.error("Failed to update planning with ID:", id_sport, error);
+        } catch (error) {
+            console.error("Failed to update planning with ID:", sportId, error);
         }
+    }
+
+    async getAssociatedFormationsCenters(sportId: number): Promise<FormationCenter[]> {
+
+        const formationCenterRepository = this.db.getRepository(FormationCenter);
+
+        const sport = await this.getSportById(sportId);
+
+        if (!sport) {
+            throw new Error(`Sport ${sportId} was not found`);
+        }
+
+        return await formationCenterRepository.findBy({sports: sport});
+    }
+
+    async getAssociatedPlayers(sportId: number): Promise<Player[]> {
+
+        const playerRepository = this.db.getRepository(Player);
+
+        const sport = await this.getSportById(sportId);
+
+        if (!sport) {
+            throw new Error(`Sport ${sportId} was not found`);
+        }
+
+        return await playerRepository.findBy({sport: sport});
+    }
+
+    async getAssociatedClubs(sportId: number): Promise<Club[]> {
+
+        const clubRepository = this.db.getRepository(Club);
+
+        const sport = await this.getSportById(sportId);
+
+        if (!sport) {
+            throw new Error(`Sport ${sportId} was not found`);
+        }
+
+        return await clubRepository.findBy({sports: sport});
     }
 }

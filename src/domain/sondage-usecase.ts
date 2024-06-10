@@ -2,7 +2,7 @@ import {DataSource} from "typeorm";
 import {Sondage} from "../database/entities/sondage";
 import {CreateSondageRequest} from "../handlers/validator/sondage-validator";
 import {Answer} from "../database/entities/answer";
-import {User} from "../database/entities/useraccount";
+import {User} from "../database/entities/user";
 import {Question} from "../database/entities/question";
 import {UseruseCase} from "./user-usecase";
 import {AppDataSource} from "../database/database";

@@ -1,20 +1,16 @@
 import express, {Request, Response} from "express";
-import {listSportalidation, SportIdValidation, SportValidator} from "./validator/sport-validator";
 import {generateValidationErrorMessage} from "./validator/generate-validation-message";
 import {SportUseCase} from "../domain/sport-usecase";
 import {AppDataSource} from "../database/database";
-
+import {createSportValidation, idSportValidation} from "./validator/sport-validator";
+import {listRoleValidation} from "./validator/roles-validator";
 
 export const sportRoutes = (app: express.Express) => {
-
-    app.get("/healthsport", (req: Request, res: Response) => {
-        res.send({"message": "sport route"})
-    })
 
     // lister les sport disponible
     app.get("/sports", async (req: Request, res: Response) => {
         try {
-            const sportvalidator = listSportalidation.validate(req.query)
+            const sportvalidator = listRoleValidation.validate(req.query)
             const listsportRequest = sportvalidator.value
             let limit = 50
             if (listsportRequest.limit) {
@@ -23,7 +19,7 @@ export const sportRoutes = (app: express.Express) => {
             const page = listsportRequest.page ?? 1
             try {
                 const sportUseCase = new SportUseCase(AppDataSource)
-                const listsport = await sportUseCase.ListeSport({...listsportRequest, page, limit})
+                const listsport = await sportUseCase.getAllSports({...listsportRequest, page, limit})
                 res.status(200).send(listsport)
             } catch (error) {
                 console.log(error)
@@ -37,17 +33,16 @@ export const sportRoutes = (app: express.Express) => {
         }
     });
 
-    app.get("/sports/:Id", async (req: Request, res: Response) => {
+    app.get("/sports/:id", async (req: Request, res: Response) => {
         try {
-            const sportidvalidation = SportIdValidation.validate(req.params)
+            const idSportValidate = idSportValidation.validate(req.params)
 
-            if (sportidvalidation.error) {
-                res.status(400).send(generateValidationErrorMessage(sportidvalidation.error.details))
+            if (idSportValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(idSportValidate.error.details))
             }
 
             const sportUsecase = new SportUseCase(AppDataSource);
-            const sportid = sportidvalidation.value.Id;
-            const sport = await sportUsecase.getSportById(sportid)
+            const sport = await sportUsecase.getSportById(idSportValidate.value.id)
             if (!sport) {
                 res.status(404).send({"error": "sport not found"});
                 return;
@@ -65,15 +60,14 @@ export const sportRoutes = (app: express.Express) => {
     //création d'un sport
     app.post("/sports", async (req: Request, res: Response) => {
         try {
-            const sportvalidation = SportValidator.validate(req.body)
-            if (sportvalidation.error) {
-                res.status(400).send(generateValidationErrorMessage(sportvalidation.error.details))
+            const createSportValidate = createSportValidation.validate(req.body)
+            if (createSportValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(createSportValidate.error.details))
             }
-            const sportdata = sportvalidation.value
+            const sportData = createSportValidate.value
 
-            const sportdataUsecase = new SportUseCase(AppDataSource);
-            const result = await sportdataUsecase.CreatSport(sportdata)
-            console.log("result", result)
+            const sportUseCase = new SportUseCase(AppDataSource);
+            const result = await sportUseCase.createSport(sportData)
             return res.status(201).send(result);
         } catch (error) {
             console.log(error)
@@ -82,16 +76,15 @@ export const sportRoutes = (app: express.Express) => {
         }
     });
 
-    // Route pour mettre à jour les informations du sport
-    app.put("/sports/:Id", async (req: Request, res: Response) => {
+    app.put("/sports/:id", async (req: Request, res: Response) => {
         try {
-            const sportidvalidation = SportIdValidation.validate(req.params)
+            const idSportValidate = idSportValidation.validate(req.params)
 
-            if (sportidvalidation.error) {
-                res.status(400).send(generateValidationErrorMessage(sportidvalidation.error.details))
+            if (idSportValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(idSportValidate.error.details))
             }
 
-            const value = sportidvalidation.value;
+            const value = idSportValidate.value;
             const sportId = value.Id;
             const updatedData = req.body;
 
@@ -108,7 +101,7 @@ export const sportRoutes = (app: express.Express) => {
             // Appeler la fonction SportUseCase pour récupérer le sport à mettre à jour
             const sportUsecase = new SportUseCase(AppDataSource);
 
-            sportUsecase.upDateSportData(sportId, updatedData)
+            await sportUsecase.updateSport(sportId, updatedData)
 
             return res.status(200).json({"message": "les information sont enrégistées avec succès"});
         } catch (error) {
@@ -117,29 +110,76 @@ export const sportRoutes = (app: express.Express) => {
         }
     });
 
-    // sippression du sport
-    app.delete("/sports/:Id", async (req: Request, res: Response) => {
+    app.delete("/sports/:id", async (req: Request, res: Response) => {
         try {
-            const sportidvalidation = SportIdValidation.validate(req.params)
+            const idSportValidate = idSportValidation.validate(req.params)
 
-            if (sportidvalidation.error) {
-                res.status(400).send(generateValidationErrorMessage(sportidvalidation.error.details))
+            if (idSportValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(idSportValidate.error.details))
             }
 
-            const sportUsecase = new SportUseCase(AppDataSource);
-            const sportid = sportidvalidation.value.Id;
-            const sport = await sportUsecase.DeleteSport(sportid)
+            const sportUseCase = new SportUseCase(AppDataSource);
+            const sportId = idSportValidate.value.Id;
+            const sport = await sportUseCase.deleteSport(sportId)
 
-            // Vérifier si l'utilisateur a été supprimé avec succès
             if (sport.affected === 0) {
                 return res.status(404).json({error: 'planning not found'});
             }
-            // Répondre avec succès
+
             return res.status(200).json({message: 'sport deleted successfully'});
         } catch (error) {
-            console.log(error)
             res.status(500).send({"error": "internal error retry later"})
-            return
+        }
+    })
+
+    app.get("/sports/:id/formations-centers", async (req: Request, res: Response) => {
+
+        try {
+            const sportIdValidate = idSportValidation.validate(req.params)
+
+            if (sportIdValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(sportIdValidate.error.details))
+            }
+
+            const sportUseCase = new SportUseCase(AppDataSource);
+            const result = await sportUseCase.getAssociatedFormationsCenters(sportIdValidate.value.id);
+            return res.status(200).send(result);
+        } catch (error) {
+            res.status(500).send(error);
+        }
+    })
+
+    app.get("/sports/:id/players", async (req: Request, res: Response) => {
+
+        try {
+            const sportIdValidate = idSportValidation.validate(req.params)
+
+            if (sportIdValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(sportIdValidate.error.details))
+            }
+
+            const sportUseCase = new SportUseCase(AppDataSource);
+            const result = await sportUseCase.getAssociatedPlayers(sportIdValidate.value.id);
+            return res.status(200).send(result);
+        } catch (error) {
+            res.status(500).send(error);
+        }
+    })
+
+    app.get("/sports/:id/clubs", async (req: Request, res: Response) => {
+
+        try {
+            const sportIdValidate = idSportValidation.validate(req.params)
+
+            if (sportIdValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(sportIdValidate.error.details))
+            }
+
+            const sportUseCase = new SportUseCase(AppDataSource);
+            const result = await sportUseCase.getAssociatedClubs(sportIdValidate.value.id);
+            return res.status(200).send(result);
+        } catch (error) {
+            res.status(500).send(error);
         }
     })
 }

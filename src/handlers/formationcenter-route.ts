@@ -5,13 +5,11 @@ import {
     FormationCenterValidator,
     listFormationCenterValidation
 } from "./validator/formation-validator";
-import {FormationCenterUserCase} from "../domain/formationcenter-usecase";
+import {FormationCenterUseCase} from "../domain/formationcenter-usecase";
 import {generateValidationErrorMessage} from "./validator/generate-validation-message";
-
 
 export const formationcenterRoutes = (app: express.Express) => {
 
-    // lister des centre de formation
     app.get("/formations-centers", async (req: Request, res: Response) => {
         try {
             const formationvalidator = listFormationCenterValidation.validate(req.query)
@@ -22,7 +20,7 @@ export const formationcenterRoutes = (app: express.Express) => {
             }
             const page = listformationRequest.page ?? 1
             try {
-                const listformationUseCase = new FormationCenterUserCase(AppDataSource)
+                const listformationUseCase = new FormationCenterUseCase(AppDataSource)
                 const listclub = await listformationUseCase.getAllFormationsCenters({
                     ...listformationRequest,
                     page,
@@ -41,7 +39,6 @@ export const formationcenterRoutes = (app: express.Express) => {
         }
     });
 
-    // obtenir le centre de formation par son id 
     app.get("/formations-centers/:id", async (req: Request, res: Response) => {
         try {
             const formationidvalidation = FormationCenterIdValidation.validate(req.params)
@@ -50,7 +47,7 @@ export const formationcenterRoutes = (app: express.Express) => {
                 res.status(400).send(generateValidationErrorMessage(formationidvalidation.error.details))
             }
 
-            const formationUseCase = new FormationCenterUserCase(AppDataSource)
+            const formationUseCase = new FormationCenterUseCase(AppDataSource)
             const formationid = formationidvalidation.value.Id;
             const formation = await formationUseCase.getFormationCenterById(formationid)
             if (!formation) {
@@ -66,20 +63,17 @@ export const formationcenterRoutes = (app: express.Express) => {
         }
     })
 
-    //création d'un compte poir un centre de formation
     app.post("/formations-centers", async (req: Request, res: Response) => {
         try {
             const formationvalidator = FormationCenterValidator.validate(req.body)
             if (formationvalidator.error) {
-                res.status(400).send(generateValidationErrorMessage(formationvalidator.error.details))
-            }
-            const formationvalidatordata = formationvalidator.value
-            if (formationvalidatordata.Id_Image == null) {
-                formationvalidatordata.Id_Image = 0;
+                res.status(400).send(generateValidationErrorMessage(formationvalidator.error.details));
             }
 
-            const formationUseCase = new FormationCenterUserCase(AppDataSource)
-            const result = await formationUseCase.CreatFormationCenter(formationvalidatordata)
+            const formationvalidatordata = formationvalidator.value;
+
+            const formationUseCase = new FormationCenterUseCase(AppDataSource)
+            const result = await formationUseCase.createFormationCenter(formationvalidatordata)
             return res.status(201).send(result);
         } catch (error) {
             console.log(error)
@@ -110,9 +104,9 @@ export const formationcenterRoutes = (app: express.Express) => {
                 return res.status(400).json({error: 'Updated data not provided'});
             }
 
-            const formationUseCase = new FormationCenterUserCase(AppDataSource)
+            const formationUseCase = new FormationCenterUseCase(AppDataSource)
 
-            formationUseCase.upDateFormationCenterData(formationId, updatedData)
+            formationUseCase.updateFormationCenter(formationId, updatedData)
 
             return res.status(200).json({"message": "les information du club sont enrégistées avec succès"});
         } catch (error) {
@@ -130,9 +124,9 @@ export const formationcenterRoutes = (app: express.Express) => {
                 res.status(400).send(generateValidationErrorMessage(formationidvalidation.error.details))
             }
 
-            const formationUseCase = new FormationCenterUserCase(AppDataSource)
+            const formationUseCase = new FormationCenterUseCase(AppDataSource)
             const formationId = formationidvalidation.value.id;
-            const formation = await formationUseCase.DeleteFormationCenter(formationId)
+            const formation = await formationUseCase.deleteFormationCenter(formationId)
 
             // Vérifier si le centre de formatrion été supprimé avec succès
             if (formation.affected === 0) {
@@ -144,6 +138,22 @@ export const formationcenterRoutes = (app: express.Express) => {
             console.log(error)
             res.status(500).send({"error": "internal error retry later"})
             return
+        }
+    })
+
+    app.get("/formations-centers/:id/players", async (req: Request, res: Response) => {
+        try {
+            const idFormationCenterValidate = FormationCenterIdValidation.validate(req.params)
+
+            if (idFormationCenterValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(idFormationCenterValidate.error.details))
+            }
+
+            const formationCenterUseCase = new FormationCenterUseCase(AppDataSource);
+            const result = await formationCenterUseCase.getAssociatedPlayers(idFormationCenterValidate.value.id);
+            res.status(200).send(result);
+        } catch (error) {
+            res.status(500).send(error)
         }
     })
 }

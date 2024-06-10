@@ -1,24 +1,24 @@
-import multer from "multer";
+import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
 
 const MIME_TYPES: { [key: string]: string } = {
   'image/jpg': 'jpg',
   'image/jpeg': 'jpg',
-  'image/png': 'png'
+  'image/png': 'png',
+  'application/pdf': 'pdf'
 };
 
-// Définir une interface pour le type de fichier de Multer
-interface MulterFile {
-  mimetype: string;
-  originalname: string;
-}
-
 const storage = multer.diskStorage({
-  destination: (req, file: Express.Multer.File, callback) => {
-    const imagesPath = path.join('src', 'images');
+  destination: (req, file, callback) => {
+    const imagesPath = path.join(__dirname, '../../src/documents');
+    // Check if the directory exists, if not, create it
+    if (!fs.existsSync(imagesPath)) {
+      fs.mkdirSync(imagesPath, { recursive: true });
+    }
     callback(null, imagesPath);
   },
-  filename: (req, file: MulterFile, callback) => {
+  filename: (req, file, callback) => {
     const extension = MIME_TYPES[file.mimetype];
     const name = file.originalname.split(' ').join('_').replace(`.${extension}`, '');
     callback(null, name + Date.now() + '.' + extension);

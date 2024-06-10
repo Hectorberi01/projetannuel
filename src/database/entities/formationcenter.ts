@@ -1,8 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable } from 'typeorm'
+import {Column, Entity, JoinTable, ManyToMany, OneToMany, PrimaryGeneratedColumn} from 'typeorm'
 import "reflect-metadata"
-import { Sport } from './sport'
-import { Player } from './player'
-import { Events } from './events'
+import {Sport} from './sport'
+import {Player} from './player'
+import {Event} from './event'
+import {User} from './user'
 
 @Entity()
 export class FormationCenter {
@@ -25,22 +26,22 @@ export class FormationCenter {
     @Column()
     createDate!: Date
 
-    @Column()
-    idImage!: number
-
-    @OneToMany(() => Player, player => player.FormationCenter)
+    @OneToMany(() => Player, player => player.formationCenter)
     players!: Player[];
 
-    @ManyToMany(() => Events, event => event.trainingCenters)
-    events!: Events[];
+    @ManyToMany(() => Event, event => event.trainingCenters)
+    events!: Event[];
 
-    constructor(id?: number, name?: string, address?: string, sport?: Sport[], creationDate?: Date, idImage?: number, email?: string) {
+    @OneToMany(() => User, user => user.formationCenter)
+    users!: User[];
+
+    constructor(id?: number, name?: string, address?: string, sport?: Sport[], creationDate?: Date, email?: string, users?: User[]) {
         if (id) this.id = id;
         if (name) this.name = name;
         if (address) this.address = address;
         if (email) this.email = email
         if (sport) this.sports = sport;
         if (creationDate) this.createDate = creationDate;
-        if (idImage) this.idImage = idImage;
+        if (users) this.users = users;
     }
 }

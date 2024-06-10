@@ -1,13 +1,14 @@
 import {DataSource, DeleteResult, EntityNotFoundError} from "typeorm";
 import {FormationCenterRequest} from "../handlers/validator/formation-validator";
 import {FormationCenter} from "../database/entities/formationcenter"
+import {Player} from "../database/entities/player";
 
 export interface ListFormationCenterCase {
     limit: number;
     page: number;
 }
 
-export class FormationCenterUserCase {
+export class FormationCenterUseCase {
 
     constructor(private readonly db: DataSource) {
     }
@@ -30,18 +31,16 @@ export class FormationCenterUserCase {
         };
     }
 
-    async CreatFormationCenter(formationData: FormationCenterRequest): Promise<FormationCenter | Error> {
+    async createFormationCenter(formationData: FormationCenterRequest): Promise<FormationCenter | Error> {
         try {
             const formationRepository = this.db.getRepository(FormationCenter);
             const newFormation = new FormationCenter();
 
-            newFormation.id = formationData.Id;
-            newFormation.name = formationData.Name;
-            newFormation.address = formationData.Adress;
-            newFormation.sports = formationData.Sports;
-            newFormation.email = formationData.Email;
-            newFormation.idImage = formationData.Id_Image;
-            newFormation.createDate = formationData.Creation_Date
+            newFormation.name = formationData.name;
+            newFormation.address = formationData.address;
+            newFormation.sports = formationData.sports;
+            newFormation.email = formationData.email;
+            newFormation.createDate = new Date();
 
             return formationRepository.save(newFormation);
         } catch (error) {
@@ -64,7 +63,7 @@ export class FormationCenterUserCase {
         return club;
     }
 
-    async DeleteFormationCenter(id_formation: number): Promise<DeleteResult> {
+    async deleteFormationCenter(id_formation: number): Promise<DeleteResult> {
 
         const formationRepository = this.db.getRepository(FormationCenter);
 
@@ -82,7 +81,7 @@ export class FormationCenterUserCase {
 
     }
 
-    async upDateFormationCenterData(id_formation: number, info: any) {
+    async updateFormationCenter(id_formation: number, info: any) {
         try {
             const ClubRepository = this.db.getRepository(FormationCenter)
             console.log("info", info)
@@ -101,5 +100,17 @@ export class FormationCenterUserCase {
         } catch (error) {
             console.error("Failed to update formation center with ID:", id_formation, error);
         }
+    }
+
+    async getAssociatedPlayers(formationCenterId: number): Promise<Player[]> {
+
+        const playerRepository = this.db.getRepository(Player);
+        const formationCenter = await this.getFormationCenterById(formationCenterId);
+
+        if (!formationCenter) {
+            throw new Error(`Sport ${formationCenterId} was not found`);
+        }
+
+        return playerRepository.findBy({formationCenter: formationCenter});
     }
 }

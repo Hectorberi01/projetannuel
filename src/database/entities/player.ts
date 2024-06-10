@@ -1,59 +1,56 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, OneToOne, JoinColumn } from 'typeorm'
-import { Token } from "./token"
-import "reflect-metadata"
-import { Sport } from './sport'
-import { FormationCenter } from './formationcenter'
-import {Image} from './image'
+import { Column, Entity, ManyToOne, OneToOne, PrimaryGeneratedColumn, JoinColumn } from 'typeorm';
+import "reflect-metadata";
+import { Sport } from './sport';
+import { FormationCenter } from './formationcenter';
+import { User } from './user';
 
 @Entity()
 export class Player {
     @PrimaryGeneratedColumn()
-    Id!: number
-
-    @Column() 
-    FirstName!: string
+    id!: number;
 
     @Column()
-    Lastname!: string
+    firstName!: string;
 
-    @Column() 
-    Height!: number
+    @Column()
+    lastName!: string;
 
-    @Column() 
-    Weight!: number
+    @Column({ nullable: true })
+    height!: number;
 
-    @Column({ type: 'date', nullable: true })
-    BirthDate!: Date | null; 
+    @Column({ nullable: true })
+    weight!: number;
+
+    @Column({ type: 'date' })
+    birthDate!: Date;
 
     @Column({ type: 'json', nullable: true })
-    stats!: object;
+    stats!: string;
 
     @ManyToOne(() => FormationCenter, formationCenter => formationCenter.players)
-    FormationCenter!: FormationCenter;
+    formationCenter!: FormationCenter;
 
     @ManyToOne(() => Sport, sport => sport.players)
-    Sport!: Sport;
+    sport!: Sport;
 
-    @OneToOne(() => Image, image => image.players,{ cascade: true })
-    @JoinColumn()
-    Image!: Image;
-
+    @OneToOne(() => User, user => user.player)
+    @JoinColumn() // Ajoutez cette ligne pour spécifier la colonne de jointure
+    user!: User;
 
     constructor(id?: number,
-            name?: string,
-            lastname?: string,
-            birth_date?: Date,
-            formationCenter?: FormationCenter, 
-            sport?: Sport,
-            image?:Image
-        ) 
-        {
-            if (id) this.Id = id;
-            if (name) this.FirstName = name;
-            if(lastname) this.Lastname = lastname;
-            if(birth_date) this.BirthDate = birth_date;
-            if (formationCenter) this.FormationCenter = formationCenter;
-            if (sport) this.Sport = sport;
-            if(image) this.Image = image
-        }
+                firstName?: string,
+                lastName?: string,
+                birthDate?: Date,
+                formationCenter?: FormationCenter,
+                sport?: Sport,
+                user?: User,
+    ) {
+        if (id) this.id = id;
+        if (firstName) this.firstName = firstName;
+        if (lastName) this.lastName = lastName;
+        if (birthDate) this.birthDate = birthDate;
+        if (formationCenter) this.formationCenter = formationCenter;
+        if (sport) this.sport = sport;
+        if (user) this.user = user;
+    }
 }
