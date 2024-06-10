@@ -55,7 +55,8 @@ export class ClubUseCase {
         const club = await clubRepository.findOne({
             where: {id: clubId},
             relations: {
-                sports: true
+                sports: true,
+                image: true,
             }
         });
 

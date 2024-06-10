@@ -55,7 +55,7 @@ export class FormationCenterUseCase {
 
         const club = await formationRepository.findOne({
             where: {id: id_formation},
-            relations: ['sports']
+            relations: ['sports', 'image']
         });
         if (!club) {
             throw new EntityNotFoundError(FormationCenter, id_formation);

@@ -66,7 +66,7 @@ export const clubRoutes = (app: express.Express) => {
         }
     });
 
-    app.put("/clubs/:id", async (req: Request, res: Response) => {
+    app.put("/clubs/:id", upload.single('image'), async (req: Request, res: Response) => {
         try {
             const idSportValidate = idSportValidation.validate(req.params)
 

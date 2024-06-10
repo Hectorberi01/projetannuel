@@ -51,6 +51,6 @@ export const updateClubValidation = Joi.object<UpdateClubRequest>({
     name: Joi.string().optional(),
     address: Joi.string().optional(),
     email: Joi.string().optional(),
-    sports: Joi.array().items(Joi.object()).optional(),
-    events: Joi.array().items(Joi.object()).optional(),
+    sports: Joi.array().optional(),
+    events: Joi.array().optional(),
 })
