@@ -127,46 +127,27 @@ export class UseruseCase {
     async getUserByEmail(email: string): Promise<User | null> {
         const userRepository = this.db.getRepository(User);
 
-        const user = await userRepository.findOne({
-            where: { email: email }
+        return await userRepository.findOne({
+            where: {email: email},
+            relations: ['role']
         });
 
-        if (!user) {
-            throw new EntityNotFoundError(User, email);
-        }
-        return user;
     }
 
-    // à impléménter
-    async logoutUser(){
-        const usertoken = this.db.getRepository(Token)
-        const userRepository  = this.db.getRepository(User);
+    async generateTemporaryPassword(): Promise<string> {
+        const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@.!/&+=-*";
+        let password = "";
+        for (let i = 0; i < 11; i++) {
+            const randomIndex = Math.floor(Math.random() * charset.length);
+            password += charset[randomIndex];
+        }
+        return password;
     }
 
-    // Pour la suppression des utilisateur
-    async DeleteUser(userid : number): Promise<DeleteResult>{
-
-        const userRepositoryToken  = this.db.getRepository(Token);
-        const userRepository  = this.db.getRepository(User);
-
-        try {
-            const result = await this.getUserById(userid);
-            if(result == null){
-                throw new Error(`${userid} not found`);
-            }
-            if (result instanceof User) {
-                const user = result;
-                await userRepositoryToken.delete({ user: user });
-            } else {
-                throw new Error(` not found`);
-            }
-
-            return await userRepository.delete(userid);
-        } catch (error) {
-            console.error("Failed to delete user with ID:", userid, error);
-            throw error;
-        }
-
+    async hashPassword(password: string): Promise<string> {
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        return hashedPassword;
     }
 
     async generateUserMatricule(user: User): Promise<string> {
