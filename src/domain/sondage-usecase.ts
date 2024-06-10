@@ -2,8 +2,10 @@ import {DataSource} from "typeorm";
 import {Sondage} from "../database/entities/sondage";
 import {CreateSondageRequest} from "../handlers/validator/sondage-validator";
 import {Answer} from "../database/entities/answer";
-import {User} from "../database/entities/useraccount";
+import {User} from "../database/entities/user";
 import {Question} from "../database/entities/question";
+import {UseruseCase} from "./user-usecase";
+import {AppDataSource} from "../database/database";
 
 export interface listSondage {
     limit: number;
@@ -34,15 +36,21 @@ export class SondageUseCase {
     async createSondage(sondageData: CreateSondageRequest): Promise<Sondage | Error> {
 
         try {
-
+            const userUseCase = new UseruseCase(AppDataSource);
             const sondageRepository = this.db.getRepository(Sondage);
             let sondage = new Sondage();
+
+            const user = await userUseCase.getUserById(sondageData.userId);
+
+            if (!user) {
+                throw new Error('Utilisateur non trouvé');
+            }
 
             sondage.name = sondageData.name;
             sondage.startDate = sondageData.startDate;
             sondage.endDate = sondageData.endDate;
             sondage.createdAt = new Date();
-            sondage.createdBy = sondageData.createdBy;
+            sondage.createdBy = user;
 
             return sondageRepository.save(sondage);
         } catch (error: any) {

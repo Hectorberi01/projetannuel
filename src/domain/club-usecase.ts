@@ -1,235 +1,87 @@
-import { DataSource, DeleteResult, EntityNotFoundError, In } from "typeorm";
-import express, { Request, Response } from "express";
-import { AppDataSource } from "../database/database";
-import { Club } from "../database/entities/club";
-import { ClubRequest } from "../handlers/validator/club-validator";
-import { SportUseCase } from "./sport-usecase";
-import { Sport } from "../database/entities/sport";
-import { Image } from "../database/entities/image";
+import {DataSource} from "typeorm";
+import {Club} from "../database/entities/club";
+import {CreateClubRequest, UpdateClubRequest} from "../handlers/validator/club-validator";
 
-export interface ListClubUseCase {
+
+export interface ListClubRequest {
     limit: number;
     page: number;
 }
+
 export class ClubUseCase {
 
-    constructor(private readonly db: DataSource) { }
+    constructor(private readonly db: DataSource) {
+    }
 
-    async ListeClub(listeclub: ListClubUseCase): Promise<{ club: Club[], total: number }> {
-        const query = this.db.getRepository(Club).createQueryBuilder('club')
-        .leftJoinAndSelect('club.events', 'event')
-        .leftJoinAndSelect('club.Image', 'image')
-        .leftJoinAndSelect('club.Sports', 'sport')
-        .skip((listeclub.page - 1) * listeclub.limit)
-        .take(listeclub.limit);
+    async getAllClubs(listClubs: ListClubRequest): Promise<{ clubs: Club[], total: number }> {
+        const query = this.db.getRepository(Club).createQueryBuilder('Club');
 
-        // query.skip((listeclub.page - 1) * listeclub.limit);
-        // query.take(listeclub.limit);
+        query.skip((listClubs.page - 1) * listClubs.limit);
+        query.take(listClubs.limit);
 
-        const [club, total] = await query.getManyAndCount();
+        const [clubs, total] = await query.getManyAndCount();
         return {
-            club,
+            clubs,
             total
         };
     }
 
-    // création de club
-    async CreatClub(clubData: ClubRequest, info: any): Promise<ClubDTO | Error> {
-        const newClubRepository = this.db.getRepository(Club);
-        const sportUsecase = new SportUseCase(AppDataSource);
-        const imageRepository = this.db.getRepository(Image);
-        const sportRepository = this.db.getRepository(Sport)
-        let image: Image | null = null;
-        console.log("info",info)
-        try {
-            if (info.imagePath) {
-                image = new Image();
-                image.url = info.imagePath;
-                await imageRepository.save(image);
-            }
+    async createClub(clubData: CreateClubRequest): Promise<Club | Error> {
+        const clubRepository = this.db.getRepository(Club);
+        let club = new Club();
+        club.creationDate = new Date();
+        club.email = clubData.email;
+        club.address = clubData.address;
+        club.name = clubData.name;
+        club.events = [];
+        club.sports = clubData.sports;
 
-            const queryRunner = this.db.createQueryRunner();
-            await queryRunner.connect();
-            await queryRunner.startTransaction();
-
-            try {
-                const newClub = new Club();
-
-                // Assigner les informations au nouveau club
-                Object.assign(newClub, info);
-
-                const sportIds = info.Sport.map((sport: Sport) => sport.Id)
-                const sports = await sportRepository.find({
-                    where : {Id : In(sportIds)}
-                })
-                newClub.Sports = sports
-
-                // Si une image a été créée, l'associer au club
-                if (image) {
-                    newClub.Image = image;
-                    image.club = newClub;
-                    await queryRunner.manager.save(image);
-                }
-
-                // Sauvegarder le nouveau club
-                await queryRunner.manager.save(newClub);
-                await queryRunner.commitTransaction();
-
-                return this.clubToDTO(newClub);
-            } catch (error) {
-                await queryRunner.rollbackTransaction();
-                console.error("Failed to creat club :", error);
-                throw error;
-            } finally {
-                await queryRunner.release();
-            }
-
-        } catch (error) {
-            console.error("Failed to creat club account :", error);
-            throw error;
-        }
+        return clubRepository.save(club);
 
     }
 
-    async getClubById(id_club: number): Promise<Club> {
-        const ClubRepository = this.db.getRepository(Club);
+    async getClubById(clubId: number): Promise<Club> {
+        const clubRepository = this.db.getRepository(Club);
 
-        const club = await ClubRepository.findOne({
-            where: { Id: id_club },
-            relations: ['Sports', 'events', 'Image']
+        const club = await clubRepository.findOne({
+            where: {id: clubId},
+            relations: {
+                sports: true
+            }
         });
+
         if (!club) {
-            throw new EntityNotFoundError(Club, id_club);
+            throw new Error(`Club with id ${clubId} not found`);
         }
         return club;
     }
 
-    async DeleteClub(id_club: number): Promise<DeleteResult> {
+    async deleteClub(clubId: number) {
 
-        const ClubRepository = this.db.getRepository(Club);
+        const clubrepository = this.db.getRepository(Club);
+        const club = await this.getClubById(clubId);
 
-        try {
-            const result = await this.getClubById(id_club);
-            if (result == null) {
-                throw new Error(`${id_club} not found`);
-            }
-
-            return await ClubRepository.delete(id_club);
-        } catch (error) {
-            console.error("Failed to delete club with ID:", id_club, error);
-            throw error;
+        if (!club) {
+            throw new Error(`${clubId} not found`);
         }
+
+        return await clubrepository.delete(clubId);
     }
 
-    async upDateClubData(id_club: number, info: any) {
-        const imageRepository = this.db.getRepository(Image);
-        const ClubRepository = this.db.getRepository(Club)
+    async updateClub(clubId: number, clubData: UpdateClubRequest) {
+        const clubRepository = this.db.getRepository(Club);
+        const club = await this.getClubById(clubId);
 
-        try {
-
-            let image = null;
-            if (info.imagePath) {
-                image = new Image();
-                image.url = info.imagePath;
-                await imageRepository.save(image);
-            }
-
-            const queryRunner = this.db.createQueryRunner();
-            await queryRunner.connect();
-            await queryRunner.startTransaction();
-            
-            try{
-                console.log("info", info)
-                const club = await this.getClubById(id_club)
-                console.log("result", club)
-
-                if (!club) {
-                    throw new EntityNotFoundError(club, id_club);
-                }
-
-                Object.assign(club, info);
-
-                if (image) {
-                    club.Image = image;
-                    image.club = club;
-                    await queryRunner.manager.save(image);
-                }
-    
-                await queryRunner.manager.save(club);
-                await queryRunner.commitTransaction();
-            }catch(error){
-                await queryRunner.rollbackTransaction();
-                console.error("Failed to update club with ID:", id_club, error);
-                throw error;
-            }finally{
-                await queryRunner.release();
-            }
-
-        } catch (error) {
-            console.error("Failed to update club with ID:", id_club, error);
+        if (!club || club.id != clubData.id) {
+            throw new Error(`${clubId} not found or not correspond`);
         }
-    }
 
-    // Fonction pour convertir une entité Club en DTO
-    clubToDTO(club: Club): ClubDTO {
-        return {
-            Id: club.Id,
-            Name: club.Name,
-            Address: club.Address,
-            Email: club.Email,
-            creation_date: club.creation_date,
-            image: club.Image ? {
-                Id: club.Image.Id,
-                url: club.Image.url
-            } : null,
-            Sports: club.Sports ? club.Sports.map(sport => ({
-                Id: sport.Id,
-                Name: sport.Name
-            })) : [],
-            events: club.events ? club.events.map(event => ({
-                Id: event.Id,
-                title: event.title,
-                description: event.description,
-                startDate: event.startDate,
-                endDate: event.endDate,
-                lieu: event.lieu,
-                type: event.type,
-                recurrence: event.recurrence,
-                activity: event.activity,
-                capacity: event.capacity,
-                statut: event.statut
-            })) : []
-        };
+        if (clubData.email && club.email != clubData.email) club.email = clubData.email;
+        if (clubData.address && club.address != clubData.address) club.address = clubData.address;
+        if (clubData.name && club.name != clubData.name) club.name = clubData.name;
+        if (clubData.sports && club.sports != clubData.sports) club.sports = clubData.sports;
+        if (clubData.events && club.events != clubData.events) club.events = clubData.events;
+
+        return await clubRepository.update(clubId, club);
     }
-    
 }
-
-type SportDTO = {
-    Id: number;
-    Name: string;
-};
-
-type EventDTO = {
-    Id: number;
-    title: string;
-    description: string;
-    startDate: Date;
-    endDate: Date;
-    lieu: string;
-    type: string;
-    recurrence: string;
-    activity: string;
-    capacity: number;
-    statut: string;
-};
-
-type ClubDTO = {
-    Id: number;
-    Name: string;
-    Address: string;
-    Email: string;
-    creation_date: Date;
-    image: { Id: number; url: string; } | null;
-    Sports: SportDTO[];
-    events: EventDTO[];
-};

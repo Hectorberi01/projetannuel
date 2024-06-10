@@ -1,34 +1,31 @@
-import { DataSource, DeleteResult, EntityNotFoundError, In } from "typeorm";
-import { User } from "../database/entities/useraccount";
-import express, { Request, Response} from "express";
-import session from 'express-session';
-import { compare, hash} from "bcrypt";
-import {UserValidator}from "../handlers/validator/useraccount-validator";
-import { AppDataSource } from "../database/database";
-import { UserRequest } from "../handlers/validator/useraccount-validator";
-import { Token } from "../database/entities/token";
-import { Roles } from "../database/entities/roles";
-import { Image } from "../database/entities/image";
-import { UserDTO } from "./TDO";
-
+import {DataSource, EntityNotFoundError} from "typeorm";
+import {User} from "../database/entities/user";
+import {CreateUserRequest, LoginUserRequest} from "../handlers/validator/user-validator";
+import {RoleUseCase} from "./roles-usecase";
+import {AppDataSource} from "../database/database";
+import {ClubUseCase} from "./club-usecase";
+import {FormationCenterUseCase} from "./formationcenter-usecase";
+import {PlayerUseCase} from "./player-usercase";
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 export interface ListUserCase {
     limit: number;
     page: number;
 }
 
-export class UseruseCase{
+export class UseruseCase {
 
-    constructor(private readonly db: DataSource){}
+    constructor(private readonly db: DataSource) {
+    }
 
-    async listUser(listuser: ListUserCase): Promise<{ user: User[], total: number }> {
+    async getAllUsers(listuser: ListUserCase): Promise<{ user: User[], total: number }> {
 
         const query = this.db.getRepository(User).createQueryBuilder('user')
-        .leftJoinAndSelect('user.roles','roles')
-        .leftJoinAndSelect('user.image','image')
-        .leftJoinAndSelect('user.events','events')
-        .skip((listuser.page - 1) * listuser.limit) 
-        .take(listuser.limit);
+            .leftJoinAndSelect('user.role', 'role')
+            .leftJoinAndSelect('user.events', 'events')
+            .skip((listuser.page - 1) * listuser.limit)
+            .take(listuser.limit);
         const [user, total] = await query.getManyAndCount();
         return {
             user,
@@ -36,92 +33,102 @@ export class UseruseCase{
         };
     }
 
-    async createUser(userData: any,info : any): Promise<UserDTO | Error> {
-        const rolesRepository = this.db.getRepository(Roles);
-        const userRepository  = this.db.getRepository(User);
-        const imageRepository = this.db.getRepository(Image);
-        let image: Image | null = null;
+    async createUser(userData: CreateUserRequest): Promise<User> {
 
-        try{
-            if (info.path) {
-                console.log(image)
-                image = new Image();
-                image.url = info.path;
-                await imageRepository.save(image);
-            }
+        const userRepository = this.db.getRepository(User);
+        const roleUseCase = new RoleUseCase(AppDataSource);
 
-            const queryRunner = this.db.createQueryRunner();
-            await queryRunner.connect();
-            await queryRunner.startTransaction();
-            
-            try{
-                const newUser = new User();
-
-                Object.assign(newUser,userData);
-
-                const roleIds = userData.roles.map((role: Roles) => role.Id);
-                const roles = await rolesRepository.find({
-                    where: { Id: In(roleIds) }
-                });
-
-                newUser.roles = roles
-                
-                // Générer un matricule et hacher le mot de passe
-                newUser.matricule = await this.generateRandomNumber();
-                newUser.password = await hash(userData.password, 10);
-
-                // Assurez-vous que date_creation est définie
-                if (!newUser.date_creation) {
-                    newUser.date_creation = new Date();
-                }
-
-                // Si une image a été créée, l'associer à l'utilisateur
-                if (image) {
-                    newUser.image = image;
-                    image.users = newUser;
-                    await queryRunner.manager.save(image);
-                }
-
-                // Sauvegarder le nouveau club
-                await queryRunner.manager.save(newUser);
-                await queryRunner.commitTransaction();
-
-                //return newUser
-                return new UserDTO(newUser);
-            }catch(error){
-                await queryRunner.rollbackTransaction();
-                console.error("Failed to creat club :", error);
-                throw error
-            }finally{
-                await queryRunner.release();
-            }
-
-        }catch(error){
-            console.error("Failed to creat user:",error);
-            return new Error("Failed to create user");
+        const alreadyExist = await this.getUserByEmail(userData.email);
+        if (alreadyExist != null) {
+            throw new Error("email est déjà associé à un compte");
         }
-        
+
+        let user = new User();
+        user.email = userData.email;
+        user.firstname = userData.firstName;
+        user.lastname = userData.lastName;
+        user.address = userData.address;
+        user.newsletter = userData.newsletter;
+        user.birthDate = userData.birthDate;
+        user.createDate = new Date();
+
+        const role = await roleUseCase.getRoleById(parseInt(userData.roleId));
+        user.role = role;
+
+        if (role.role === "CLUB") {
+            const clubUseCase = new ClubUseCase(AppDataSource);
+            // @ts-ignore
+            const club = await clubUseCase.getClubById(parseInt(userData.clubId));
+            user.club = club;
+        } else if (role.role === "FOMATIONCENTER") {
+            const formationCenterUseCase = new FormationCenterUseCase(AppDataSource);
+            // @ts-ignore
+            const formationCenter = await formationCenterUseCase.getFormationCenterById(parseInt(userData.formationCenterId));
+            user.formationCenter = formationCenter;
+        } else if (role.role === "PLAYER") {
+            const playerUseCase = new PlayerUseCase(AppDataSource);
+            // @ts-ignore
+            const player = await playerUseCase.getPlayerById(parseInt(userData.playerId));
+            user.player = player;
+        } else if (role.role === "ADMIN") {
+
+        } else {
+            throw new Error("this type of role is not implemented yet.");
+        }
+
+        const tmpPassword = await this.generateTemporaryPassword();
+        user.password = await this.hashPassword(tmpPassword);
+        user.matricule = await this.generateUserMatricule(user);
+        user.deleted = false;
+        return userRepository.save(user);
+    }
+
+    async login(userRequest: LoginUserRequest): Promise<{ user: User, token: string }> {
+        const potentialUser = await this.getUserByEmail(userRequest.login);
+
+        if (!potentialUser) {
+            throw new Error("Email ou mot de passe incorrect");
+        }
+
+        const isPasswordValid = await bcrypt.compare(userRequest.password, potentialUser.password);
+
+        if (!isPasswordValid) {
+            throw new Error("Email ou mot de passe incorrect");
+        }
+
+        const token = this.generateToken(potentialUser);
+        potentialUser.password = "{noop}"
+
+        return {user: potentialUser, token};
+    }
+
+    generateToken(user: User): string {
+        const payload = {
+            userId: user.id,
+            role: user.role.role
+        };
+        const secret = process.env.JWT_SECRET || 'default_secret_key';
+        const options = {expiresIn: '1h'};
+
+        return jwt.sign(payload, secret, options);
     }
 
     async getUserById(userid: number): Promise<User> {
-        const userRepository  = this.db.getRepository(User);
+        const userRepository = this.db.getRepository(User);
+        const user = await userRepository.findOneById(userid);
 
-        const user = await userRepository.findOne({
-            where: { id: userid },
-            relations: ['events','roles', 'image'] 
-        });
         if (!user) {
             throw new EntityNotFoundError(User, userid);
         }
+
         return user;
     }
 
-    async getUserByEmail(email: string): Promise<User> {
-        const userRepository  = this.db.getRepository(User);
+    async getUserByEmail(email: string): Promise<User | null> {
+        const userRepository = this.db.getRepository(User);
 
         const user = await userRepository.findOne({
-            where: { email: email },
-            relations: ['events','roles', 'image'] 
+            where: { email: email }
         });
 
         if (!user) {
@@ -162,41 +169,26 @@ export class UseruseCase{
 
     }
 
-    async upDateUserData(userid : number,info : any){
-        try{
-            const userRepository = this.db.getRepository(User)
-            console.log("info",info)
-            const result  = await this.getUserById(userid)
-            console.log("result",result)
-            if(result instanceof User){
-                const user = result;
-                console.log("user = result",user)
-                Object.assign(user, info);
-                console.log("user",user)
-               await userRepository.save(user) 
-            }else {
-                throw new Error('User not found');
-            }
-        }catch(error){
-            console.error("Failed to update user with ID:", userid, error);
-        }
+    async generateUserMatricule(user: User): Promise<string> {
+        const userRepository = this.db.getRepository(User);
+        const count = await userRepository.count();
+        const paddedCount = (count + 1).toString().padStart(5, '0');
+
+        const roleInitial = user.role.role.charAt(0).toUpperCase();
+        const firstNameInitial = user.firstname.charAt(0).toUpperCase();
+        const lastNameInitial = user.lastname.charAt(0).toUpperCase();
+
+        return `${roleInitial}-${firstNameInitial}${lastNameInitial}-${paddedCount}`;
     }
 
-    async generateRandomNumber(): Promise<number> {
-        return Math.floor(Math.random() * 900000) + 100000;
-    }
-
-
-    async GetUserRole(idrole : number):Promise<Roles>{
-        const roleRepository  = this.db.getRepository(Roles);
-        const role  = await roleRepository.findOne({
-            where: {Id : idrole}
+    async getRecentsUsers(): Promise<User[]> {
+        const userRepository = this.db.getRepository(User);
+        return await userRepository.find({
+            order: {
+                id: 'DESC'
+            },
+            take: 3
         });
-        if(!role){
-            throw new Error('role not fund');
-        }
-
-        return role;
     }
 }
 

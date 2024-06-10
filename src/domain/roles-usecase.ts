@@ -1,20 +1,19 @@
-import { DataSource, DeleteResult, EntityNotFoundError } from "typeorm";
-import express, { Request, Response} from "express";
-import { AppDataSource } from "../database/database";
-import { Roles } from "../database/entities/roles";
-import { RoleRequest } from "../handlers/validator/roles-validator";
+import {DataSource, DeleteResult, EntityNotFoundError} from "typeorm";
+import {Role} from "../database/entities/roles";
+import {CreateRoleRequest} from "../handlers/validator/roles-validator";
 
 export interface ListRoleUseCase {
     limit: number;
     page: number;
 }
 
-export class RoleUseCase{
+export class RoleUseCase {
 
-    constructor(private readonly db: DataSource){}
+    constructor(private readonly db: DataSource) {
+    }
 
-    async ListeRole(listesrole: ListRoleUseCase): Promise<{ roles: Roles[], total: number }> {
-        const query = this.db.getRepository(Roles).createQueryBuilder('Role');
+    async getAllRoles(listesrole: ListRoleUseCase): Promise<{ roles: Role[], total: number }> {
+        const query = this.db.getRepository(Role).createQueryBuilder('Role');
 
         query.skip((listesrole.page - 1) * listesrole.limit);
         query.take(listesrole.limit);
@@ -26,48 +25,43 @@ export class RoleUseCase{
         };
     }
 
-    async CreatRole(roleData :RoleRequest ):Promise<Roles | Error>{
-        try{
-            const roleRepository  = this.db.getRepository(Roles);
-    
-            const newRole = new Roles();
-    
-            newRole.Id = roleData.Id;
-            newRole.Role = roleData.Role;
-    
+    async createRole(roleData: CreateRoleRequest): Promise<Role | Error> {
+        try {
+            const roleRepository = this.db.getRepository(Role);
+
+            const newRole = new Role();
+
+            newRole.id = roleData.id;
+            newRole.role = roleData.role;
+
             return roleRepository.save(newRole);
-        }catch(error){
+        } catch (error) {
             console.error("Failed to creat role:");
             throw error;
         }
-        
+
     }
 
-    async getRoleById(id_Role: number): Promise<Roles> {
-        try{
-            const sportRepository  = this.db.getRepository(Roles);
+    async getRoleById(roleId: number): Promise<Role> {
+        const sportRepository = this.db.getRepository(Role);
 
-            const role = await sportRepository.findOne({
-                where: { Id: id_Role }
-            });
+        const role = await sportRepository.findOne({
+            where: {id: roleId}
+        });
 
-            if (!role) {
-                throw new EntityNotFoundError(Roles, id_Role);
-            }
-            return role;
-        }catch(error){
-            console.error("Failed to role with ID:",id_Role, error);
-            throw error;
+        if (!role) {
+            throw new EntityNotFoundError(Role, roleId);
         }
+        return role;
     }
 
-    async DeleteRole(id_Role : number): Promise<DeleteResult>{
+    async DeleteRole(id_Role: number): Promise<DeleteResult> {
 
-        const roleRepository  = this.db.getRepository(Roles);
+        const roleRepository = this.db.getRepository(Role);
 
         try {
             const result = await this.getRoleById(id_Role);
-            if(result == null){
+            if (result == null) {
                 throw new Error(`${id_Role} not found`);
             }
 
@@ -78,21 +72,21 @@ export class RoleUseCase{
         }
     }
 
-    async upDateRoleData(id_Role : number,info : any){
-        try{
-            const roleRepository  = this.db.getRepository(Roles);
-            console.log("info",info)
-            const result  = await this.getRoleById(id_Role)
-            console.log("result",result)
+    async upDateRoleData(id_Role: number, info: any) {
+        try {
+            const roleRepository = this.db.getRepository(Role);
+            console.log("info", info)
+            const result = await this.getRoleById(id_Role)
+            console.log("result", result)
 
-            if(result instanceof Roles){
+            if (result instanceof Role) {
                 const role = result;
                 Object.assign(role, info);
-               await roleRepository.save(role) 
-            }else {
+                await roleRepository.save(role)
+            } else {
                 throw new Error('planning not found');
             }
-        }catch(error){
+        } catch (error) {
             console.error("Failed to update role with ID:", id_Role, error);
         }
     }

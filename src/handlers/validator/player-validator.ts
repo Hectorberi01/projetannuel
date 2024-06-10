@@ -1,35 +1,30 @@
-import Joi, { number } from "joi";
-import { Sport } from "../../database/entities/sport";
-import { FormationCenter } from "../../database/entities/formationcenter";
-import {Image} from '../../database/entities/image'
-const { joiPasswordExtendCore } = require('joi-password');
+import Joi from "joi";
+
+const {joiPasswordExtendCore} = require('joi-password');
 const joiPassword = Joi.extend(joiPasswordExtendCore);
 
-export interface PlayerRequest{
-    Id: number,
-    FirstName: string,
-    LastName: string,
-    Height: number,
-    Weight: number,
-    BirthDate: Date,
-    Sport: Sport,
-    FormationCenter: FormationCenter,
-    Image : Image,
-    stats: object;
+export interface CreatePlayerRequest {
+    id: number,
+    firstName: string,
+    lastName: string,
+    height: number,
+    weight: number,
+    birthDate: Date,
+    sportId: number,
+    formationCenterId: number,
+    stats: string;
 }
 
 
-export const PlayerValidator = Joi.object<PlayerRequest>({
-    Id: Joi.number().optional(),
-    FirstName: Joi.string().required(),
-    LastName: Joi.string().required(),
-    Height: Joi.number().required(),
-    Weight:Joi.number().required(),
-    BirthDate: Joi.date().required(),
-    stats: Joi.object().optional(),
-    Sport: Joi.object().required(), 
-    FormationCenter: Joi.object().required(), 
-    Image : Joi.object().optional(),
+export const createPlayerValidation = Joi.object<CreatePlayerRequest>({
+    firstName: Joi.string().required(),
+    lastName: Joi.string().required(),
+    height: Joi.number().optional(),
+    weight: Joi.number().optional(),
+    birthDate: Joi.date().required(),
+    stats: Joi.string().optional(),
+    sportId: Joi.number().required(),
+    formationCenterId: Joi.number().optional()
 })
 
 export const listPlayerValidation = Joi.object<ListPlayerRequest>({
@@ -42,10 +37,34 @@ export interface ListPlayerRequest {
     limit?: number
 }
 
-export const PlayerIdValidation = Joi.object<PlayerIdRequest>({
-    Id: Joi.number().required(),
+export const playerIdValidation = Joi.object<PlayerIdRequest>({
+    id: Joi.number().required(),
 })
 
 export interface PlayerIdRequest {
-    Id: number
+    id: number
+}
+
+export const updatePlayerValidation = Joi.object<UpdatePlayerRequest>({
+    id: Joi.number().required(),
+    firstName: Joi.string().optional(),
+    lastName: Joi.string().optional(),
+    height: Joi.number().optional(),
+    weight: Joi.number().optional(),
+    birthDate: Joi.date().optional(),
+    stats: Joi.object().optional(),
+    sportId: Joi.number().optional(),
+    formationCenterId: Joi.number().optional()
+});
+
+export interface UpdatePlayerRequest {
+    id: number;
+    firstName: string;
+    lastName: string;
+    height: number;
+    weight: number;
+    birthDate: Date;
+    stats: string;
+    sportId: number;
+    formationCenterId: number;
 }

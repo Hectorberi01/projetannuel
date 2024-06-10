@@ -1,53 +1,53 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable, OneToOne, JoinColumn } from 'typeorm'
+import {Column, Entity, JoinTable, ManyToMany, OneToMany, PrimaryGeneratedColumn} from 'typeorm'
 import "reflect-metadata"
-import { Sport } from './sport'
-import { Events } from './events'
-import { Image } from './image'
+import {Sport} from './sport'
+import {Event} from './event'
+import { User } from './user'
 
 @Entity()
 export class Club {
-    @PrimaryGeneratedColumn() 
-    Id!: number
-
-    @Column() 
-    Name!: string
-
-    @Column() 
-    Address!: string
+    @PrimaryGeneratedColumn()
+    id!: number
 
     @Column()
-    Email!: string
+    name!: string
+
+    @Column()
+    address!: string
+
+    @Column()
+    email!: string
 
     @ManyToMany(() => Sport)
     @JoinTable()
-    Sports!: Sport[];
+    sports!: Sport[];
 
-    @Column() 
-    creation_date!:Date
+    @Column()
+    creationDate!: Date
 
-    @ManyToMany(() => Events, event => event.clubs)
-    events!: Events[];
+    @ManyToMany(() => Event, event => event.clubs)
+    events!: Event[];
 
-    @OneToOne(() => Image, image => image.club, { cascade: true })
-    @JoinColumn()
-    Image!: Image;
+    @OneToMany(() => User, user => user.club)
+    users!: User[];
 
     constructor(
-        id?: number, 
+        id?: number,
         name?: string,
-        address?: string, 
+        address?: string,
         sport?: Sport[],
-        image?: Image, 
         creation_date?: Date,
-        email?: string
-    ) 
-    {
-        if (id) this.Id = id;
-        if (name) this.Name = name;
-        if(address) this.Address = address;
-        if(sport) this.Sports = sport;
-        if(image) this.Image = image;
-        if(creation_date) this.creation_date = creation_date;
-        if(email) this.Email = email
+        email?: string,
+        events?: Event[],
+        users?: User[],
+    ) {
+        if (id) this.id = id;
+        if (name) this.name = name;
+        if (address) this.address = address;
+        if (sport) this.sports = sport;
+        if (creation_date) this.creationDate = creation_date;
+        if (email) this.email = email;
+        if (events) this.events = events;
+        if (users) this.users = users;
     }
 }

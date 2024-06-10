@@ -1,5 +1,5 @@
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { User } from "./useraccount";
+import { User } from "./user";
 import { Question } from "./question";
 import { Sondage } from "./sondage";
 

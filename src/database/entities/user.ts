@@ -1,0 +1,104 @@
+import { Column, Entity, JoinTable, ManyToMany, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn, JoinColumn } from 'typeorm';
+import { Role } from './roles';
+import { Event } from './event';
+import { Answer } from './answer';
+import { Sondage } from './sondage';
+import { Club } from './club';
+import { FormationCenter } from './formationcenter';
+import { Player } from './player';
+
+@Entity()
+export class User {
+    @PrimaryGeneratedColumn()
+    id!: number;
+
+    @Column()
+    firstname!: string;
+
+    @Column()
+    lastname!: string;
+
+    @Column({ unique: true })
+    email!: string;
+
+    @Column({ type: 'timestamp' })
+    birthDate!: Date;
+
+    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+    createDate!: Date
+
+    @Column()
+    address!: string;
+
+    @ManyToOne(() => Role, role => role.users)
+    @JoinTable()
+    role!: Role
+
+    @Column({ unique: true })
+    matricule!: string;
+
+    @Column()
+    password!: string;
+
+    @OneToMany(() => Answer, answer => answer.user)
+    answers!: Answer[];
+
+    @OneToMany(() => Sondage, sondage => sondage.createdBy)
+    sondages!: Sondage[];
+
+    @ManyToMany(() => Event, event => event.participants)
+    events!: Event[];
+
+    @Column()
+    newsletter!: boolean;
+
+    @Column()
+    deleted!: boolean;
+
+    @ManyToOne(() => Club, club => club.users)
+    club!: Club;
+
+    @ManyToOne(() => FormationCenter, formationCenter => formationCenter.users)
+    formationCenter!: FormationCenter;
+
+    @OneToOne(() => Player, player => player.user)
+    @JoinColumn() // Ajoutez cette ligne pour spécifier la colonne de jointure
+    player!: Player
+
+    constructor(id?: number,
+                firstname?: string,
+                lastname?: string,
+                email?: string,
+                birth_date?: Date,
+                date_creation?: Date,
+                address?: string,
+                role?: Role,
+                matricule?: string,
+                password?: string,
+                answers?: Answer[],
+                sondages?: Sondage[],
+                newsletter?: boolean,
+                deleted?: boolean,
+                club?: Club,
+                formationCenter?: FormationCenter,
+                player?: Player
+    ) {
+        if (id) this.id = id;
+        if (firstname) this.firstname = firstname;
+        if (lastname) this.lastname = lastname;
+        if (email) this.email = email;
+        if (birth_date) this.birthDate = birth_date;
+        if (date_creation) this.createDate = date_creation;
+        if (address) this.address = address;
+        if (role) this.role = role;
+        if (matricule) this.matricule = matricule;
+        if (password) this.password = password;
+        if (answers) this.answers = answers;
+        if (sondages) this.sondages = sondages;
+        if (newsletter) this.newsletter = newsletter;
+        if (deleted) this.deleted = deleted;
+        if (club) this.club = club;
+        if (formationCenter) this.formationCenter = formationCenter;
+        if (player) this.player = player;
+    }
+}

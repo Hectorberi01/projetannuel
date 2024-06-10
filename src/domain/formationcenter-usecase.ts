@@ -1,62 +1,61 @@
-import { DataSource, DeleteResult, EntityNotFoundError } from "typeorm";
-import express, { Request, Response} from "express";
-import { AppDataSource } from "../database/database";
-import { FormationCenterRequest } from "../handlers/validator/formation-validator";
-import { SportUseCase } from "./sport-usecase";
-import{FormationCenter} from "../database/entities/formationcenter"
-import { Sport } from "../database/entities/sport";
+import {DataSource, DeleteResult, EntityNotFoundError} from "typeorm";
+import {FormationCenterRequest} from "../handlers/validator/formation-validator";
+import {FormationCenter} from "../database/entities/formationcenter"
+import {Player} from "../database/entities/player";
 
 export interface ListFormationCenterCase {
     limit: number;
     page: number;
 }
 
-export class FormationCenterUserCase{
+export class FormationCenterUseCase {
 
-    constructor(private readonly db: DataSource){}
+    constructor(private readonly db: DataSource) {
+    }
 
-    async ListeFormationCenter(listformation: ListFormationCenterCase): Promise<{ formation: FormationCenter[], total: number }> {
+    async getAllFormationsCenters(listformation: ListFormationCenterCase): Promise<{
+        formationsCenters: FormationCenter[],
+        total: number
+    }> {
         const query = this.db.getRepository(FormationCenter).createQueryBuilder('FormationCenter')
-        .leftJoinAndSelect('FormationCenter.Sports', 'sport');
+            .leftJoinAndSelect('FormationCenter.sports', 'sport');
 
 
         query.skip((listformation.page - 1) * listformation.limit);
         query.take(listformation.limit);
 
-        const [formation, total] = await query.getManyAndCount();
+        const [formationsCenters, total] = await query.getManyAndCount();
         return {
-            formation,
+            formationsCenters,
             total
         };
     }
-    async CreatFormationCenter(formationData :FormationCenterRequest ):Promise<FormationCenter | Error>{
-        try{
-            const formationRepository  = this.db.getRepository(FormationCenter);
-            const sportUsecase = new SportUseCase(AppDataSource);
+
+    async createFormationCenter(formationData: FormationCenterRequest): Promise<FormationCenter | Error> {
+        try {
+            const formationRepository = this.db.getRepository(FormationCenter);
             const newFormation = new FormationCenter();
 
-            newFormation.Id = formationData.Id;
-            newFormation.Name = formationData.Name;
-            newFormation.Adress = formationData.Adress;
-            newFormation.Sports = formationData.Sports;
-            newFormation.Email = formationData.Email;
-            newFormation.Id_Image = formationData.Id_Image;
-            newFormation.Creation_Date = formationData.Creation_Date
+            newFormation.name = formationData.name;
+            newFormation.address = formationData.address;
+            newFormation.sports = formationData.sports;
+            newFormation.email = formationData.email;
+            newFormation.createDate = new Date();
 
             return formationRepository.save(newFormation);
-        }catch(error){
+        } catch (error) {
             console.error("Failed to creat club account :", error);
             throw error;
         }
-        
+
     }
 
     async getFormationCenterById(id_formation: number): Promise<FormationCenter> {
-        const formationRepository  = this.db.getRepository(FormationCenter);
+        const formationRepository = this.db.getRepository(FormationCenter);
 
         const club = await formationRepository.findOne({
-            where: { Id: id_formation },
-            relations: ['Sports']
+            where: {id: id_formation},
+            relations: ['sports']
         });
         if (!club) {
             throw new EntityNotFoundError(FormationCenter, id_formation);
@@ -64,13 +63,13 @@ export class FormationCenterUserCase{
         return club;
     }
 
-    async DeleteFormationCenter(id_formation : number): Promise<DeleteResult>{
+    async deleteFormationCenter(id_formation: number): Promise<DeleteResult> {
 
-        const formationRepository  = this.db.getRepository(FormationCenter);
+        const formationRepository = this.db.getRepository(FormationCenter);
 
         try {
             const result = await this.getFormationCenterById(id_formation);
-            if(result == null){
+            if (result == null) {
                 throw new Error(`${id_formation} not found`);
             }
 
@@ -82,24 +81,36 @@ export class FormationCenterUserCase{
 
     }
 
-    async upDateFormationCenterData(id_formation : number,info : any){
-        try{
+    async updateFormationCenter(id_formation: number, info: any) {
+        try {
             const ClubRepository = this.db.getRepository(FormationCenter)
-            console.log("info",info)
-            const result  = await this.getFormationCenterById(id_formation)
-            console.log("result",result)
+            console.log("info", info)
+            const result = await this.getFormationCenterById(id_formation)
+            console.log("result", result)
 
-            if(result instanceof FormationCenter){
+            if (result instanceof FormationCenter) {
                 const club = result;
-                console.log("planning = result",club)
+                console.log("planning = result", club)
                 Object.assign(club, info);
-                console.log("id_planning",club)
-               await ClubRepository.save(club) 
-            }else {
+                console.log("id_planning", club)
+                await ClubRepository.save(club)
+            } else {
                 throw new Error('planning not found');
             }
-        }catch(error){
+        } catch (error) {
             console.error("Failed to update formation center with ID:", id_formation, error);
         }
+    }
+
+    async getAssociatedPlayers(formationCenterId: number): Promise<Player[]> {
+
+        const playerRepository = this.db.getRepository(Player);
+        const formationCenter = await this.getFormationCenterById(formationCenterId);
+
+        if (!formationCenter) {
+            throw new Error(`Sport ${formationCenterId} was not found`);
+        }
+
+        return playerRepository.findBy({formationCenter: formationCenter});
     }
 }

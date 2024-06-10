@@ -1,14 +1,14 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable } from 'typeorm'
 import "reflect-metadata"
 import { number } from 'joi'
-import { User } from './useraccount';
+import { User } from './user';
 import { Club } from './club';
 import { FormationCenter } from './formationcenter';
 
 @Entity()
-export class Events {
+export class Event {
     @PrimaryGeneratedColumn()
-    Id!: number
+    id!: number
 
     @Column()
     title!: string;
@@ -70,7 +70,7 @@ export class Events {
         clubs?: Club[],
         trainingCenters?: FormationCenter[]
     ) {
-        if (id) this.Id = id;
+        if (id) this.id = id;
         if (title) this.title = title;
         if (description) this.description = description;
         if (startDate) this.startDate = startDate;

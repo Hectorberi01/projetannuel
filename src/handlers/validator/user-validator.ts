@@ -1,53 +1,55 @@
-// import Joi, { number } from "joi";
-// import { Roles } from "../../database/entities/roles";
-// const { joiPasswordExtendCore } = require('joi-password');
-// const joiPassword = Joi.extend(joiPasswordExtendCore);
+import Joi from "joi";
 
-// export interface UserValidator {
-//     id: number,
-//     name: string,
-//     lastname: string,
-//     email: string,
-//     adress: string,
-//     age: number,
-//     password: string,
-//     matricule: number,
-//     role: Roles[],
-//     anciennete: Date,
-// }
+export const listUserValidation = Joi.object<ListUserRequest>({
+    page: Joi.number().min(1).optional(),
+    limit: Joi.number().min(1).optional(),
+})
 
-// export const UserValidator = Joi.object<UserValidator>({
-//     id: Joi.number().optional(),
-//     name: Joi.string().required(),
-//     lastname: Joi.string().required(),
-//     email: Joi.string().email().required(),
-//     adress: Joi.string().required(),
-//     age: Joi.number().integer().min(0).required(),
-//     password: joiPassword.string()
-//     .minOfSpecialCharacters(2)
-//     .minOfLowercase(2)
-//     .minOfUppercase(2)
-//     .minOfNumeric(2)
-//     .noWhiteSpaces()
-//     .doesNotInclude(['password'])
-//     .required(),
-//     matricule: Joi.number().integer().required(),
-//     role: Joi.array().items(Joi.object()).required(),
-//     anciennete: Joi.date().required()
-// });
+export interface ListUserRequest {
+    page?: number
+    limit?: number
+}
 
+export interface CreateUserRequest {
+    firstName: string;
+    lastName: string;
+    email: string;
+    address: string;
+    newsletter: boolean;
+    birthDate: Date;
+    roleId: string;
+    playerId: string | null;
+    formationCenterId: string | null;
+    clubId: string | null;
+}
 
-// export const LoginUserValidation = Joi.object<LoginUserValidationRequest>({
-//     email: Joi.string().email().required(),
-//     password: Joi.string().required(),
-// }).options({ abortEarly: false });
+export const createUserValidation = Joi.object<CreateUserRequest>({
+    firstName: Joi.string().required(),
+    lastName: Joi.string().required(),
+    email: Joi.string().required(),
+    address: Joi.string().required(),
+    birthDate: Joi.date().required(),
+    roleId: Joi.string().required(),
+    playerId: Joi.alternatives().try(Joi.string(), Joi.allow(null)).optional(),
+    formationCenterId: Joi.alternatives().try(Joi.string(), Joi.allow(null)).optional(),
+    clubId: Joi.alternatives().try(Joi.string(), Joi.allow(null)).optional(),
+    newsletter: Joi.boolean().required()
+})
 
-// export interface LoginUserValidationRequest {
-//     email: string
-//     password: string
-// }
+export interface IdUserRequest {
+    id: number
+}
 
+export const idUserValidation = Joi.object<IdUserRequest>({
+    id: Joi.number().required()
+})
 
+export interface LoginUserRequest {
+    login: string
+    password: string
+}
 
-
-
+export const loginUserValidation = Joi.object<LoginUserRequest>({
+    login: Joi.string().required(),
+    password: Joi.string().required()
+})

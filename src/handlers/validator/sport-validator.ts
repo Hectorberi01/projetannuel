@@ -1,31 +1,29 @@
 import Joi from "joi"
 
 
-export interface SportRequest{
-    Id: number,
-    Name: string,
+export interface CreateSportRequest{
+    name: string,
 }
 
-export const SportValidator = Joi.object<SportRequest>({
-    Id: Joi.number().optional(),
-    Name: Joi.string().required(),
+export const createSportValidation = Joi.object<CreateSportRequest>({
+    name: Joi.string().required(),
 
 })
 
-export const listSportalidation = Joi.object<ListSporttRequest>({
+export const listSportValidation = Joi.object<ListSportRequest>({
     page: Joi.number().min(1).optional(),
     limit: Joi.number().min(1).optional(),
 })
 
-export interface ListSporttRequest {
+export interface ListSportRequest {
     page?: number
     limit?: number
 }
 
-export const SportIdValidation = Joi.object<SportIdRequest>({
-    Id: Joi.number().required(),
+export const idSportValidation = Joi.object<IdSportRequest>({
+    id: Joi.number().required(),
 })
 
-export interface SportIdRequest {
-    Id: number
+export interface IdSportRequest {
+    id: number
 }
