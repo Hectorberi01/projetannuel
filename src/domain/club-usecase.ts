@@ -3,6 +3,8 @@ import {Club} from "../database/entities/club";
 import {CreateClubRequest, UpdateClubRequest} from "../handlers/validator/club-validator";
 import {ImageUseCase} from "./image-usecase";
 import {AppDataSource} from "../database/database";
+import {SportUseCase} from "./sport-usecase";
+import {Sport} from "../database/entities/sport";
 
 
 export interface ListClubRequest {
@@ -31,13 +33,28 @@ export class ClubUseCase {
     async createClub(clubData: CreateClubRequest, file: Express.Multer.File | undefined): Promise<Club | Error> {
         const clubRepository = this.db.getRepository(Club);
         const imageUseCase = new ImageUseCase(AppDataSource);
+        const sportUseCase = new SportUseCase(AppDataSource);
         let club = new Club();
         club.creationDate = new Date();
         club.email = clubData.email;
         club.address = clubData.address;
         club.name = clubData.name;
         club.events = [];
-        club.sports = clubData.sports;
+        let sports: Sport[] = [];
+        const sportsIds = JSON.parse(clubData.sports) as number[];
+
+        if (sportsIds != null && sportsIds.length > 0) {
+            for (let id of sportsIds) {
+                const sport = await sportUseCase.getSportById(id);
+                if (sport != null) {
+                    sports.push(sport);
+                }
+            }
+        }
+
+        if (sports.length > 0) {
+            club.sports = sports;
+        }
 
         if (file != null) {
             const uploadedImage = await imageUseCase.createImage(file);

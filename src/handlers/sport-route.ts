@@ -119,7 +119,7 @@ export const sportRoutes = (app: express.Express) => {
             }
 
             const sportUseCase = new SportUseCase(AppDataSource);
-            const sportId = idSportValidate.value.Id;
+            const sportId = idSportValidate.value.id;
             const sport = await sportUseCase.deleteSport(sportId)
 
             if (sport.affected === 0) {

@@ -7,7 +7,7 @@ export interface CreateClubRequest {
     name: string,
     address: string,
     email: string,
-    sports: Sport[],
+    sports: string,
     events: Event[],
 }
 
@@ -15,8 +15,8 @@ export const createClubValidation = Joi.object<CreateClubRequest>({
     name: Joi.string().required(),
     address: Joi.string().required(),
     email: Joi.string().required(),
-    sports: Joi.array().items(Joi.object()).optional(),
-    events: Joi.array().items(Joi.object()).optional(),
+    sports: Joi.string().optional(),
+    events: Joi.array().optional(),
 })
 
 export const listClubValidation = Joi.object<ListClubRequest>({

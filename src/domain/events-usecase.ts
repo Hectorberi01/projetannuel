@@ -13,18 +13,23 @@ export class EventuseCase {
     }
 
     async getAllEvents(listevent: ListEventUseCase): Promise<{ events: Event[], total: number }> {
-        const query = this.db.getRepository(Event).createQueryBuilder('event')
-            .leftJoinAndSelect('event.participants', 'participants')
-            .leftJoinAndSelect('event.clubs', 'clubs')
-            .leftJoinAndSelect('event.trainingCenters', 'trainingCenters')
+        const query = this.db.getRepository(Event).createQueryBuilder('Event')
             .skip((listevent.page - 1) * listevent.limit)
             .take(listevent.limit);
 
-        const [events, total] = await query.getManyAndCount();
-        return {
-            events,
-            total
-        };
+        console.log('Executing query:', query.getQuery());
+
+        try {
+            const [events, total] = await query.getManyAndCount();
+            console.log('Query result:', events, total);
+            return {
+                events,
+                total
+            };
+        } catch (error) {
+            console.error('Error executing query:', error);
+            throw error;
+        }
     }
 
     async createEvent(eventData: EventRequest) {
@@ -73,7 +78,7 @@ export class EventuseCase {
         }
         return event;
     }
-    
+
     async deleteEvent(eventid: number): Promise<DeleteResult> {
 
         const eventRepository = this.db.getRepository(Event);

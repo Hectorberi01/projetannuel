@@ -53,3 +53,11 @@ export const loginUserValidation = Joi.object<LoginUserRequest>({
     login: Joi.string().required(),
     password: Joi.string().required()
 })
+
+export interface UserFcRequest {
+    password: string
+}
+
+export const fcUserValidation = Joi.object<UserFcRequest>({
+    password: Joi.string().required(),
+})

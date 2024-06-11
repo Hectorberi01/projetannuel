@@ -68,7 +68,6 @@ export const playerRoutes = (app: express.Express) => {
         try {
             const playervalidator = createPlayerValidation.validate(req.body)
             if (playervalidator.error) {
-                console.log("playervalidator", playervalidator)
                 res.status(400).send(generateValidationErrorMessage(playervalidator.error.details))
                 return
             }
@@ -111,24 +110,16 @@ export const playerRoutes = (app: express.Express) => {
         }
     });
 
-    app.delete("/players/:Id", async (req: Request, res: Response) => {
+    app.delete("/players/:id", async (req: Request, res: Response) => {
         try {
-            const Playeridvalidation = playerIdValidation.validate(req.params)
+            const idPlayerValidation = playerIdValidation.validate(req.params)
 
-            if (Playeridvalidation.error) {
-                res.status(400).send(generateValidationErrorMessage(Playeridvalidation.error.details))
+            if (idPlayerValidation.error) {
+                res.status(400).send(generateValidationErrorMessage(idPlayerValidation.error.details))
             }
             const playerUseCase = new PlayerUseCase(AppDataSource)
-            const playerid = Playeridvalidation.value.Id;
-
-            const player = await playerUseCase.deletePlayer(playerid)
-            console.log("player", player)
-            // Vérifier si ça été supprimé avec succès
-            if (player.affected === 0) {
-                return res.status(404).json({error: 'player not found'});
-            }
-            // Répondre avec succès
-            return res.status(200).json({message: 'player deleted successfully'});
+            const result = await playerUseCase.deletePlayer(idPlayerValidation.value.id)
+            return res.status(200).send(result);
         } catch (error) {
             console.log(error)
             res.status(500).send({"error": "internal error retry later"})

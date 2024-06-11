@@ -71,6 +71,9 @@ export class User {
     @JoinColumn({name: 'imageId'})
     image!: Image;
 
+    @Column()
+    firstConnection!: boolean;
+
     constructor(
         id?: number,
         firstname?: string,
@@ -89,7 +92,8 @@ export class User {
         club?: Club,
         formationCenter?: FormationCenter,
         player?: Player,
-        image?: Image
+        image?: Image,
+        firstConnection?: boolean,
     ) {
         if (id) this.id = id;
         if (firstname) this.firstname = firstname;
@@ -109,5 +113,6 @@ export class User {
         if (formationCenter) this.formationCenter = formationCenter;
         if (player) this.player = player;
         if (image) this.image = image;
+        if (firstConnection) this.firstConnection = firstConnection;
     }
 }

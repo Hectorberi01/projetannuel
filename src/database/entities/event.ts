@@ -1,6 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable } from 'typeorm'
-import "reflect-metadata"
-import { number } from 'joi'
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable } from 'typeorm';
 import { User } from './user';
 import { Club } from './club';
 import { FormationCenter } from './formationcenter';
@@ -8,7 +6,7 @@ import { FormationCenter } from './formationcenter';
 @Entity()
 export class Event {
     @PrimaryGeneratedColumn()
-    id!: number
+    id!: number;
 
     @Column()
     title!: string;
@@ -52,8 +50,6 @@ export class Event {
     @JoinTable()
     trainingCenters!: FormationCenter[];
 
-
-
     constructor(
         id?: number,
         title?: string,
@@ -61,7 +57,7 @@ export class Event {
         startDate?: Date,
         endDate?: Date,
         recurrence?: string,
-        location?: string,
+        lieu?: string,
         capacity?: number,
         type?: string,
         statut?: string,
@@ -76,13 +72,13 @@ export class Event {
         if (startDate) this.startDate = startDate;
         if (endDate) this.endDate = endDate;
         if (recurrence) this.recurrence = recurrence;
-        if (location) this.lieu = location;
+        if (lieu) this.lieu = lieu;
         if (capacity) this.capacity = capacity;
         if (type) this.type = type;
-        if (statut) this.statut = statut
-        if (activity) this.activity =activity
+        if (statut) this.statut = statut;
+        if (activity) this.activity = activity;
         if (participants) this.participants = participants;
-        if (clubs) this.clubs;
-        if (trainingCenters) this.trainingCenters
+        if (clubs) this.clubs = clubs;
+        if (trainingCenters) this.trainingCenters = trainingCenters;
     }
 }

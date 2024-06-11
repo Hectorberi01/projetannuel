@@ -9,6 +9,7 @@ import {PlayerUseCase} from "./player-usercase";
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import {ImageUseCase} from "./image-usecase";
+import transporter from "../middlewares/mailConfig";
 
 export interface ListUserCase {
     limit: number;
@@ -35,7 +36,6 @@ export class UseruseCase {
     }
 
     async createUser(userData: CreateUserRequest, file: Express.Multer.File | undefined): Promise<User> {
-
         const userRepository = this.db.getRepository(User);
         const imageUseCase = new ImageUseCase(AppDataSource);
         const roleUseCase = new RoleUseCase(AppDataSource);
@@ -53,24 +53,24 @@ export class UseruseCase {
         user.newsletter = userData.newsletter;
         user.birthDate = userData.birthDate;
         user.createDate = new Date();
+        user.firstConnection = false;
 
         const role = await roleUseCase.getRoleById(parseInt(userData.roleId));
         user.role = role;
 
         if (role.role === "CLUB") {
             const clubUseCase = new ClubUseCase(AppDataSource);
-            // @ts-ignore
+            //@ts-ignore
             user.club = await clubUseCase.getClubById(parseInt(userData.clubId));
-        } else if (role.role === "FOMATIONCENTER") {
+        } else if (role.role === "FORMATIONCENTER") {
             const formationCenterUseCase = new FormationCenterUseCase(AppDataSource);
-            // @ts-ignore
+            //@ts-ignore
             user.formationCenter = await formationCenterUseCase.getFormationCenterById(parseInt(userData.formationCenterId));
         } else if (role.role === "PLAYER") {
             const playerUseCase = new PlayerUseCase(AppDataSource);
-            // @ts-ignore
+            //@ts-ignore
             user.player = await playerUseCase.getPlayerById(parseInt(userData.playerId));
         } else if (role.role === "ADMIN") {
-
         } else {
             throw new Error("this type of role is not implemented yet.");
         }
@@ -83,11 +83,29 @@ export class UseruseCase {
         if (file != null) {
             const uploadedImage = await imageUseCase.createImage(file);
             if (uploadedImage) {
-                // @ts-ignore
-                user.image = uploadedImage
+                //@ts-ignore
+                user.image = uploadedImage;
             }
         }
-        return userRepository.save(user);
+        user = await userRepository.save(user);
+
+        // Send the email with the temporary password
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: "ethanfrancois0@gmail.com",
+            subject: 'Votre compte SportVision',
+            text: `Bonjour ${user.firstname},\n\n Votre compte pour accéder à notre plateforme a bien été crée.\n\n Votre identifiant est : ${user.email}\n\n Voici votre mot de passe temporaire: ${tmpPassword}\n\n Veillez a bien changer votre mot de passe lors de votre premiere connexion\n\n L'équipe SportVision`,
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error('Error sending email:', error);
+            } else {
+                console.log('Email sent:', info.response);
+            }
+        });
+
+        return user;
     }
 
     async login(userRequest: LoginUserRequest): Promise<{ user: User, token: string }> {
@@ -124,16 +142,14 @@ export class UseruseCase {
         const userRepository = this.db.getRepository(User);
         const user = await userRepository.findOne({
             where: {id: userId},
-            relations: ['role']
         })
         if (!user) {
             throw new EntityNotFoundError(User, userId);
         }
 
+        user.password = "{noop}"
         return user;
     }
-
-
 
     async getUserByEmail(email: string): Promise<User | null> {
         const userRepository = this.db.getRepository(User);
@@ -173,7 +189,7 @@ export class UseruseCase {
         return `${roleInitial}-${firstNameInitial}${lastNameInitial}-${paddedCount}`;
     }
 
-    async getRecentsUsers(): Promise<User[]> {
+    async getRecentUsers(): Promise<User[]> {
         const userRepository = this.db.getRepository(User);
         return await userRepository.find({
             order: {
@@ -182,6 +198,26 @@ export class UseruseCase {
             take: 3
         });
     }
+
+    async changePasswordFirstConnection(userId: number, newPassword: string): Promise<User> {
+        const userRepository = this.db.getRepository(User);
+        const user = await userRepository.findOne({
+            where: {id: userId}
+        });
+
+        if (!user) {
+            throw new Error("Utilisateur inconnu");
+        }
+        if (user.firstConnection) {
+            throw new Error("Mot de passe déjà changé");
+        }
+        user.password = await this.hashPassword(newPassword);
+        user.firstConnection = true;
+
+        return await userRepository.save(user);
+
+    }
+
 }
 
 

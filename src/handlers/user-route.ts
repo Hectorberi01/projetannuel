@@ -5,6 +5,7 @@ import {AppDataSource} from "../database/database";
 import {UseruseCase} from "../domain/user-usecase";
 import {
     createUserValidation,
+    fcUserValidation,
     idUserValidation,
     listUserValidation,
     loginUserValidation
@@ -39,7 +40,7 @@ export const userRoutes = (app: express.Express) => {
 
         try {
             const userUseCase = new UseruseCase(AppDataSource);
-            const result = await userUseCase.getRecentsUsers();
+            const result = await userUseCase.getRecentUsers();
             res.status(200).send(result);
         } catch (error: any) {
             res.status(500).send({error: error.message});
@@ -70,7 +71,7 @@ export const userRoutes = (app: express.Express) => {
             }
 
             const userUseCase = new UseruseCase(AppDataSource);
-            const result = await userUseCase.getUserById(idUserValidate.value);
+            const result = await userUseCase.getUserById(idUserValidate.value.id);
             res.status(200).send(result);
         } catch (error) {
             res.status(500).send(error);
@@ -93,4 +94,26 @@ export const userRoutes = (app: express.Express) => {
             res.status(500).send({error: error.message});
         }
     });
+
+    app.put("/users/:id/first-connection", async (req: Request, res: Response) => {
+        try {
+            const idUserValidate = idUserValidation.validate(req.params);
+
+            if (idUserValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(idUserValidate.error.details));
+            }
+
+            const fcUserValidate = fcUserValidation.validate(req.body);
+
+            if (fcUserValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(fcUserValidate.error.details));
+            }
+
+            const userUseCase = new UseruseCase(AppDataSource);
+            const result = await userUseCase.changePasswordFirstConnection(idUserValidate.value.id, fcUserValidate.value.password);
+            res.status(200).send(result);
+        } catch (error: any) {
+            res.status(500).send(error.message);
+        }
+    })
 }
