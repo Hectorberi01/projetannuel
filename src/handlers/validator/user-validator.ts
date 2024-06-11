@@ -61,3 +61,23 @@ export interface UserFcRequest {
 export const fcUserValidation = Joi.object<UserFcRequest>({
     password: Joi.string().required(),
 })
+
+export interface ChangePasswordRequest {
+    oldPassword: string
+    newPassword: string
+}
+
+export const changePasswordValidation = Joi.object<ChangePasswordRequest>({
+    oldPassword: Joi.string().required(),
+    newPassword: Joi.string().required()
+})
+
+export interface A2FUserRequest {
+    userId: number,
+    code: string
+}
+
+export const a2fUserValidation = Joi.object<A2FUserRequest>({
+    userId: Joi.number().required(),
+    code: Joi.string().required()
+})

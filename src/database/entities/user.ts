@@ -74,6 +74,15 @@ export class User {
     @Column()
     firstConnection!: boolean;
 
+    @Column({default: false})
+    a2fEnabled!: boolean;
+
+    @Column({nullable: true})
+    a2fCode!: string;
+
+    @Column({type: 'timestamp', nullable: true})
+    a2fCodeCreatedAt!: Date;
+
     constructor(
         id?: number,
         firstname?: string,
@@ -94,6 +103,9 @@ export class User {
         player?: Player,
         image?: Image,
         firstConnection?: boolean,
+        a2fEnabled?: boolean,
+        a2fCode?: string,
+        a2fCodeCreatedAt?: Date,
     ) {
         if (id) this.id = id;
         if (firstname) this.firstname = firstname;
@@ -114,5 +126,8 @@ export class User {
         if (player) this.player = player;
         if (image) this.image = image;
         if (firstConnection) this.firstConnection = firstConnection;
+        if (a2fEnabled) this.a2fEnabled = a2fEnabled;
+        if (a2fCode) this.a2fCode = a2fCode;
+        if (a2fCodeCreatedAt) this.a2fCodeCreatedAt = a2fCodeCreatedAt;
     }
 }

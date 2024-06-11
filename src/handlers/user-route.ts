@@ -4,6 +4,8 @@ import {generateValidationErrorMessage} from "./validator/generate-validation-me
 import {AppDataSource} from "../database/database";
 import {UseruseCase} from "../domain/user-usecase";
 import {
+    a2fUserValidation,
+    changePasswordValidation,
     createUserValidation,
     fcUserValidation,
     idUserValidation,
@@ -111,6 +113,54 @@ export const userRoutes = (app: express.Express) => {
 
             const userUseCase = new UseruseCase(AppDataSource);
             const result = await userUseCase.changePasswordFirstConnection(idUserValidate.value.id, fcUserValidate.value.password);
+            res.status(200).send(result);
+        } catch (error: any) {
+            res.status(500).send(error.message);
+        }
+    })
+
+    app.put("/users/:id/delete", async (req: Request, res: Response) => {
+        try {
+            const idUserValidate = idUserValidation.validate(req.params);
+            if (idUserValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(idUserValidate.error.details));
+            }
+
+            const userUseCase = new UseruseCase(AppDataSource);
+            const result = await userUseCase.desactivateUserById(idUserValidate.value.id);
+            res.status(200).send(result);
+        } catch (error: any) {
+            res.status(500).send(error.message);
+        }
+    })
+
+    app.put("/users/:id/change-password", async (req: Request, res: Response) => {
+        try {
+            const idUserValidate = idUserValidation.validate(req.params);
+            if (idUserValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(idUserValidate.error.details));
+            }
+            const changePasswordValidate = changePasswordValidation.validate(req.body);
+            if (changePasswordValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(changePasswordValidate.error.details));
+            }
+            const userUseCase = new UseruseCase(AppDataSource);
+            const result = await userUseCase.changePassword(idUserValidate.value.id, changePasswordValidate.value);
+            res.status(200).send(result);
+        } catch (error: any) {
+            res.status(500).send(error.message);
+        }
+    })
+
+    app.post("/users/auth/verify-a2f", async (req: Request, res: Response) => {
+        try {
+            const a2fUserValidate = a2fUserValidation.validate(req.body);
+            if (a2fUserValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(a2fUserValidate.error.details));
+            }
+
+            const userUseCase = new UseruseCase(AppDataSource);
+            const result = await userUseCase.validateA2FCode(a2fUserValidate.value.userId, a2fUserValidate.value.code);
             res.status(200).send(result);
         } catch (error: any) {
             res.status(500).send(error.message);

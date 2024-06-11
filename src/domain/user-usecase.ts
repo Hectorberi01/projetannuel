@@ -1,6 +1,6 @@
 import {DataSource, EntityNotFoundError} from "typeorm";
 import {User} from "../database/entities/user";
-import {CreateUserRequest, LoginUserRequest} from "../handlers/validator/user-validator";
+import {ChangePasswordRequest, CreateUserRequest, LoginUserRequest} from "../handlers/validator/user-validator";
 import {RoleUseCase} from "./roles-usecase";
 import {AppDataSource} from "../database/database";
 import {ClubUseCase} from "./club-usecase";
@@ -9,7 +9,9 @@ import {PlayerUseCase} from "./player-usercase";
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import {ImageUseCase} from "./image-usecase";
-import transporter from "../middlewares/mailConfig";
+import {MessageUseCase} from "./message-usecase";
+import {MessageType} from "../Enumerators/MessageType";
+import {v4 as uuidv4} from 'uuid';
 
 export interface ListUserCase {
     limit: number;
@@ -26,6 +28,7 @@ export class UseruseCase {
         const query = this.db.getRepository(User).createQueryBuilder('user')
             .leftJoinAndSelect('user.role', 'role')
             .leftJoinAndSelect('user.events', 'events')
+            .where('user.deleted = false or user.deleted = null')
             .skip((listuser.page - 1) * listuser.limit)
             .take(listuser.limit);
         const [user, total] = await query.getManyAndCount();
@@ -39,6 +42,7 @@ export class UseruseCase {
         const userRepository = this.db.getRepository(User);
         const imageUseCase = new ImageUseCase(AppDataSource);
         const roleUseCase = new RoleUseCase(AppDataSource);
+        const messageUseCase = new MessageUseCase(AppDataSource);
 
         const alreadyExist = await this.getUserByEmail(userData.email);
         if (alreadyExist != null) {
@@ -89,36 +93,31 @@ export class UseruseCase {
         }
         user = await userRepository.save(user);
 
-        // Send the email with the temporary password
-        const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: "ethanfrancois0@gmail.com",
-            subject: 'Votre compte SportVision',
-            text: `Bonjour ${user.firstname},\n\n Votre compte pour accéder à notre plateforme a bien été crée.\n\n Votre identifiant est : ${user.email}\n\n Voici votre mot de passe temporaire: ${tmpPassword}\n\n Veillez a bien changer votre mot de passe lors de votre premiere connexion\n\n L'équipe SportVision`,
-        };
-
-        transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-                console.error('Error sending email:', error);
-            } else {
-                console.log('Email sent:', info.response);
-            }
-        });
+        await messageUseCase.sendMessage(MessageType.FIRST_CONNECTION, user, tmpPassword);
 
         return user;
     }
 
-    async login(userRequest: LoginUserRequest): Promise<{ user: User, token: string }> {
+    async login(userRequest: LoginUserRequest): Promise<{ user: User, token?: string }> {
         const potentialUser = await this.getUserByEmail(userRequest.login);
 
         if (!potentialUser) {
             throw new Error("Email ou mot de passe incorrect");
         }
 
+        if (potentialUser.deleted) {
+            throw new Error("Votre compte est supprimé, veuillez contacter le support client");
+        }
+
         const isPasswordValid = await bcrypt.compare(userRequest.password, potentialUser.password);
 
         if (!isPasswordValid) {
             throw new Error("Email ou mot de passe incorrect");
+        }
+
+        if (potentialUser.a2fEnabled) {
+            await this.generateAndSendA2FCode(potentialUser.id);
+            return {user: potentialUser};
         }
 
         const token = await this.generateToken(potentialUser);
@@ -140,14 +139,20 @@ export class UseruseCase {
 
     async getUserById(userId: number): Promise<User> {
         const userRepository = this.db.getRepository(User);
-        const user = await userRepository.findOne({
-            where: {id: userId},
-        })
+        const user = await userRepository.createQueryBuilder("user")
+            .leftJoinAndSelect("user.role", "role")
+            .leftJoinAndSelect("user.club", "club")
+            .leftJoinAndSelect("user.formationCenter", "formationCenter")
+            .leftJoinAndSelect("user.player", "player")
+            .leftJoinAndSelect("user.image", "image")
+            .where("user.id = :id", {id: userId})
+            .getOne();
+
         if (!user) {
             throw new EntityNotFoundError(User, userId);
         }
 
-        user.password = "{noop}"
+        user.password = "{noop}";
         return user;
     }
 
@@ -215,9 +220,73 @@ export class UseruseCase {
         user.firstConnection = true;
 
         return await userRepository.save(user);
-
     }
 
+    async desactivateUserById(userId: number): Promise<User> {
+        const userRepository = this.db.getRepository(User);
+        const user = await this.getUserById(userId);
+
+        if (!user) {
+            throw new Error("Utilisateur inconnu");
+        }
+
+        user.deleted = true;
+        return await userRepository.save(user);
+    }
+
+    async changePassword(userId: number, changePassword: ChangePasswordRequest): Promise<User> {
+
+        const userRepository = this.db.getRepository(User);
+        const user = await this.getUserById(userId);
+
+        if (!user) {
+            throw new Error("Utilisateur inconnu");
+        }
+
+        const oldPasswordMatch = await bcrypt.compare(changePassword.oldPassword, user.password);
+
+        if (!oldPasswordMatch) {
+            throw new Error("Ancien mot de passe invalide");
+        }
+
+        user.password = await this.hashPassword(changePassword.newPassword);
+        return await userRepository.save(user);
+    }
+
+    async generateAndSendA2FCode(userId: number) {
+        const userRepository = this.db.getRepository(User);
+        const messageUseCase = new MessageUseCase(AppDataSource);
+        const user = await this.getUserById(userId);
+
+        if (!user) {
+            throw new Error("Utilisateur inconnu");
+        }
+
+        const a2fCode = uuidv4().slice(0, 6); // Generate a short unique code
+        user.a2fCode = a2fCode;
+        user.a2fCodeCreatedAt = new Date();
+
+        await userRepository.save(user);
+        await messageUseCase.sendMessage(MessageType.A2F_CODE, user, a2fCode);
+    }
+
+    async validateA2FCode(userId: number, code: string): Promise<{ token: string }> {
+        const user = await this.getUserById(userId);
+        if (!user || !user.a2fCode || !user.a2fCodeCreatedAt) {
+            throw new Error("Un problème est survenu, veuillez réessayer plus tard");
+        }
+
+        const now = new Date();
+        const codeCreationTime = new Date(user.a2fCodeCreatedAt);
+        const timeDiff = (now.getTime() - codeCreationTime.getTime()) / 1000 / 60;
+
+        if (timeDiff > 15 || user.a2fCode !== code) {
+            throw new Error("Code A2F invalide ou expiré");
+        }
+
+        const token = await this.generateToken(user);
+        return {token};
+    }
 }
 
 
