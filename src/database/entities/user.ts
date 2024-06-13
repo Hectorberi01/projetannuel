@@ -7,6 +7,7 @@ import {Club} from './club';
 import {FormationCenter} from './formationcenter';
 import {Player} from './player';
 import {Image} from './image';
+import { Exclude } from 'class-transformer';
 
 @Entity()
 export class User {
@@ -38,6 +39,7 @@ export class User {
     matricule!: string;
 
     @Column()
+    @Exclude()
     password!: string;
 
     @OneToMany(() => Answer, answer => answer.user)
