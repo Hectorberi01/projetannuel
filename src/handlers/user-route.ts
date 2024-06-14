@@ -136,7 +136,7 @@ export const userRoutes = (app: express.Express) => {
 
     app.put("/users/:id/change-password", async (req: Request, res: Response) => {
         try {
-            const idUserValidate = idUserValidation.validate(req.params);
+                const idUserValidate = idUserValidation.validate(req.params);
             if (idUserValidate.error) {
                 res.status(400).send(generateValidationErrorMessage(idUserValidate.error.details));
             }

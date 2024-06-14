@@ -171,6 +171,94 @@ export class UseruseCase {
             take: 3
         });
     }
+
+    async changePasswordFirstConnection(userId: number, newPassword: string): Promise<User> {
+        const userRepository = this.db.getRepository(User);
+        const user = await userRepository.findOne({
+            where: {id: userId}
+        });
+
+        if (!user) {
+            throw new Error("Utilisateur inconnu");
+        }
+        if (user.firstConnection) {
+            throw new Error("Mot de passe déjà changé");
+        }
+        user.password = await this.hashPassword(newPassword);
+        user.firstConnection = true;
+
+        return await userRepository.save(user);
+    }
+
+    async desactivateUserById(userId: number): Promise<User> {
+        const userRepository = this.db.getRepository(User);
+        const user = await this.getUserById(userId);
+
+        if (!user) {
+            throw new Error("Utilisateur inconnu");
+        }
+
+        user.deleted = true;
+        return await userRepository.save(user);
+    }
+
+    async changePassword(userId: number, changePassword: ChangePasswordRequest): Promise<User> {
+
+        const userRepository = this.db.getRepository(User);
+        const messageUseCase = new MessageUseCase(AppDataSource);
+        const user = await this.getUserById(userId);
+
+        if (!user) {
+            throw new Error("Utilisateur inconnu");
+        }
+
+        const oldPasswordMatch = await bcrypt.compare(changePassword.oldPassword, user.password);
+
+        if (oldPasswordMatch) {
+            throw new Error("Ancien mot de passe invalide");
+        }
+
+        user.password = await this.hashPassword(changePassword.newPassword);
+        const result = await userRepository.save(user);
+        await messageUseCase.sendMessage(MessageType.PASSWORD_CHANGED, user, null)
+
+        return result;
+    }
+
+    async generateAndSendA2FCode(userId: number) {
+        const userRepository = this.db.getRepository(User);
+        const messageUseCase = new MessageUseCase(AppDataSource);
+        const user = await this.getUserById(userId);
+
+        if (!user) {
+            throw new Error("Utilisateur inconnu");
+        }
+
+        const a2fCode = uuidv4().slice(0, 6); // Generate a short unique code
+        user.a2fCode = a2fCode;
+        user.a2fCodeCreatedAt = new Date();
+
+        await userRepository.save(user);
+        await messageUseCase.sendMessage(MessageType.A2F_CODE, user, a2fCode);
+    }
+
+    async validateA2FCode(userId: number, code: string): Promise<{ token: string }> {
+        const user = await this.getUserById(userId);
+        if (!user || !user.a2fCode || !user.a2fCodeCreatedAt) {
+            throw new Error("Un problème est survenu, veuillez réessayer plus tard");
+        }
+
+        const now = new Date();
+        const codeCreationTime = new Date(user.a2fCodeCreatedAt);
+        const timeDiff = (now.getTime() - codeCreationTime.getTime()) / 1000 / 60;
+
+        if (timeDiff > 15 || user.a2fCode !== code) {
+            throw new Error("Code A2F invalide ou expiré");
+        }
+
+        const token = await this.generateToken(user);
+        return {token};
+    }
 }
 
 
