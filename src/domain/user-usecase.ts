@@ -1,6 +1,6 @@
 import {DataSource, EntityNotFoundError} from "typeorm";
 import {User} from "../database/entities/user";
-import {ChangePasswordRequest, CreateUserRequest, LoginUserRequest} from "../handlers/validator/user-validator";
+import {CreateUserRequest, LoginUserRequest} from "../handlers/validator/user-validator";
 import {RoleUseCase} from "./roles-usecase";
 import {AppDataSource} from "../database/database";
 import {ClubUseCase} from "./club-usecase";
@@ -8,10 +8,6 @@ import {FormationCenterUseCase} from "./formationcenter-usecase";
 import {PlayerUseCase} from "./player-usercase";
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import {ImageUseCase} from "./image-usecase";
-import {MessageUseCase} from "./message-usecase";
-import {MessageType} from "../Enumerators/MessageType";
-import {v4 as uuidv4} from 'uuid';
 
 export interface ListUserCase {
     limit: number;
@@ -28,7 +24,6 @@ export class UseruseCase {
         const query = this.db.getRepository(User).createQueryBuilder('user')
             .leftJoinAndSelect('user.role', 'role')
             .leftJoinAndSelect('user.events', 'events')
-            .where('user.deleted = false or user.deleted = null')
             .skip((listuser.page - 1) * listuser.limit)
             .take(listuser.limit);
         const [user, total] = await query.getManyAndCount();
@@ -38,11 +33,10 @@ export class UseruseCase {
         };
     }
 
-    async createUser(userData: CreateUserRequest, file: Express.Multer.File | undefined): Promise<User> {
+    async createUser(userData: CreateUserRequest): Promise<User> {
+
         const userRepository = this.db.getRepository(User);
-        const imageUseCase = new ImageUseCase(AppDataSource);
         const roleUseCase = new RoleUseCase(AppDataSource);
-        const messageUseCase = new MessageUseCase(AppDataSource);
 
         const alreadyExist = await this.getUserByEmail(userData.email);
         if (alreadyExist != null) {
@@ -57,24 +51,27 @@ export class UseruseCase {
         user.newsletter = userData.newsletter;
         user.birthDate = userData.birthDate;
         user.createDate = new Date();
-        user.firstConnection = false;
 
         const role = await roleUseCase.getRoleById(parseInt(userData.roleId));
         user.role = role;
 
         if (role.role === "CLUB") {
             const clubUseCase = new ClubUseCase(AppDataSource);
-            //@ts-ignore
-            user.club = await clubUseCase.getClubById(parseInt(userData.clubId));
-        } else if (role.role === "FORMATIONCENTER") {
+            // @ts-ignore
+            const club = await clubUseCase.getClubById(parseInt(userData.clubId));
+            user.club = club;
+        } else if (role.role === "FOMATIONCENTER") {
             const formationCenterUseCase = new FormationCenterUseCase(AppDataSource);
-            //@ts-ignore
-            user.formationCenter = await formationCenterUseCase.getFormationCenterById(parseInt(userData.formationCenterId));
+            // @ts-ignore
+            const formationCenter = await formationCenterUseCase.getFormationCenterById(parseInt(userData.formationCenterId));
+            user.formationCenter = formationCenter;
         } else if (role.role === "PLAYER") {
             const playerUseCase = new PlayerUseCase(AppDataSource);
-            //@ts-ignore
-            user.player = await playerUseCase.getPlayerById(parseInt(userData.playerId));
+            // @ts-ignore
+            const player = await playerUseCase.getPlayerById(parseInt(userData.playerId));
+            user.player = player;
         } else if (role.role === "ADMIN") {
+
         } else {
             throw new Error("this type of role is not implemented yet.");
         }
@@ -83,30 +80,14 @@ export class UseruseCase {
         user.password = await this.hashPassword(tmpPassword);
         user.matricule = await this.generateUserMatricule(user);
         user.deleted = false;
-
-        if (file != null) {
-            const uploadedImage = await imageUseCase.createImage(file);
-            if (uploadedImage) {
-                //@ts-ignore
-                user.image = uploadedImage;
-            }
-        }
-        user = await userRepository.save(user);
-
-        await messageUseCase.sendMessage(MessageType.FIRST_CONNECTION, user, tmpPassword);
-
-        return user;
+        return userRepository.save(user);
     }
 
-    async login(userRequest: LoginUserRequest): Promise<{ user: User, token?: string }> {
+    async login(userRequest: LoginUserRequest): Promise<{ user: User, token: string }> {
         const potentialUser = await this.getUserByEmail(userRequest.login);
 
         if (!potentialUser) {
             throw new Error("Email ou mot de passe incorrect");
-        }
-
-        if (potentialUser.deleted) {
-            throw new Error("Votre compte est supprimé, veuillez contacter le support client");
         }
 
         const isPasswordValid = await bcrypt.compare(userRequest.password, potentialUser.password);
@@ -115,18 +96,13 @@ export class UseruseCase {
             throw new Error("Email ou mot de passe incorrect");
         }
 
-        if (potentialUser.a2fEnabled) {
-            await this.generateAndSendA2FCode(potentialUser.id);
-            return {user: potentialUser};
-        }
-
-        const token = await this.generateToken(potentialUser);
+        const token = this.generateToken(potentialUser);
         potentialUser.password = "{noop}"
 
         return {user: potentialUser, token};
     }
 
-    async generateToken(user: User): Promise<string> {
+    generateToken(user: User): string {
         const payload = {
             userId: user.id,
             role: user.role.role
@@ -137,19 +113,12 @@ export class UseruseCase {
         return jwt.sign(payload, secret, options);
     }
 
-    async getUserById(userId: number): Promise<User> {
+    async getUserById(userid: number): Promise<User> {
         const userRepository = this.db.getRepository(User);
-        const user = await userRepository.createQueryBuilder("user")
-            .leftJoinAndSelect("user.role", "role")
-            .leftJoinAndSelect("user.club", "club")
-            .leftJoinAndSelect("user.formationCenter", "formationCenter")
-            .leftJoinAndSelect("user.player", "player")
-            .leftJoinAndSelect("user.image", "image")
-            .where("user.id = :id", {id: userId})
-            .getOne();
+        const user = await userRepository.findOneById(userid);
 
         if (!user) {
-            throw new EntityNotFoundError(User, userId);
+            throw new EntityNotFoundError(User, userid);
         }
 
         return user;
@@ -193,7 +162,7 @@ export class UseruseCase {
         return `${roleInitial}-${firstNameInitial}${lastNameInitial}-${paddedCount}`;
     }
 
-    async getRecentUsers(): Promise<User[]> {
+    async getRecentsUsers(): Promise<User[]> {
         const userRepository = this.db.getRepository(User);
         return await userRepository.find({
             order: {
