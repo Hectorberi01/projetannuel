@@ -236,6 +236,7 @@ export class UseruseCase {
     async changePassword(userId: number, changePassword: ChangePasswordRequest): Promise<User> {
 
         const userRepository = this.db.getRepository(User);
+        const messageUseCase = new MessageUseCase(AppDataSource);
         const user = await this.getUserById(userId);
 
         if (!user) {
@@ -244,12 +245,15 @@ export class UseruseCase {
 
         const oldPasswordMatch = await bcrypt.compare(changePassword.oldPassword, user.password);
 
-        if (!oldPasswordMatch) {
+        if (oldPasswordMatch) {
             throw new Error("Ancien mot de passe invalide");
         }
 
         user.password = await this.hashPassword(changePassword.newPassword);
-        return await userRepository.save(user);
+        const result = await userRepository.save(user);
+        await messageUseCase.sendMessage(MessageType.PASSWORD_CHANGED, user, null)
+
+        return result;
     }
 
     async generateAndSendA2FCode(userId: number) {

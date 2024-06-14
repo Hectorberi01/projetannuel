@@ -5,6 +5,7 @@ import {MessageTemplate} from '../database/entities/messagetemplate';
 import {User} from '../database/entities/user';
 import {sendDelayedMessage} from '../middlewares/rabbitmq';
 import dotenv from 'dotenv';
+
 dotenv.config();
 
 export class MessageUseCase {
@@ -42,6 +43,10 @@ export class MessageUseCase {
                 break;
             case MessageType.CANCELED_EVENT_ALERT:
                 mailOptions = await this.createCanceledEventAlertMessage(user, extraData);
+                await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 0);
+                break;
+            case MessageType.PASSWORD_CHANGED:
+                mailOptions = await this.createPasswordChangedMessage(user);
                 await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 0);
                 break;
             default:
@@ -91,6 +96,20 @@ export class MessageUseCase {
             subject: template.subject,
             text: mustache.render(template.body, {...user, ...eventDetails}),
         };
+    }
+
+    private async createPasswordChangedMessage(user: User): Promise<nodemailer.SendMailOptions> {
+        const template = await this.getTemplate(MessageType.PASSWORD_CHANGED);
+        if (!template) {
+            throw new Error("Template non trouvé")
+        }
+
+        return {
+            from: process.env.EMAIL_USER,
+            to: process.env.EMAIL_TEST,
+            subject: template.subject,
+            text: mustache.render(template.body, {...user}),
+        }
     }
 
     private async createCanceledEventAlertMessage(user: any, extraData: any): Promise<nodemailer.SendMailOptions> {
