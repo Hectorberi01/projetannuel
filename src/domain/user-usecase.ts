@@ -12,6 +12,7 @@ import {ImageUseCase} from "./image-usecase";
 import {MessageUseCase} from "./message-usecase";
 import {MessageType} from "../Enumerators/MessageType";
 import {v4 as uuidv4} from 'uuid';
+import {Role} from "../Enumerators/Role";
 
 export interface ListUserCase {
     limit: number;
@@ -63,11 +64,11 @@ export class UseruseCase {
             const role = await roleUseCase.getRoleById(parseInt(userData.roleId));
             user.role = role;
 
-            if (role.role === "CLUB") {
+            if (role.role === "CLUB" || role.role === "ADMIN_CLUB") {
                 const clubUseCase = new ClubUseCase(AppDataSource);
                 // @ts-ignore
                 user.club = await clubUseCase.getClubById(parseInt(userData.clubId));
-            } else if (role.role === "FORMATIONCENTER") {
+            } else if (role.role === "FORMATIONCENTER" || role.role === "ADMIN_FORMATIONCENTER") {
                 const formationCenterUseCase = new FormationCenterUseCase(AppDataSource);
                 // @ts-ignore
                 user.formationCenter = await formationCenterUseCase.getFormationCenterById(parseInt(userData.formationCenterId));
@@ -208,6 +209,7 @@ export class UseruseCase {
 
     async changePasswordFirstConnection(userId: number, newPassword: string): Promise<User> {
         const userRepository = this.db.getRepository(User);
+        const messageUseCase = new MessageUseCase(AppDataSource);
         const user = await userRepository.findOne({
             where: {id: userId}
         });
@@ -221,7 +223,13 @@ export class UseruseCase {
         user.password = await this.hashPassword(newPassword);
         user.firstConnection = true;
 
-        return await userRepository.save(user);
+        const result = await userRepository.save(user);
+        if (!result) {
+            throw new Error("Erreur lors du changement de mot de passe");
+        }
+        await messageUseCase.sendMessage(MessageType.PASSWORD_CHANGED, user, null);
+
+        return result;
     }
 
     async desactivateUserById(userId: number): Promise<User> {
@@ -291,6 +299,42 @@ export class UseruseCase {
 
         const token = await this.generateToken(user);
         return {token};
+    }
+
+    async createEntityUser(entity: any, roleData: Role): Promise<void> {
+        const roleUseCase = new RoleUseCase(AppDataSource);
+        const role = await roleUseCase.getByName(roleData);
+        let user: CreateUserRequest = {
+            email: entity.email,
+            address: '',
+            newsletter: false,
+            lastName: '',
+            firstName: '',
+            roleId: role.id.toString(),
+            birthDate: new Date(),
+            clubId: null,
+            playerId: null,
+            formationCenterId: null
+        };
+        switch (roleData) {
+            case Role.ADMIN_CLUB:
+                user.clubId = entity.id;
+                break;
+            case Role.ADMIN_FORMATIONCENTER:
+                user.formationCenterId = entity.id;
+                break;
+            case Role.PLAYER:
+                user.firstName = entity.firstName;
+                user.lastName = entity.lastName;
+                user.address = entity.address;
+                user.playerId = entity.id;
+                user.birthDate = entity.birthDate;
+                break;
+            default:
+                break;
+        }
+        await this.createUser(user, undefined);
+        return;
     }
 
 }

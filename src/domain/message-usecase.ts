@@ -28,7 +28,7 @@ export class MessageUseCase {
     async sendMessage(messageType: MessageType, user: User, extraData?: any): Promise<void> {
         let mailOptions;
 
-        switch (messageType) {
+            switch (messageType) {
             case MessageType.FIRST_CONNECTION:
                 mailOptions = await this.createFirstConnectionMessage(user, extraData);
                 await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 10000);

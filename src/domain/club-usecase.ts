@@ -5,6 +5,8 @@ import {ImageUseCase} from "./image-usecase";
 import {AppDataSource} from "../database/database";
 import {SportUseCase} from "./sport-usecase";
 import {Sport} from "../database/entities/sport";
+import {UseruseCase} from "./user-usecase";
+import {Role} from "../Enumerators/Role";
 
 
 export interface ListClubRequest {
@@ -34,6 +36,7 @@ export class ClubUseCase {
         const clubRepository = this.db.getRepository(Club);
         const imageUseCase = new ImageUseCase(AppDataSource);
         const sportUseCase = new SportUseCase(AppDataSource);
+        const userUseCase = new UseruseCase(AppDataSource);
         let club = new Club();
         club.creationDate = new Date();
         club.email = clubData.email;
@@ -63,7 +66,15 @@ export class ClubUseCase {
                 club.image = uploadedImage;
             }
         }
-        return clubRepository.save(club);
+        const result = await clubRepository.save(club);
+
+        if (!result) {
+            throw new Error("Erreur lors de la création de ce club");
+        }
+
+        await userUseCase.createEntityUser(club, Role.ADMIN_CLUB);
+        return result;
+
     }
 
     async getClubById(clubId: number): Promise<Club> {
