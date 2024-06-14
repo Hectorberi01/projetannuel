@@ -1,8 +1,11 @@
 import nodemailer from 'nodemailer';
 import mustache from 'mustache';
 import {MessageType} from '../Enumerators/MessageType';
-import { MessageTemplate } from '../database/entities/messagetemplate';
-import { User } from '../database/entities/user';
+import {MessageTemplate} from '../database/entities/messagetemplate';
+import {User} from '../database/entities/user';
+import {sendDelayedMessage} from '../middlewares/rabbitmq';
+import dotenv from 'dotenv';
+dotenv.config();
 
 export class MessageUseCase {
 
@@ -26,22 +29,24 @@ export class MessageUseCase {
 
         switch (messageType) {
             case MessageType.FIRST_CONNECTION:
-                mailOptions = await this.createFirstConnectionMessage(user, extraData);
+                mailOptions = await this.createFirstConnectionMessage(user, extraData.tmpPassword);
+                await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 10000);
                 break;
             case MessageType.A2F_CODE:
-                mailOptions = await this.createA2FCodeMessage(user, extraData);
+                mailOptions = await this.createA2FCodeMessage(user, extraData.a2fCode);
+                await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 0);
                 break;
             case MessageType.NEW_EVENT_ALERT:
                 mailOptions = await this.createNewEventAlertMessage(user, extraData);
+                await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), extraData.delay || 0);
                 break;
             case MessageType.CANCELED_EVENT_ALERT:
                 mailOptions = await this.createCanceledEventAlertMessage(user, extraData);
+                await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 0);
                 break;
             default:
                 throw new Error('Unknown message type');
         }
-
-        await this.sendEmail(mailOptions);
     }
 
     private async createFirstConnectionMessage(user: any, tmpPassword: any): Promise<nodemailer.SendMailOptions> {
@@ -52,43 +57,59 @@ export class MessageUseCase {
 
         return {
             from: process.env.EMAIL_USER,
-            to: "ethanfrancois0@gmail.com",
+            to: process.env.EMAIL_TEST,
             subject: template.subject,
             text: mustache.render(template.body, {...user, tmpPassword}),
-            /*text: `Bonjour ${user.firstname},\n\nVotre compte pour accéder à notre plateforme a bien été créé.\n\nVotre identifiant est : ${user.email}\n\nVoici votre mot de passe temporaire: ${tmpPassword}\n\nVeillez à bien changer votre mot de passe lors de votre première connexion.\n\nL'équipe SportVision`,*/
         };
     }
 
     private async createA2FCodeMessage(user: any, a2fCode: any): Promise<nodemailer.SendMailOptions> {
+        const template = await this.getTemplate(MessageType.A2F_CODE);
+        if (!template) {
+            throw new Error("Template non trouvé");
+        }
+
         return {
             from: process.env.EMAIL_USER,
-            to: "ethanfrancois0@gmail.com",
-            subject: 'Votre code de validation 2FA',
-            text: `Bonjour ${user.firstname},\n\nVoici votre code de validation 2FA: ${a2fCode}\n\nL'équipe SportVision`,
+            to: user.email,
+            subject: template.subject,
+            text: mustache.render(template.body, {...user, a2fCode}),
         };
     }
 
     private async createNewEventAlertMessage(user: any, extraData: any): Promise<nodemailer.SendMailOptions> {
+        const template = await this.getTemplate(MessageType.NEW_EVENT_ALERT);
+        if (!template) {
+            throw new Error("Template non trouvé");
+        }
+
         const eventDetails = extraData.eventDetails;
+
         return {
             from: process.env.EMAIL_USER,
             to: user.email,
-            subject: 'Nouvel événement SportVision',
-            text: `Bonjour ${user.firstname},\n\nUn nouvel événement a été ajouté : ${eventDetails.title}.\n\nL'équipe SportVision`,
+            subject: template.subject,
+            text: mustache.render(template.body, {...user, ...eventDetails}),
         };
     }
 
     private async createCanceledEventAlertMessage(user: any, extraData: any): Promise<nodemailer.SendMailOptions> {
+        const template = await this.getTemplate(MessageType.CANCELED_EVENT_ALERT);
+        if (!template) {
+            throw new Error("Template non trouvé");
+        }
+
         const eventDetails = extraData.eventDetails;
+
         return {
             from: process.env.EMAIL_USER,
             to: user.email,
-            subject: 'Événement annulé SportVision',
-            text: `Bonjour ${user.firstname},\n\nL'événement suivant a été annulé : ${eventDetails.title}.\n\nL'équipe SportVision`,
+            subject: template.subject,
+            text: mustache.render(template.body, {...user, ...eventDetails}),
         };
     }
 
-    private async sendEmail(mailOptions: nodemailer.SendMailOptions): Promise<void> {
+    public async sendEmail(mailOptions: nodemailer.SendMailOptions): Promise<void> {
         return new Promise((resolve, reject) => {
             this.transporter.sendMail(mailOptions, (error, info) => {
                 if (error) {
