@@ -1,11 +1,10 @@
 import Joi from "joi"
-import { User } from "../../database/entities/useraccount";
+import { User } from "../../database/entities/user";
 import { Club } from "../../database/entities/club";
 import { FormationCenter } from "../../database/entities/formationcenter";
 
 
 export interface EventRequest{
-    id:number,
     title : string, 
     description: string, 
     startDate: Date, 
@@ -22,7 +21,6 @@ export interface EventRequest{
 }
 
 export const EventValidator = Joi.object<EventRequest>({
-    id: Joi.number().optional(),
     title: Joi.string().required(),
     description: Joi.string().required(),
     startDate: Joi.date().required(),

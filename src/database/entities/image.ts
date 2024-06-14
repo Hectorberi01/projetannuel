@@ -1,39 +1,42 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, OneToOne, JoinColumn, ManyToMany, ManyToOne } from 'typeorm'
-import "reflect-metadata"
-import { Player } from './player'
-import { User } from './useraccount';
-import { Club } from './club';
+// Image Entity
+import {Column, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn} from "typeorm";
+import {User} from "./user";
+import {Player} from "./player";
+import {Club} from "./club";
 
 @Entity()
 export class Image {
-    @PrimaryGeneratedColumn() 
-    Id!: number
+    @PrimaryGeneratedColumn()
+    id!: number;
 
-    @Column()  
-    url!: string;  
+    @Column()
+    name!: string;
 
-    @OneToOne(() => Player, player => player.Image) 
-    players!: Player;
+    @Column()
+    extension!: string;
+
+    @Column()
+    path!: string;
 
     @OneToOne(() => User, user => user.image)
+    @JoinColumn()
     user!: User;
 
-    @OneToOne(() => Club, club => club.Image)
+    @ManyToOne(() => Player, player => player.image)
+    @JoinColumn()
+    player!: Player;
 
+    @OneToOne(() => Club, club => club.image)
+    @JoinColumn()
     club!: Club;
 
-    constructor(
-        id?: number, 
-        url?: string, 
-        players?: Player,
-        user?: User,
-        club?: Club
-    ) 
-    {
-        if (id) this.Id = id;
-        if(url) this.url = url;
-        if(players) this.players = players;
-        if(user) this.user = user;
-        if(club) this.club = club;
+    constructor(id?: number, name?: string, extension?: string, path?: string, user?: User, player?: Player, club?: Club) {
+        if (id) this.id = id;
+        if (name) this.name = name;
+        if (extension) this.extension = extension;
+        if (path) this.path = path;
+        if (user) this.user = user;
+        if (player) this.player = player;
+        if (club) this.club = club;
     }
 }

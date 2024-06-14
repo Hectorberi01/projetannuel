@@ -1,201 +1,169 @@
 import express, {Request, Response} from "express";
-import {
-    listUserValidation,
-    UserIdValidation,
-    UserLoginlValidation,
-    UserValidator
-} from "../handlers/validator/useraccount-validator"
+
 import {generateValidationErrorMessage} from "./validator/generate-validation-message";
 import {AppDataSource} from "../database/database";
 import {UseruseCase} from "../domain/user-usecase";
-import bcrypt from 'bcrypt';
-import {sign} from 'jsonwebtoken';
-import {Token} from "../database/entities/token";
+import {
+    a2fUserValidation,
+    changePasswordValidation,
+    createUserValidation,
+    fcUserValidation,
+    idUserValidation,
+    listUserValidation,
+    loginUserValidation
+} from "./validator/user-validator";
+import {upload} from "../middlewares/multer-config";
 
 export const userRoutes = (app: express.Express) => {
 
     //Obternir la liste de tout les utlisateurs
-    app.get("/users/account", async (req: Request, res: Response) => {
+    app.get("/users", async (req: Request, res: Response) => {
         try {
-            const uservalidator = listUserValidation.validate(req.query)
-            const listuserRequest = uservalidator.value
-            let limit = 50
-            if (listuserRequest.limit) {
-                limit = listuserRequest.limit
-            }
-            const page = listuserRequest.page ?? 1
-            try {
-                const userUseCase = new UseruseCase(AppDataSource)
-                const listUser = await userUseCase.listUser({...listuserRequest, page, limit})
-                res.status(200).send(listUser)
-            } catch (error) {
-                console.log(error)
-                res.status(500).send({"error": "internal error for list user retry later"})
+            const listUserValidate = listUserValidation.validate(req.query)
+            if (listUserValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(listUserValidate.error.details))
                 return
             }
+
+            let limit = 50
+            if (listUserValidate.value.limit) {
+                limit = listUserValidate.value.limit
+            }
+            const page = listUserValidate.value.page ?? 1
+            const userUseCase = new UseruseCase(AppDataSource)
+            const listUser = await userUseCase.getAllUsers({...listUserValidate, page, limit})
+            res.status(200).send(listUser)
         } catch (error) {
-            console.log(error)
             res.status(500).send({"error": "internal error retry later"})
-            return
         }
     })
 
-    // pour la création d'un compte utilisateur
-    app.post("/users/auth/signup", async (req: Request, res: Response) => {
+    app.get("/users/recents", async (req: Request, res: Response) => {
+
         try {
-            const uservalidation = UserValidator.validate(req.body)
-            if (uservalidation.error) {
-                res.status(400).send(generateValidationErrorMessage(uservalidation.error.details))
-            }
-
-            const userdata = uservalidation.value
-            console.log("userdata", userdata)
-            if (userdata.Id_Image == null) {
-                userdata.Id_Image = 0;
-            }
-            const userUsecase = new UseruseCase(AppDataSource);
-            const result = await userUsecase.createUser(userdata)
-            console.log(result)
-            return res.status(201).send(result);
-        } catch (error) {
-            console.log(error)
-            res.status(500).send({"error": "internal error retry later"})
-            return
+            const userUseCase = new UseruseCase(AppDataSource);
+            const result = await userUseCase.getRecentUsers();
+            res.status(200).send(result);
+        } catch (error: any) {
+            res.status(500).send({error: error.message});
         }
     })
 
-    // connexion de l'utlisateur
+    app.post("/users/auth/signup", upload.single('image'), async (req: Request, res: Response) => {
+        try {
+            const createUserValidate = createUserValidation.validate(req.body);
+
+            if (createUserValidate.error) {
+                return res.status(400).send(generateValidationErrorMessage(createUserValidate.error.details));
+            }
+
+            const userUseCase = new UseruseCase(AppDataSource);
+            const result = await userUseCase.createUser(createUserValidate.value, req.file);
+            return res.status(200).send(result);
+        } catch (error) {
+            return res.status(500).send(error);
+        }
+    });
+
+    app.get("/users/:id", async (req: Request, res: Response) => {
+        try {
+            const idUserValidate = idUserValidation.validate(req.params);
+            if (idUserValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(idUserValidate.error.details))
+            }
+
+            const userUseCase = new UseruseCase(AppDataSource);
+            const result = await userUseCase.getUserById(idUserValidate.value.id);
+            res.status(200).send(result);
+        } catch (error) {
+            res.status(500).send(error);
+        }
+    })
+
     app.post("/users/auth/login", async (req: Request, res: Response) => {
         try {
-            const useremailvalidation = UserLoginlValidation.validate(req.body);
-            const userdata = useremailvalidation.value;
+            const loginUserValidate = loginUserValidation.validate(req.body);
 
-            if (useremailvalidation.error) {
-                return res.status(400).send(generateValidationErrorMessage(useremailvalidation.error.details));
-            }
-
-            const userUsecase = new UseruseCase(AppDataSource);
-            const user = await userUsecase.getUserByEmail(userdata.email);
-
-            if (!user) {
-                return res.status(401).json({error: 'Identifiant ou mot de passe incorrect'});
-            }
-
-            const passwordMatch = await bcrypt.compare(userdata.password, user.password);
-            if (!passwordMatch) {
-                return res.status(401).json({error: 'Identifiant ou mot de passe incorrect'});
-            }
-
-            const secret = process.env.JWT_SECRET;
-            if (!secret) {
-                throw new Error('JWT_SECRET is not defined');
-            }
-
-            const token = sign({userId: user.id, email: user.email}, secret, {expiresIn: '1d'});
-            await AppDataSource.getRepository(Token).save({token: token, user: user});
-
-            return res.status(200).json({token: token, user: user});
-        } catch (error) {
-            console.error(error);
-            return res.status(500).send({error: 'Internal error, please try again later'});
-        }
-    })
-
-    // à revoir
-    // api pour la déconnecter l'utilisateur
-    app.post("/users/auth/logout", async (req: Request, res: Response) => {
-        req.session.destroy(function () {
-            res.redirect('/auth/login');
-        });
-    });
-
-    // obtenir l'utilisateur par l'id de l'utlisateur
-    app.get("/users/:Id", async (req: Request, res: Response) => {
-        try {
-            const useridvalidation = UserIdValidation.validate(req.params)
-            if (useridvalidation.error) {
-                res.status(400).send(generateValidationErrorMessage(useridvalidation.error.details))
-            }
-
-            const userUsecase = new UseruseCase(AppDataSource);
-            const userid = useridvalidation.value.Id;
-            const user = await userUsecase.getUserById(userid)
-            if (!user) {
-                res.status(404).send({"error": "User not found"});
+            if (loginUserValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(loginUserValidate.error.details));
                 return;
             }
-            res.status(200).send(user);
 
-        } catch (error) {
-            console.log(error)
-            res.status(500).send({"error": "internal error retry later"})
-            return
-        }
-    })
-
-    // suppression d'un utlisateur
-    app.delete("/users/:Id", async (req: Request, res: Response) => {
-
-        try {
-            const useridvalidation = UserIdValidation.validate(req.params)
-            if (useridvalidation.error) {
-                res.status(400).send(generateValidationErrorMessage(useridvalidation.error.details))
-            }
-            const userUsecase = new UseruseCase(AppDataSource);
-            const userid = useridvalidation.value.Id;
-            const user = await userUsecase.DeleteUser(userid)
-
-            // Vérifier si l'utilisateur a été supprimé avec succès
-            if (user.affected === 0) {
-                return res.status(404).json({error: 'User not found'});
-            }
-            // Répondre avec succès
-            return res.status(200).json({message: 'User deleted successfully'});
-        } catch (error) {
-            console.log(error)
-            res.status(500).send({"error": "internal error retry later"})
-            return
-        }
-    })
-
-    // Route pour mettre à jour les informations de l'utilisateur
-    app.put("/users/:Id", async (req: Request, res: Response) => {
-        try {
-            const useridvalidation = UserIdValidation.validate(req.params)
-            console.log("userId")
-
-            if (useridvalidation.error) {
-                res.status(400).send(generateValidationErrorMessage(useridvalidation.error.details))
-            }
-
-            const value = useridvalidation.value;
-            // Récupérer l'ID de l'utilisateur à mettre à jour depuis les paramètres de la requête
-            const userId = value.Id;
-            console.log(userId)
-            // Récupérer les données à mettre à jour à partir du corps de la requête
-            const updatedData = req.body;
-
-            // Vérifier si l'ID de l'utilisateur est un nombre valide
-            if (isNaN(userId) || userId <= 0) {
-                return res.status(400).json({error: 'Invalid user ID'});
-            }
-
-            // Vérifier si les données à mettre à jour sont fournies
-            if (!updatedData || Object.keys(updatedData).length === 0) {
-                return res.status(400).json({error: 'Updated data not provided'});
-            }
-
-            // Appeler la fonction upDateUserData pour récupérer l'utilisateur à mettre à jour
-            const userUsecase = new UseruseCase(AppDataSource);
-
-            userUsecase.upDateUserData(userId, updatedData)
-
-            // Répondre avec succès et renvoyer les informations mises à jour de l'utilisateur
-            return res.status(200).json({"message": "les information sont enrégistées avec succès"});
-        } catch (error) {
-            console.error("Failed to update user:", error);
-            return res.status(500).json({error: 'Internal server error. Please retry later.'});
+            const userUseCase = new UseruseCase(AppDataSource);
+            const result = await userUseCase.login(loginUserValidate.value);
+            res.status(200).send(result);
+        } catch (error: any) {
+            res.status(500).send({error: error.message});
         }
     });
 
+    app.put("/users/:id/first-connection", async (req: Request, res: Response) => {
+        try {
+            const idUserValidate = idUserValidation.validate(req.params);
+
+            if (idUserValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(idUserValidate.error.details));
+            }
+
+            const fcUserValidate = fcUserValidation.validate(req.body);
+
+            if (fcUserValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(fcUserValidate.error.details));
+            }
+
+            const userUseCase = new UseruseCase(AppDataSource);
+            const result = await userUseCase.changePasswordFirstConnection(idUserValidate.value.id, fcUserValidate.value.password);
+            res.status(200).send(result);
+        } catch (error: any) {
+            res.status(500).send(error.message);
+        }
+    })
+
+    app.put("/users/:id/delete", async (req: Request, res: Response) => {
+        try {
+            const idUserValidate = idUserValidation.validate(req.params);
+            if (idUserValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(idUserValidate.error.details));
+            }
+
+            const userUseCase = new UseruseCase(AppDataSource);
+            const result = await userUseCase.desactivateUserById(idUserValidate.value.id);
+            res.status(200).send(result);
+        } catch (error: any) {
+            res.status(500).send(error.message);
+        }
+    })
+
+    app.put("/users/:id/change-password", async (req: Request, res: Response) => {
+        try {
+            const idUserValidate = idUserValidation.validate(req.params);
+            if (idUserValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(idUserValidate.error.details));
+            }
+            const changePasswordValidate = changePasswordValidation.validate(req.body);
+            if (changePasswordValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(changePasswordValidate.error.details));
+            }
+            const userUseCase = new UseruseCase(AppDataSource);
+            const result = await userUseCase.changePassword(idUserValidate.value.id, changePasswordValidate.value);
+            res.status(200).send(result);
+        } catch (error: any) {
+            res.status(500).send(error.message);
+        }
+    })
+
+    app.post("/users/auth/verify-a2f", async (req: Request, res: Response) => {
+        try {
+            const a2fUserValidate = a2fUserValidation.validate(req.body);
+            if (a2fUserValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(a2fUserValidate.error.details));
+            }
+
+            const userUseCase = new UseruseCase(AppDataSource);
+            const result = await userUseCase.validateA2FCode(a2fUserValidate.value.userId, a2fUserValidate.value.code);
+            res.status(200).send(result);
+        } catch (error: any) {
+            res.status(500).send(error.message);
+        }
+    })
 }

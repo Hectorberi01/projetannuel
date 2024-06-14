@@ -100,24 +100,24 @@ export const sondagesRoutes = (app: express.Express) => {
         }
     })
 
-    app.get("/sondages/:id/answers", async (req: Request, res: Response) => {
+        app.get("/sondages/:id/answers", async (req: Request, res: Response) => {
 
-        const sondageIdValidation = idSondageValidation.validate(req.params);
+            const sondageIdValidation = idSondageValidation.validate(req.params);
 
-        if (sondageIdValidation.error) {
-            res.status(400).send(generateValidationErrorMessage(sondageIdValidation.error.details))
-        }
+            if (sondageIdValidation.error) {
+                res.status(400).send(generateValidationErrorMessage(sondageIdValidation.error.details))
+            }
 
-        const sondageIdRequest = sondageIdValidation.value.id;
-        const sondageUseCase = new SondageUseCase(AppDataSource);
+            const sondageIdRequest = sondageIdValidation.value.id;
+            const sondageUseCase = new SondageUseCase(AppDataSource);
 
-        try {
-            const result = await sondageUseCase.getAnswersOfSondage(sondageIdRequest);
-            res.status(200).send(result)
-        } catch (error) {
-            res.status(500).send(error);
-        }
-    })
+            try {
+                const result = await sondageUseCase.getAnswersOfSondage(sondageIdRequest);
+                res.status(200).send(result)
+            } catch (error) {
+                res.status(500).send(error);
+            }
+        })
 
     app.get("/sondages/:idSondage/user/:idUser/voted", async (req: Request, res: Response) => {
 

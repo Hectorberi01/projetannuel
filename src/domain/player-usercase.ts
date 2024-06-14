@@ -1,15 +1,17 @@
-import { DataSource, DeleteResult, EntityNotFoundError } from "typeorm";
-import { Player } from "../database/entities/player";
-import { PlayerRequest } from "../handlers/validator/player-validator";
-import { Image } from "../database/entities/image";
+import {DeleteResult, EntityNotFoundError} from "typeorm";
+import {Player} from "../database/entities/player";
+import {CreatePlayerRequest, UpdatePlayerRequest} from "../handlers/validator/player-validator";
+import {SportUseCase} from "./sport-usecase";
+import {AppDataSource} from "../database/database";
+import {FormationCenterUseCase} from "./formationcenter-usecase";
+import {ImageUseCase} from "./image-usecase";
 
 export interface ListPlayerCase {
     limit: number;
     page: number;
 }
 
-
-export class PlayerUseCase{
+export class PlayerUseCase {
 
     private db: any;
 
@@ -17,131 +19,141 @@ export class PlayerUseCase{
         this.db = db;
     }
 
-    async listPlayer(listplayer: ListPlayerCase): Promise<{ player: Player[], total: number }> {
+    async getAllPlayers(listplayer: ListPlayerCase): Promise<{ players: Player[], total: number }> {
 
         const query = this.db.getRepository(Player).createQueryBuilder('player')
-        .leftJoinAndSelect('player.FormationCenter', 'formationCenter') 
-        .leftJoinAndSelect('player.Sport', 'sport') 
-        .leftJoinAndSelect('player.Image', 'image') 
-        .skip((listplayer.page - 1) * listplayer.limit)
-        .take(listplayer.limit);
+            .leftJoinAndSelect('player.formationCenter', 'formationCenter')
+            .leftJoinAndSelect('player.sport', 'sport')
+            .skip((listplayer.page - 1) * listplayer.limit)
+            .take(listplayer.limit);
 
-        const [player, total] = await query.getManyAndCount();
+        const [players, total] = await query.getManyAndCount();
         return {
-            player,
+            players,
             total
         };
     }
 
-    async createPlayer(playerData: PlayerRequest): Promise<Player | Error> {
+    async createPlayer(playerData: CreatePlayerRequest, file: Express.Multer.File | undefined): Promise<Player | Error> {
 
-        try{
-            const playerRepository  = this.db.getRepository(Player);
+        try {
+            const sportUseCase = new SportUseCase(AppDataSource);
+            const imageUseCase = new ImageUseCase(AppDataSource);
+            const formationCenterUseCase = new FormationCenterUseCase(AppDataSource);
+            const playerRepository = this.db.getRepository(Player);
+
             const newPlayer = new Player();
-            newPlayer.FirstName = playerData.FirstName,
-            newPlayer.Lastname = playerData.LastName,
-            newPlayer.BirthDate = playerData.BirthDate,
-            newPlayer.Height = playerData.Height,
-            newPlayer.Weight = playerData.Weight,
-            newPlayer.Image = playerData.Image,
-            newPlayer.Sport = playerData.Sport,
-            newPlayer.stats = playerData.stats,
-            newPlayer.FormationCenter = playerData.FormationCenter
+
+            newPlayer.firstName = playerData.firstName;
+            newPlayer.lastName = playerData.lastName;
+            newPlayer.birthDate = playerData.birthDate;
+            if (playerData.height) newPlayer.height = playerData.height;
+            if (playerData.weight) newPlayer.weight = playerData.weight;
+            if (playerData.sportId) {
+                const sport = await sportUseCase.getSportById(playerData.sportId);
+                if (sport) {
+                    newPlayer.sport = sport;
+                }
+            }
+
+            if (playerData.formationCenterId) {
+                const formationCenter = await formationCenterUseCase.getFormationCenterById(playerData.formationCenterId);
+                if (formationCenter) {
+                    newPlayer.formationCenter = formationCenter;
+                }
+            }
+
+            if (playerData.stats) newPlayer.stats = playerData.stats;
+
+            if (file != null) {
+                const uploadedImage = await imageUseCase.createImage(file);
+                if (uploadedImage) {
+                    // @ts-ignore
+                    newPlayer.image = uploadedImage
+                }
+            }
 
             return await playerRepository.save(newPlayer)
-          
-        }catch(error){
+        } catch (error) {
             console.error("Failed to create player  with ID:", error);
             throw error;
         }
-        
+
     }
 
-    async getPlayerById(playerid: number): Promise<Player> {
-        const playerRepository  = this.db.getRepository(Player);
+    async getPlayerById(playerId: number): Promise<Player> {
+        const playerRepository = this.db.getRepository(Player);
 
         const player = await playerRepository.findOne({
-            where: { Id: playerid },
-            relations: ['FormationCenter', 'Sport', 'Image'] 
+            where: {id: playerId},
+            relations: ['formationCenter', 'sport']
         });
         if (!player) {
-            throw new EntityNotFoundError(Player, playerid);
+            throw new EntityNotFoundError(Player, playerId);
         }
         return player;
     }
 
-    
-   
-    // Pour la suppression
-    async DeletePlayer(playerid : number): Promise<DeleteResult>{
+    async deletePlayer(playerId: number): Promise<DeleteResult> {
 
-        const playerRepository  = this.db.getRepository(Player);
+        const playerRepository = this.db.getRepository(Player);
 
-        try {
-            const result = await this.getPlayerById(playerid);
-            if(result == null){
-                throw new Error(`${playerid} not found`);
-            }
-            if (result instanceof Player) {
-                //const player = result;
-                return await playerRepository.delete(playerid);
-            } else {
-                throw new Error(` not found`);
-            }
-            
-        } catch (error) {
-            console.error("Failed to delete user with ID:", playerid, error);
-            throw error;
+        const result = await this.getPlayerById(playerId);
+        if (result == null) {
+            throw new Error(`${playerId} not found`);
         }
+        return await playerRepository.delete(playerId);
 
     }
 
-    async upDatePlayerData(playerId : number,info : any){
+    async updatePlayerData(playerId: number, playerData: UpdatePlayerRequest) {
 
         const playerRepository = this.db.getRepository(Player);
-        const imageRepository = this.db.getRepository(Image);
-        try{
-            let image = null;
-            if (info.imagePath) {
-                image = new Image();
-                image.url = info.imagePath;
-                await imageRepository.save(image);
-            }
+        const formationCenterUseCase = new FormationCenterUseCase(AppDataSource);
+        const sportUseCase = new SportUseCase(AppDataSource);
+        const player = await this.getPlayerById(playerId);
 
-            const queryRunner = this.db.createQueryRunner();
-            await queryRunner.connect();
-            await queryRunner.startTransaction();
-
-            try{
-                const player = await playerRepository.findOne({
-                    where: { Id: playerId },
-                    relations: ['FormationCenter', 'Sport', 'Image'],
-                });
-    
-                if (!player) {
-                    throw new EntityNotFoundError(Player, playerId);
-                }
-    
-                Object.assign(player, info);
-    
-                if (image) {
-                    player.Image = image;
-                    image.players = player;
-                    await queryRunner.manager.save(image);
-                }
-    
-                await queryRunner.manager.save(player);
-                await queryRunner.commitTransaction();
-            }catch(error){
-                await queryRunner.rollbackTransaction();
-                console.error("Failed to update player with ID:", playerId, error);
-                throw error;
-            }finally{
-                await queryRunner.release();
-            }
-        }catch(error){
-            console.error("Failed to save image or update player with ID:", playerId, error);
-            throw error
+        if (!player) {
+            throw new Error(`${playerId} not found`);
         }
+
+        if (player.id != playerData.id) {
+            throw new Error('objet à modifier n\' pas le meme');
+        }
+
+        if (playerData.firstName && playerData.firstName != player.firstName) {
+            player.firstName = playerData.firstName;
+        }
+        if (playerData.lastName && playerData.lastName != player.lastName) {
+            player.lastName = playerData.lastName;
+        }
+        if (playerData.birthDate && playerData.birthDate != player.birthDate) {
+            player.birthDate = playerData.birthDate;
+        }
+        if (playerData.height && playerData.height != player.height) {
+            player.height = playerData.height;
+        }
+        if (playerData.weight && playerData.weight != player.weight) {
+            player.weight = playerData.weight;
+        }
+        if (playerData.stats && player.stats != playerData.stats) {
+            player.stats = playerData.stats;
+        }
+        if (playerData.formationCenterId && player.formationCenter.id != playerData.formationCenterId) {
+            const formationCenter = await formationCenterUseCase.getFormationCenterById(playerData.formationCenterId);
+            if (!formationCenter) {
+                throw new Error(`Formation Center ${playerData.formationCenterId} not found`);
+            }
+            player.formationCenter = formationCenter;
+        }
+        if (playerData.sportId && player.sport.id != playerData.sportId) {
+            const sport = await sportUseCase.getSportById(playerData.sportId);
+            if (!sport) {
+                throw new Error(`Sport ${playerData.sportId} not found`);
+            }
+            player.sport = sport;
+        }
+
+        await playerRepository.update(playerId, player);
     }
 }

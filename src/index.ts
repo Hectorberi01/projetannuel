@@ -1,68 +1,91 @@
 import express from "express";
-import { initRoutes } from "./handlers/routes";
-import {useraccountRoutes} from "./handlers/useraccount-route";
-import {clubRoutes} from "./handlers/club-route";
 import {documentsRoutes} from "./handlers/document-route";
 import {formationcenterRoutes} from "./handlers/formationcenter-route";
-import {imageRoutes} from "./handlers/image-route";
-import {newletterRoutes} from "./handlers/newletter-route";
 import {playerRoutes} from "./handlers/player-route";
 import {roleRoutes} from "./handlers/roles-route";
 import {userRoutes} from "./handlers/user-route";
-import {dontsRoutes} from "./handlers/donts-route";
 import {eventsRoutes} from "./handlers/events-route";
 import {sportRoutes} from "./handlers/sport-route";
-import { AppDataSource } from "./database/database";
+import {AppDataSource} from "./database/database";
 import 'reflect-metadata';
 import 'dotenv/config';
-//import { planningRoutes } from "./handlers/planning-route";
-import { voteRoutes } from "./handlers/vote-route";
-const cors = require('cors');
 import path from 'path';
 import {sondagesRoutes} from "./handlers/sondage-route";
+import {questionsRoutes} from "./handlers/question-route";
+import {clubRoutes} from "./handlers/club-route";
+import {statsRoutes} from "./handlers/stats-route";
+import dotenv from 'dotenv';
+dotenv.config();
 
+const cors = require('cors');
+
+const validateEnvVariables = () => {
+    const requiredEnvVars = [
+        'ACCESS_TOKEN_SECRET',
+        'R2_ACCOUNT_ID',
+        'R2_ACCESS_KEY_ID',
+        'R2_SECRET_ACCESS_KEY',
+        'R2_BUCKET_NAME',
+        'R2_BUCKET_PUBLIC_URL'
+    ];
+
+    const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+
+    if (missingEnvVars.length > 0) {
+        console.error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
+        process.exit(1);
+    }
+};
 
 const main = async () => {
-    const app = express()
-    const port = 4000
-    try {
+    validateEnvVariables(); // Appeler la fonction de validation ici
 
-        await AppDataSource.initialize()
-        console.error("well connected to database")
+    const app = express();
+    const port = 4000;
+    try {
+        await AppDataSource.initialize();
+        console.error("well connected to database");
     } catch (error) {
-        console.log(error)
-        console.error("Cannot contact database")
-        process.exit(1)
+        console.log(error);
+        console.error("Cannot contact database");
+        process.exit(1);
     }
 
-    app.use(express.json())
-    //app.use('/images', express.static(path.join(__dirname, 'src/images')));
+    if (!process.env.ACCESS_TOKEN_SECRET) {
+        console.error("ACCESS_TOKEN_SECRET is not defined");
+        process.exit(1);
+    }
+
+    app.use(express.json());
     app.use('/images', express.static(path.join(__dirname, 'images'))); // Utilise le chemin relatif
 
-    // Pour autoriser toutes les origines
     app.use(cors());
-    initRoutes(app)
-    useraccountRoutes(app)
-    clubRoutes(app)
-    documentsRoutes(app)
-    formationcenterRoutes(app)
-    //imageRoutes(app)
-    newletterRoutes(app)
-    playerRoutes(app)
-    roleRoutes(app)
-    userRoutes(app)
-    dontsRoutes(app)
-    eventsRoutes(app)
-    sportRoutes(app)
-    //planningRoutes(app)
-    voteRoutes(app)
-    sondagesRoutes(app)
+
+    console.log("Setting up routes...");
+    try {
+        clubRoutes(app);
+        documentsRoutes(app);
+        formationcenterRoutes(app);
+        playerRoutes(app);
+        roleRoutes(app);
+        userRoutes(app);
+        eventsRoutes(app);
+        sportRoutes(app);
+        sondagesRoutes(app);
+        questionsRoutes(app);
+        statsRoutes(app);
+        console.log("Routes are set up successfully");
+    } catch (error) {
+        console.error("Error setting up routes:", error);
+        process.exit(1);
+    }
 
     app.listen(port, () => {
-        console.log(`Server running on port ${port}`)
-    })
-}
+        console.log(`Server running on port ${port}`);
+    });
+};
 
-main()
-
-
+main().catch((error) => {
+    console.error("Failed to start the server:", error);
+    process.exit(1);
+});

@@ -1,23 +1,23 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany } from 'typeorm'
+import {Column, Entity, ManyToMany, OneToMany, PrimaryGeneratedColumn} from 'typeorm'
 import "reflect-metadata"
-import { Player } from './player';
-import { FormationCenter } from './formationcenter';
+import {Player} from './player';
+import {FormationCenter} from './formationcenter';
 
 @Entity()
 export class Sport {
-    @PrimaryGeneratedColumn() Id!: number
-    
-    @Column() Name!: string
+    @PrimaryGeneratedColumn() id!: number
 
-    @OneToMany(() => Player, player => player.Sport)
+    @Column() name!: string
+
+    @OneToMany(() => Player, player => player.sport)
     players!: Player[];
 
-    @ManyToMany(() => FormationCenter, formationCenter => formationCenter.Sports)
+    @ManyToMany(() => FormationCenter, formationCenter => formationCenter.sports)
     formationCenters!: FormationCenter[];
 
 
-    constructor(id?: number,name?: string) {
-        if (id) this.Id = id;
-        if(name) this.Name = name;
+    constructor(id?: number, name?: string) {
+        if (id) this.id = id;
+        if (name) this.name = name;
     }
 }

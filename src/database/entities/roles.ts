@@ -1,28 +1,20 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable } from 'typeorm'
-import "reflect-metadata"
-import { User } from './useraccount';
+import {Column, Entity, OneToMany, PrimaryGeneratedColumn} from 'typeorm';
+import {User} from './user';
 
 @Entity()
-export class Roles {
-    @PrimaryGeneratedColumn() 
-    Id!: number
+export class Role {
+    @PrimaryGeneratedColumn()
+    id!: number;
 
     @Column()
-    Role!: string
+    role!: string;
 
-    @ManyToMany(() => User, user => user.roles)
-    @JoinTable()
-    User!: User;
+    @OneToMany(() => User, user => user.role)
+    users!: User[];
 
-
-    constructor(
-        id?: number,
-        role?: string,
-        user?: User
-    ) 
-    {
-        if (id) this.Id = id;
-        if(role) this.Role = role;
-        if(user) this.User = user
+    constructor(id?: number, role?: string, users?: User[]) {
+        if (id) this.id = id;
+        if (role) this.role = role;
+        if (users) this.users = users;
     }
 }

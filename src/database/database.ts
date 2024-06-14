@@ -1,4 +1,5 @@
 import { DataSource } from "typeorm";
+import {CustomNamingStrategy} from "../middlewares/customNamingStrategy";
 
 
 export const AppDataSource = new DataSource({
@@ -15,5 +16,6 @@ export const AppDataSource = new DataSource({
     ],
     migrations: [
         "src/database/migrations/*.ts"
-    ]
+    ],
+    namingStrategy: new CustomNamingStrategy(),
 })

@@ -1,29 +1,22 @@
 import Joi from "joi"
-import { Sport } from "../../database/entities/sport"
-import { Events } from "../../database/entities/events"
-import { Image } from "../../database/entities/image"
+import {Sport} from "../../database/entities/sport"
+import {Event} from "../../database/entities/event"
 
 
-export interface ClubRequest{
-    Id: number,
-    Name: string,
-    Address: string,
-    Email:string,
-    Sport: Sport[],
-    events: Events[],
-    Image: Image
-    creation_date:Date
+export interface CreateClubRequest {
+    name: string,
+    address: string,
+    email: string,
+    sports: string,
+    events: Event[],
 }
 
-export const ClubValidator = Joi.object<ClubRequest>({
-    Id: Joi.number().optional(),
-    Name: Joi.string().required(),
-    Address: Joi.string().required(),
-    Email : Joi.string().required(),
-    Sport: Joi.array().items(Joi.object()).required(), 
-    events:  Joi.array().items(Joi.object()).optional(), 
-    Image: Joi.object().optional(),
-    creation_date: Joi.date().required(),
+export const createClubValidation = Joi.object<CreateClubRequest>({
+    name: Joi.string().required(),
+    address: Joi.string().required(),
+    email: Joi.string().required(),
+    sports: Joi.string().optional(),
+    events: Joi.array().optional(),
 })
 
 export const listClubValidation = Joi.object<ListClubRequest>({
@@ -36,10 +29,28 @@ export interface ListClubRequest {
     limit?: number
 }
 
-export const ClubIdValidation = Joi.object<ClubIdRequest>({
-    Id: Joi.number().required(),
+export const idClubValidation = Joi.object<IdClubRequest>({
+    id: Joi.number().required(),
 })
 
-export interface ClubIdRequest {
-    Id: number
+export interface IdClubRequest {
+    id: number
 }
+
+export interface UpdateClubRequest {
+    id: number,
+    name: string,
+    address: string,
+    email: string,
+    sports: Sport[],
+    events: Event[],
+}
+
+export const updateClubValidation = Joi.object<UpdateClubRequest>({
+    id: Joi.number().required(),
+    name: Joi.string().optional(),
+    address: Joi.string().optional(),
+    email: Joi.string().optional(),
+    sports: Joi.array().optional(),
+    events: Joi.array().optional(),
+})

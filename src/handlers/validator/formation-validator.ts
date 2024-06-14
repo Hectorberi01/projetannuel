@@ -1,25 +1,19 @@
 import Joi from "joi"
-import { Sport } from "../../database/entities/sport"
+import {Sport} from "../../database/entities/sport"
 
 
-export interface FormationCenterRequest{
-    Id: number,
-    Name: string,
-    Adress: string,
-    Sports: Sport[],
-    Email: string,
-    Id_Image: number
-    Creation_Date:Date
+export interface FormationCenterRequest {
+    name: string,
+    address: string,
+    sports: Sport[],
+    email: string,
 }
 
 export const FormationCenterValidator = Joi.object<FormationCenterRequest>({
-    Id: Joi.number().optional(),
-    Name: Joi.string().required(),
-    Adress: Joi.string().required(),
-    Email: Joi.string().required(),
-    Sports: Joi.array().items(Joi.object()).required(), 
-    Id_Image: Joi.number().optional(),
-    Creation_Date: Joi.date().default(new Date(Date.now())),
+    name: Joi.string().required(),
+    address: Joi.string().required(),
+    email: Joi.string().required(),
+    sports: Joi.array().items(Joi.object()).required(),
 })
 
 export const listFormationCenterValidation = Joi.object<ListFormationCenterRequesRequest>({
@@ -33,9 +27,9 @@ export interface ListFormationCenterRequesRequest {
 }
 
 export const FormationCenterIdValidation = Joi.object<FormationCenterIdRequest>({
-    Id: Joi.number().required(),
+    id: Joi.number().required(),
 })
 
 export interface FormationCenterIdRequest {
-    Id: number
+    id: number
 }
