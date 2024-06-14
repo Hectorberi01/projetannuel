@@ -29,7 +29,7 @@ export class MessageUseCase {
 
         switch (messageType) {
             case MessageType.FIRST_CONNECTION:
-                mailOptions = await this.createFirstConnectionMessage(user, extraData.tmpPassword);
+                mailOptions = await this.createFirstConnectionMessage(user, extraData);
                 await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 10000);
                 break;
             case MessageType.A2F_CODE:

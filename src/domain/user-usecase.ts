@@ -111,7 +111,7 @@ export class UseruseCase {
 
         const isPasswordValid = await bcrypt.compare(userRequest.password, potentialUser.password);
 
-        if (isPasswordValid) {
+        if (!isPasswordValid) {
             throw new Error("Email ou mot de passe incorrect");
         }
 
