@@ -1,6 +1,6 @@
 import {DataSource, EntityNotFoundError} from "typeorm";
 import {User} from "../database/entities/user";
-import {CreateUserRequest, LoginUserRequest} from "../handlers/validator/user-validator";
+import {ChangePasswordRequest, CreateUserRequest, LoginUserRequest} from "../handlers/validator/user-validator";
 import {RoleUseCase} from "./roles-usecase";
 import {AppDataSource} from "../database/database";
 import {ClubUseCase} from "./club-usecase";
@@ -8,6 +8,10 @@ import {FormationCenterUseCase} from "./formationcenter-usecase";
 import {PlayerUseCase} from "./player-usercase";
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import {ImageUseCase} from "./image-usecase";
+import {MessageUseCase} from "./message-usecase";
+import {MessageType} from "../Enumerators/MessageType";
+import {v4 as uuidv4} from 'uuid';
 
 export interface ListUserCase {
     limit: number;
@@ -24,6 +28,7 @@ export class UseruseCase {
         const query = this.db.getRepository(User).createQueryBuilder('user')
             .leftJoinAndSelect('user.role', 'role')
             .leftJoinAndSelect('user.events', 'events')
+            .where('user.deleted = false or user.deleted = null')
             .skip((listuser.page - 1) * listuser.limit)
             .take(listuser.limit);
         const [user, total] = await query.getManyAndCount();
@@ -33,61 +38,78 @@ export class UseruseCase {
         };
     }
 
-    async createUser(userData: CreateUserRequest): Promise<User> {
+    async createUser(userData: CreateUserRequest, file: Express.Multer.File | undefined): Promise<User> {
+        try {
+            const userRepository = this.db.getRepository(User);
+            const imageUseCase = new ImageUseCase(AppDataSource);
+            const roleUseCase = new RoleUseCase(AppDataSource);
+            const messageUseCase = new MessageUseCase(AppDataSource);
 
-        const userRepository = this.db.getRepository(User);
-        const roleUseCase = new RoleUseCase(AppDataSource);
+            const alreadyExist = await this.getUserByEmail(userData.email);
+            if (alreadyExist != null) {
+                throw new Error("L'email est déjà associé à un compte");
+            }
 
-        const alreadyExist = await this.getUserByEmail(userData.email);
-        if (alreadyExist != null) {
-            throw new Error("email est déjà associé à un compte");
+            let user = new User();
+            user.email = userData.email;
+            user.firstname = userData.firstName;
+            user.lastname = userData.lastName;
+            user.address = userData.address;
+            user.newsletter = userData.newsletter;
+            user.birthDate = userData.birthDate;
+            user.createDate = new Date();
+            user.firstConnection = false;
+
+            const role = await roleUseCase.getRoleById(parseInt(userData.roleId));
+            user.role = role;
+
+            if (role.role === "CLUB") {
+                const clubUseCase = new ClubUseCase(AppDataSource);
+                // @ts-ignore
+                user.club = await clubUseCase.getClubById(parseInt(userData.clubId));
+            } else if (role.role === "FORMATIONCENTER") {
+                const formationCenterUseCase = new FormationCenterUseCase(AppDataSource);
+                // @ts-ignore
+                user.formationCenter = await formationCenterUseCase.getFormationCenterById(parseInt(userData.formationCenterId));
+            } else if (role.role === "PLAYER") {
+                const playerUseCase = new PlayerUseCase(AppDataSource);
+                // @ts-ignore
+                user.player = await playerUseCase.getPlayerById(parseInt(userData.playerId));
+            } else if (role.role !== "ADMIN") {
+                throw new Error("Ce type de rôle n'est pas encore implémenté.");
+            }
+
+            const tmpPassword = await this.generateTemporaryPassword();
+            user.password = await this.hashPassword(tmpPassword);
+            user.matricule = await this.generateUserMatricule(user);
+            user.deleted = false;
+
+            if (file != null) {
+                const uploadedImage = await imageUseCase.createImage(file);
+                if (uploadedImage) {
+                    // @ts-ignore
+                    user.image = uploadedImage;
+                }
+            }
+            user = await userRepository.save(user);
+
+            await messageUseCase.sendMessage(MessageType.FIRST_CONNECTION, user, tmpPassword);
+
+            return user;
+        } catch (error: any) {
+            throw new Error("Erreur lors de la création de l'utilisateur: " + error.message);
         }
-
-        let user = new User();
-        user.email = userData.email;
-        user.firstname = userData.firstName;
-        user.lastname = userData.lastName;
-        user.address = userData.address;
-        user.newsletter = userData.newsletter;
-        user.birthDate = userData.birthDate;
-        user.createDate = new Date();
-
-        const role = await roleUseCase.getRoleById(parseInt(userData.roleId));
-        user.role = role;
-
-        if (role.role === "CLUB") {
-            const clubUseCase = new ClubUseCase(AppDataSource);
-            // @ts-ignore
-            const club = await clubUseCase.getClubById(parseInt(userData.clubId));
-            user.club = club;
-        } else if (role.role === "FOMATIONCENTER") {
-            const formationCenterUseCase = new FormationCenterUseCase(AppDataSource);
-            // @ts-ignore
-            const formationCenter = await formationCenterUseCase.getFormationCenterById(parseInt(userData.formationCenterId));
-            user.formationCenter = formationCenter;
-        } else if (role.role === "PLAYER") {
-            const playerUseCase = new PlayerUseCase(AppDataSource);
-            // @ts-ignore
-            const player = await playerUseCase.getPlayerById(parseInt(userData.playerId));
-            user.player = player;
-        } else if (role.role === "ADMIN") {
-
-        } else {
-            throw new Error("this type of role is not implemented yet.");
-        }
-
-        const tmpPassword = await this.generateTemporaryPassword();
-        user.password = await this.hashPassword(tmpPassword);
-        user.matricule = await this.generateUserMatricule(user);
-        user.deleted = false;
-        return userRepository.save(user);
     }
 
-    async login(userRequest: LoginUserRequest): Promise<{ user: User, token: string }> {
+    async login(userRequest: LoginUserRequest): Promise<{ user: User, token?: string }> {
         const potentialUser = await this.getUserByEmail(userRequest.login);
 
         if (!potentialUser) {
             throw new Error("Email ou mot de passe incorrect");
+        }
+
+        if (potentialUser.deleted) {
+            throw new Error("Votre compte est supprimé, veuillez contacter le support client");
         }
 
         const isPasswordValid = await bcrypt.compare(userRequest.password, potentialUser.password);
@@ -96,13 +118,18 @@ export class UseruseCase {
             throw new Error("Email ou mot de passe incorrect");
         }
 
-        const token = this.generateToken(potentialUser);
+        if (potentialUser.a2fEnabled) {
+            await this.generateAndSendA2FCode(potentialUser.id);
+            return {user: potentialUser};
+        }
+
+        const token = await this.generateToken(potentialUser);
         potentialUser.password = "{noop}"
 
         return {user: potentialUser, token};
     }
 
-    generateToken(user: User): string {
+    async generateToken(user: User): Promise<string> {
         const payload = {
             userId: user.id,
             role: user.role.role
@@ -113,12 +140,19 @@ export class UseruseCase {
         return jwt.sign(payload, secret, options);
     }
 
-    async getUserById(userid: number): Promise<User> {
+    async getUserById(userId: number): Promise<User> {
         const userRepository = this.db.getRepository(User);
-        const user = await userRepository.findOneById(userid);
+        const user = await userRepository.createQueryBuilder("user")
+            .leftJoinAndSelect("user.role", "role")
+            .leftJoinAndSelect("user.club", "club")
+            .leftJoinAndSelect("user.formationCenter", "formationCenter")
+            .leftJoinAndSelect("user.player", "player")
+            .leftJoinAndSelect("user.image", "image")
+            .where("user.id = :id", {id: userId})
+            .getOne();
 
         if (!user) {
-            throw new EntityNotFoundError(User, userid);
+            throw new EntityNotFoundError(User, userId);
         }
 
         return user;
@@ -162,7 +196,7 @@ export class UseruseCase {
         return `${roleInitial}-${firstNameInitial}${lastNameInitial}-${paddedCount}`;
     }
 
-    async getRecentsUsers(): Promise<User[]> {
+    async getRecentUsers(): Promise<User[]> {
         const userRepository = this.db.getRepository(User);
         return await userRepository.find({
             order: {
@@ -203,7 +237,6 @@ export class UseruseCase {
     }
 
     async changePassword(userId: number, changePassword: ChangePasswordRequest): Promise<User> {
-
         const userRepository = this.db.getRepository(User);
         const messageUseCase = new MessageUseCase(AppDataSource);
         const user = await this.getUserById(userId);
@@ -214,8 +247,8 @@ export class UseruseCase {
 
         const oldPasswordMatch = await bcrypt.compare(changePassword.oldPassword, user.password);
 
-        if (oldPasswordMatch) {
-            throw new Error("Ancien mot de passe invalide");
+        if (!oldPasswordMatch) {
+            throw new Error("Mot de passe actuel invalide");
         }
 
         user.password = await this.hashPassword(changePassword.newPassword);
@@ -259,6 +292,7 @@ export class UseruseCase {
         const token = await this.generateToken(user);
         return {token};
     }
+
 }
 
 

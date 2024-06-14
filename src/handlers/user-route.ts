@@ -54,14 +54,14 @@ export const userRoutes = (app: express.Express) => {
             const createUserValidate = createUserValidation.validate(req.body);
 
             if (createUserValidate.error) {
-                return res.status(400).send(generateValidationErrorMessage(createUserValidate.error.details));
+                return res.status(400).json({message: generateValidationErrorMessage(createUserValidate.error.details)});
             }
 
             const userUseCase = new UseruseCase(AppDataSource);
             const result = await userUseCase.createUser(createUserValidate.value, req.file);
-            return res.status(200).send(result);
-        } catch (error) {
-            return res.status(500).send(error);
+            return res.status(200).json(result);
+        } catch (error: any) {
+            return res.status(500).json({message: error.message});
         }
     });
 
@@ -85,15 +85,14 @@ export const userRoutes = (app: express.Express) => {
             const loginUserValidate = loginUserValidation.validate(req.body);
 
             if (loginUserValidate.error) {
-                res.status(400).send(generateValidationErrorMessage(loginUserValidate.error.details));
-                return;
+                return res.status(400).json({message: generateValidationErrorMessage(loginUserValidate.error.details)});
             }
 
             const userUseCase = new UseruseCase(AppDataSource);
             const result = await userUseCase.login(loginUserValidate.value);
-            res.status(200).send(result);
+            return res.status(200).json(result);
         } catch (error: any) {
-            res.status(500).send({error: error.message});
+            return res.status(500).json({message: error.message});
         }
     });
 
@@ -123,47 +122,47 @@ export const userRoutes = (app: express.Express) => {
         try {
             const idUserValidate = idUserValidation.validate(req.params);
             if (idUserValidate.error) {
-                res.status(400).send(generateValidationErrorMessage(idUserValidate.error.details));
+                return res.status(400).json({message: generateValidationErrorMessage(idUserValidate.error.details)});
             }
 
             const userUseCase = new UseruseCase(AppDataSource);
             const result = await userUseCase.desactivateUserById(idUserValidate.value.id);
-            res.status(200).send(result);
+            return res.status(200).json(result);
         } catch (error: any) {
-            res.status(500).send(error.message);
+            return res.status(500).json({message: error.message});
         }
-    })
+    });
 
     app.put("/users/:id/change-password", async (req: Request, res: Response) => {
         try {
-                const idUserValidate = idUserValidation.validate(req.params);
+            const idUserValidate = idUserValidation.validate(req.params);
             if (idUserValidate.error) {
-                res.status(400).send(generateValidationErrorMessage(idUserValidate.error.details));
+                return res.status(400).send(generateValidationErrorMessage(idUserValidate.error.details));
             }
             const changePasswordValidate = changePasswordValidation.validate(req.body);
             if (changePasswordValidate.error) {
-                res.status(400).send(generateValidationErrorMessage(changePasswordValidate.error.details));
+                return res.status(400).send(generateValidationErrorMessage(changePasswordValidate.error.details));
             }
             const userUseCase = new UseruseCase(AppDataSource);
             const result = await userUseCase.changePassword(idUserValidate.value.id, changePasswordValidate.value);
-            res.status(200).send(result);
+            return res.status(200).send(result);
         } catch (error: any) {
-            res.status(500).send(error.message);
+            return res.status(500).send({message: error.message});
         }
-    })
+    });
 
     app.post("/users/auth/verify-a2f", async (req: Request, res: Response) => {
         try {
             const a2fUserValidate = a2fUserValidation.validate(req.body);
             if (a2fUserValidate.error) {
-                res.status(400).send(generateValidationErrorMessage(a2fUserValidate.error.details));
+                return res.status(400).send({message: generateValidationErrorMessage(a2fUserValidate.error.details)});
             }
 
             const userUseCase = new UseruseCase(AppDataSource);
             const result = await userUseCase.validateA2FCode(a2fUserValidate.value.userId, a2fUserValidate.value.code);
-            res.status(200).send(result);
+            return res.status(200).send(result);
         } catch (error: any) {
-            res.status(500).send(error.message);
+            return res.status(500).send({message: error.message});
         }
-    })
+    });
 }

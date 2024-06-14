@@ -56,81 +56,69 @@ export const sportRoutes = (app: express.Express) => {
         }
     })
 
-
-    //création d'un sport
     app.post("/sports", async (req: Request, res: Response) => {
         try {
-            const createSportValidate = createSportValidation.validate(req.body)
+            const createSportValidate = createSportValidation.validate(req.body);
             if (createSportValidate.error) {
-                res.status(400).send(generateValidationErrorMessage(createSportValidate.error.details))
+                return res.status(400).send({message: generateValidationErrorMessage(createSportValidate.error.details)});
             }
-            const sportData = createSportValidate.value
+            const sportData = createSportValidate.value;
 
             const sportUseCase = new SportUseCase(AppDataSource);
-            const result = await sportUseCase.createSport(sportData)
+            const result = await sportUseCase.createSport(sportData);
             return res.status(201).send(result);
         } catch (error) {
-            console.log(error)
-            res.status(500).send({"error": "internal error retry later"})
-            return
+            console.log(error);
+            return res.status(500).send({message: "Erreur interne, veuillez réessayer plus tard."});
         }
     });
 
     app.put("/sports/:id", async (req: Request, res: Response) => {
         try {
-            const idSportValidate = idSportValidation.validate(req.params)
-
+            const idSportValidate = idSportValidation.validate(req.params);
             if (idSportValidate.error) {
-                res.status(400).send(generateValidationErrorMessage(idSportValidate.error.details))
+                return res.status(400).send({message: generateValidationErrorMessage(idSportValidate.error.details)});
             }
 
             const value = idSportValidate.value;
-            const sportId = value.Id;
+            const sportId = value.id;
             const updatedData = req.body;
 
-            // Vérifier si l'ID du sport est un nombre valide
             if (isNaN(sportId) || sportId <= 0) {
-                return res.status(400).json({error: 'Invalid user ID'});
+                return res.status(400).json({message: 'ID du sport invalide'});
             }
 
-            // Vérifier si les données à mettre à jour sont fournies
             if (!updatedData || Object.keys(updatedData).length === 0) {
-                return res.status(400).json({error: 'Updated data not provided'});
+                return res.status(400).json({message: 'Données mises à jour non fournies'});
             }
 
-            // Appeler la fonction SportUseCase pour récupérer le sport à mettre à jour
-            const sportUsecase = new SportUseCase(AppDataSource);
+            const sportUseCase = new SportUseCase(AppDataSource);
+            await sportUseCase.updateSport(sportId, updatedData);
 
-            await sportUsecase.updateSport(sportId, updatedData)
-
-            return res.status(200).json({"message": "les information sont enrégistées avec succès"});
+            return res.status(200).json({message: "Les informations ont été enregistrées avec succès."});
         } catch (error) {
-            console.error("Failed to planning user:", error);
-            return res.status(500).json({error: 'Internal server error. Please retry later.'});
+            console.error("Failed to update sport:", error);
+            return res.status(500).json({message: 'Erreur interne. Veuillez réessayer plus tard.'});
         }
     });
 
     app.delete("/sports/:id", async (req: Request, res: Response) => {
         try {
-            const idSportValidate = idSportValidation.validate(req.params)
-
+            const idSportValidate = idSportValidation.validate(req.params);
             if (idSportValidate.error) {
-                res.status(400).send(generateValidationErrorMessage(idSportValidate.error.details))
+                return res.status(400).send({message: generateValidationErrorMessage(idSportValidate.error.details)});
             }
 
             const sportUseCase = new SportUseCase(AppDataSource);
             const sportId = idSportValidate.value.id;
-            const sport = await sportUseCase.deleteSport(sportId)
+            await sportUseCase.deleteSport(sportId);
 
-            if (sport.affected === 0) {
-                return res.status(404).json({error: 'planning not found'});
-            }
-
-            return res.status(200).json({message: 'sport deleted successfully'});
+            return res.status(200).json({message: 'Sport supprimé avec succès'});
         } catch (error) {
-            res.status(500).send({"error": "internal error retry later"})
+            console.error("Failed to delete sport:", error);
+            return res.status(500).send({message: "Erreur interne, veuillez réessayer plus tard."});
         }
-    })
+    });
 
     app.get("/sports/:id/formations-centers", async (req: Request, res: Response) => {
 
