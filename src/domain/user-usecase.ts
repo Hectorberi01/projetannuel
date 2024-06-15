@@ -1,6 +1,11 @@
 import {DataSource, EntityNotFoundError} from "typeorm";
 import {User} from "../database/entities/user";
-import {ChangePasswordRequest, CreateUserRequest, LoginUserRequest} from "../handlers/validator/user-validator";
+import {
+    ChangePasswordRequest,
+    CreateUserRequest,
+    LoginUserRequest,
+    UpdateUserRequest
+} from "../handlers/validator/user-validator";
 import {RoleUseCase} from "./roles-usecase";
 import {AppDataSource} from "../database/database";
 import {ClubUseCase} from "./club-usecase";
@@ -335,6 +340,40 @@ export class UseruseCase {
         }
         await this.createUser(user, undefined);
         return;
+    }
+
+    async updateUser(userId: number, userData: UpdateUserRequest): Promise<User> {
+        try {
+            const userRepository = this.db.getRepository(User);
+            const user = await this.getUserById(userId);
+            if (!user) {
+                throw new Error("Utilisateur inconnu");
+            }
+
+            if (userData.firstName && user.firstname !== userData.firstName) {
+                user.firstname = userData.firstName;
+            }
+
+            if (userData.lastName && user.lastname !== userData.lastName) {
+                user.lastname = userData.lastName;
+            }
+
+            if (userData.address && user.address !== userData.address) {
+                user.address = userData.address;
+            }
+
+            if (userData.a2fEnabled && user.a2fEnabled !== userData.a2fEnabled) {
+                user.a2fEnabled = userData.a2fEnabled;
+            }
+
+            if (userData.newsletter && user.newsletter !== userData.newsletter) {
+                user.newsletter = userData.newsletter;
+            }
+
+            return await userRepository.save(user);
+        } catch (error: any) {
+            throw new Error("Erreur de mise à jour");
+        }
     }
 
 }

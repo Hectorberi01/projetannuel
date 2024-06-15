@@ -10,7 +10,7 @@ import {
     fcUserValidation,
     idUserValidation,
     listUserValidation,
-    loginUserValidation
+    loginUserValidation, updateUserValidation
 } from "./validator/user-validator";
 import {upload} from "../middlewares/multer-config";
 
@@ -163,6 +163,24 @@ export const userRoutes = (app: express.Express) => {
             return res.status(200).send(result);
         } catch (error: any) {
             return res.status(500).send({message: error.message});
+        }
+    });
+
+    app.put("/users/:id", async (req: Request, res: Response) => {
+        try {
+            const idUserValidate = idUserValidation.validate(req.params);
+            if (idUserValidate.error) {
+                return res.status(400).send(generateValidationErrorMessage(idUserValidate.error.details));
+            }
+            const updateUserValidate = updateUserValidation.validate(req.body);
+            if (updateUserValidate.error) {
+                return res.status(400).send(updateUserValidate.error.details)
+            }
+            const userUseCase = new UseruseCase(AppDataSource);
+            const result = await userUseCase.updateUser(idUserValidate.value.id, updateUserValidate.value);
+            return res.status(200).send(result);
+        } catch (error: any) {
+            return res.status(500).json({message: error.message});
         }
     });
 }
