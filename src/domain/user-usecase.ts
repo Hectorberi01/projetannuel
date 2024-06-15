@@ -2,7 +2,7 @@ import {DataSource, EntityNotFoundError} from "typeorm";
 import {User} from "../database/entities/user";
 import {
     ChangePasswordRequest,
-    CreateUserRequest,
+    CreateUserRequest, InvitedUserRequest,
     LoginUserRequest,
     UpdateUserRequest
 } from "../handlers/validator/user-validator";
@@ -373,6 +373,65 @@ export class UseruseCase {
             return await userRepository.save(user);
         } catch (error: any) {
             throw new Error("Erreur de mise à jour");
+        }
+    }
+
+    async createInvitedUser(invitedUser: InvitedUserRequest, hostId: number): Promise<User> {
+        try {
+            const host = await this.getUserById(hostId);
+            if (!host) {
+                throw new Error("Utilisateur inconnu");
+            }
+            let user: CreateUserRequest = {
+                email: invitedUser.email,
+                firstName: invitedUser.firstName,
+                lastName: invitedUser.lastName,
+                address: invitedUser.address,
+                birthDate: invitedUser.birthDate,
+                newsletter: false,
+                roleId: '',
+                clubId: null,
+                playerId: null,
+                formationCenterId: null,
+            }
+
+            if (host.club) {
+                return await this.fillUpInvitedUser(user, host, Role.CLUB)
+            } else if (host.formationCenter) {
+                return await this.fillUpInvitedUser(user, host, Role.FORMATIONCENTER)
+            } else {
+                throw new Error("Ce type d'invité n'est pas implémenté");
+            }
+
+        } catch (error) {
+            throw new Error("Erreur lors de l'invitation")
+        }
+    }
+
+    async fillUpInvitedUser(user: CreateUserRequest, host: User, role: Role): Promise<User> {
+        try {
+            const roleUseCase = new RoleUseCase(AppDataSource);
+            const invitedRole = await roleUseCase.getByName(role.toString());
+
+            if (!invitedRole) {
+                throw new Error("Utilisateur inconnu");
+            }
+
+            switch (role) {
+                case Role.CLUB:
+                    user.clubId = host.club.id.toString();
+                    user.roleId = invitedRole.id.toString();
+                    break;
+                case Role.FORMATIONCENTER:
+                    user.formationCenterId = host.formationCenter.id.toString();
+                    user.roleId = invitedRole.id.toString();
+                    break;
+                default:
+                    throw new Error("Ce type d'invité n'est pas implémenté");
+            }
+            return await this.createUser(user, undefined);
+        } catch (error) {
+            throw new Error("Erreur lors de l'invitation")
         }
     }
 

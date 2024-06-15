@@ -34,7 +34,7 @@ export class MessageUseCase {
                 await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 10000);
                 break;
             case MessageType.A2F_CODE:
-                mailOptions = await this.createA2FCodeMessage(user, extraData.a2fCode);
+                mailOptions = await this.createA2FCodeMessage(user, extraData);
                 await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 0);
                 break;
             case MessageType.NEW_EVENT_ALERT:
@@ -76,7 +76,7 @@ export class MessageUseCase {
 
         return {
             from: process.env.EMAIL_USER,
-            to: user.email,
+            to: process.env.EMAIL_TEST,
             subject: template.subject,
             text: mustache.render(template.body, {...user, a2fCode}),
         };

@@ -9,8 +9,10 @@ import {
     createUserValidation,
     fcUserValidation,
     idUserValidation,
+    invitedUserValidation,
     listUserValidation,
-    loginUserValidation, updateUserValidation
+    loginUserValidation,
+    updateUserValidation
 } from "./validator/user-validator";
 import {upload} from "../middlewares/multer-config";
 
@@ -183,4 +185,38 @@ export const userRoutes = (app: express.Express) => {
             return res.status(500).json({message: error.message});
         }
     });
+
+    app.put("/users/:id/regenerate-a2f", async (req: Request, res: Response) => {
+        try {
+            const idUserValidate = idUserValidation.validate(req.params);
+            if (idUserValidate.error) {
+                return res.status(400).send(generateValidationErrorMessage(idUserValidate.error.details));
+            }
+
+            const userUseCase = new UseruseCase(AppDataSource);
+            const result = await userUseCase.generateAndSendA2FCode(idUserValidate.value.id);
+            res.status(200).send(result);
+
+        } catch (error: any) {
+            return res.status(500).json({message: error.message});
+        }
+    })
+
+    app.put("/users/:id/invite-user", async (req: Request, res: Response) => {
+        try {
+            const idUserValidate = idUserValidation.validate(req.params);
+            if (idUserValidate.error) {
+                return res.status(400).send(generateValidationErrorMessage(idUserValidate.error.details));
+            }
+            const invitedUserValidate = invitedUserValidation.validate(req.body);
+            if (invitedUserValidate.error) {
+                return res.status(400).send(generateValidationErrorMessage(invitedUserValidate.error.details));
+            }
+            const userUseCase = new UseruseCase(AppDataSource);
+            const result = await userUseCase.createInvitedUser(invitedUserValidate.value, idUserValidate.value.id);
+            res.status(200).send(result);
+        } catch (error: any) {
+            return res.status(500).json({message: error.message});
+        }
+    })
 }
