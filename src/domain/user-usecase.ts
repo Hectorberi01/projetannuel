@@ -2,7 +2,8 @@ import {DataSource, EntityNotFoundError} from "typeorm";
 import {User} from "../database/entities/user";
 import {
     ChangePasswordRequest,
-    CreateUserRequest, InvitedUserRequest,
+    CreateUserRequest,
+    InvitedUserRequest,
     LoginUserRequest,
     UpdateUserRequest
 } from "../handlers/validator/user-validator";
@@ -435,6 +436,12 @@ export class UseruseCase {
         }
     }
 
+    async getNewsletterUsers(): Promise<User[]> {
+        const userRepository = this.db.getRepository(User);
+        return await userRepository.find({
+            where: {newsletter: true}
+        })
+    }
 }
 
 

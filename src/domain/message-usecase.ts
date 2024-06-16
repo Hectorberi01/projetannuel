@@ -28,7 +28,7 @@ export class MessageUseCase {
     async sendMessage(messageType: MessageType, user: User, extraData?: any): Promise<void> {
         let mailOptions;
 
-            switch (messageType) {
+        switch (messageType) {
             case MessageType.FIRST_CONNECTION:
                 mailOptions = await this.createFirstConnectionMessage(user, extraData);
                 await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 10000);
@@ -47,6 +47,10 @@ export class MessageUseCase {
                 break;
             case MessageType.PASSWORD_CHANGED:
                 mailOptions = await this.createPasswordChangedMessage(user);
+                await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 0);
+                break;
+            case MessageType.NEWSLETTER:
+                mailOptions = await this.createNewsletterMessage(user, extraData.subject, extraData.text);
                 await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 0);
                 break;
             default:
@@ -80,6 +84,16 @@ export class MessageUseCase {
             subject: template.subject,
             text: mustache.render(template.body, {...user, a2fCode}),
         };
+    }
+
+    private async createNewsletterMessage(user: any, subject: any, text: any): Promise<nodemailer.SendMailOptions> {
+
+        return {
+            from: process.env.EMAIL_USER,
+            to: process.env.EMAIL_TEST,
+            subject: subject,
+            text: text,
+        }
     }
 
     private async createNewEventAlertMessage(user: any, extraData: any): Promise<nodemailer.SendMailOptions> {

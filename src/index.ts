@@ -15,6 +15,8 @@ import {questionsRoutes} from "./handlers/question-route";
 import {clubRoutes} from "./handlers/club-route";
 import {statsRoutes} from "./handlers/stats-route";
 import dotenv from 'dotenv';
+import {newsletterRoute} from "./handlers/newsletter-route";
+
 dotenv.config();
 
 const cors = require('cors');
@@ -74,6 +76,7 @@ const main = async () => {
         sondagesRoutes(app);
         questionsRoutes(app);
         statsRoutes(app);
+        newsletterRoute(app);
         console.log("Routes are set up successfully");
     } catch (error) {
         console.error("Error setting up routes:", error);
