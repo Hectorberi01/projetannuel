@@ -31,7 +31,7 @@ export class MessageUseCase {
         switch (messageType) {
             case MessageType.FIRST_CONNECTION:
                 mailOptions = await this.createFirstConnectionMessage(user, extraData);
-                await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 10000);
+                await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 0);
                 break;
             case MessageType.A2F_CODE:
                 mailOptions = await this.createA2FCodeMessage(user, extraData);
@@ -132,13 +132,18 @@ export class MessageUseCase {
             throw new Error("Template non trouvé");
         }
 
-        const eventDetails = extraData.eventDetails;
+        const eventTitle = extraData.title;
+        const eventDateTime = extraData.startDate.toLocaleString();
 
         return {
             from: process.env.EMAIL_USER,
-            to: user.email,
-            subject: template.subject,
-            text: mustache.render(template.body, {...user, ...eventDetails}),
+            to: process.env.EMAIL_TEST,
+            subject: mustache.render(template.subject, { eventTitle }),
+            text: mustache.render(template.body, {
+                ...user,
+                eventTitle,
+                eventDateTime
+            }),
         };
     }
 
