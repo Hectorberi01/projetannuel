@@ -31,10 +31,10 @@ export class MessageUseCase {
         switch (messageType) {
             case MessageType.FIRST_CONNECTION:
                 mailOptions = await this.createFirstConnectionMessage(user, extraData);
-                await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 10000);
+                await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 0);
                 break;
             case MessageType.A2F_CODE:
-                mailOptions = await this.createA2FCodeMessage(user, extraData.a2fCode);
+                mailOptions = await this.createA2FCodeMessage(user, extraData);
                 await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 0);
                 break;
             case MessageType.NEW_EVENT_ALERT:
@@ -47,6 +47,10 @@ export class MessageUseCase {
                 break;
             case MessageType.PASSWORD_CHANGED:
                 mailOptions = await this.createPasswordChangedMessage(user);
+                await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 0);
+                break;
+            case MessageType.NEWSLETTER:
+                mailOptions = await this.createNewsletterMessage(user, extraData.subject, extraData.text);
                 await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 0);
                 break;
             default:
@@ -76,10 +80,20 @@ export class MessageUseCase {
 
         return {
             from: process.env.EMAIL_USER,
-            to: user.email,
+            to: process.env.EMAIL_TEST,
             subject: template.subject,
             text: mustache.render(template.body, {...user, a2fCode}),
         };
+    }
+
+    private async createNewsletterMessage(user: any, subject: any, text: any): Promise<nodemailer.SendMailOptions> {
+
+        return {
+            from: process.env.EMAIL_USER,
+            to: process.env.EMAIL_TEST,
+            subject: subject,
+            text: text,
+        }
     }
 
     private async createNewEventAlertMessage(user: any, extraData: any): Promise<nodemailer.SendMailOptions> {
@@ -118,13 +132,18 @@ export class MessageUseCase {
             throw new Error("Template non trouvé");
         }
 
-        const eventDetails = extraData.eventDetails;
+        const eventTitle = extraData.title;
+        const eventDateTime = extraData.startDate.toLocaleString();
 
         return {
             from: process.env.EMAIL_USER,
-            to: user.email,
-            subject: template.subject,
-            text: mustache.render(template.body, {...user, ...eventDetails}),
+            to: process.env.EMAIL_TEST,
+            subject: mustache.render(template.subject, { eventTitle }),
+            text: mustache.render(template.body, {
+                ...user,
+                eventTitle,
+                eventDateTime
+            }),
         };
     }
 

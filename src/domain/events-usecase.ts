@@ -1,6 +1,10 @@
 import {DataSource, DeleteResult, EntityNotFoundError} from "typeorm";
 import {EventRequest} from "../handlers/validator/events-validator";
 import {Event} from "../database/entities/event";
+import {EventStatut} from "../Enumerators/EventStatut";
+import {MessageUseCase} from "./message-usecase";
+import {AppDataSource} from "../database/database";
+import {MessageType} from "../Enumerators/MessageType";
 
 
 export interface ListEventUseCase {
@@ -129,5 +133,28 @@ export class EventuseCase {
             },
             take: 3
         });
+    }
+
+    async cancelEvent(eventId: number): Promise<Event> {
+        try {
+            const messageUseCase = new MessageUseCase(AppDataSource);
+            const eventRepository = this.db.getRepository(Event);
+            const event = await this.getEventById(eventId);
+            if (!event) {
+                throw new Error("Evenement non trouvé");
+            }
+            event.statut = EventStatut.CANCELED;
+            const result = await eventRepository.save(event);
+            if (!result) {
+                throw new Error("Erreur d'annulation de l'évenement");
+            }
+
+            for (let user of event.participants) {
+                await messageUseCase.sendMessage(MessageType.CANCELED_EVENT_ALERT, user, event);
+            }
+            return event;
+        } catch (error: any) {
+            throw new Error("Erreur lors de l'annulation de l'évennement");
+        }
     }
 }

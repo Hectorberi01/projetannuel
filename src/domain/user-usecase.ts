@@ -1,6 +1,12 @@
 import {DataSource, EntityNotFoundError} from "typeorm";
 import {User} from "../database/entities/user";
-import {ChangePasswordRequest, CreateUserRequest, LoginUserRequest} from "../handlers/validator/user-validator";
+import {
+    ChangePasswordRequest,
+    CreateUserRequest,
+    InvitedUserRequest,
+    LoginUserRequest,
+    UpdateUserRequest
+} from "../handlers/validator/user-validator";
 import {RoleUseCase} from "./roles-usecase";
 import {AppDataSource} from "../database/database";
 import {ClubUseCase} from "./club-usecase";
@@ -12,6 +18,8 @@ import {ImageUseCase} from "./image-usecase";
 import {MessageUseCase} from "./message-usecase";
 import {MessageType} from "../Enumerators/MessageType";
 import {v4 as uuidv4} from 'uuid';
+import {Role} from "../Enumerators/Role";
+import {Club} from "../database/entities/club";
 
 export interface ListUserCase {
     limit: number;
@@ -63,11 +71,11 @@ export class UseruseCase {
             const role = await roleUseCase.getRoleById(parseInt(userData.roleId));
             user.role = role;
 
-            if (role.role === "CLUB") {
+            if (role.role === "CLUB" || role.role === "ADMIN_CLUB") {
                 const clubUseCase = new ClubUseCase(AppDataSource);
                 // @ts-ignore
                 user.club = await clubUseCase.getClubById(parseInt(userData.clubId));
-            } else if (role.role === "FORMATIONCENTER") {
+            } else if (role.role === "FORMATIONCENTER" || role.role === "ADMIN_FORMATIONCENTER") {
                 const formationCenterUseCase = new FormationCenterUseCase(AppDataSource);
                 // @ts-ignore
                 user.formationCenter = await formationCenterUseCase.getFormationCenterById(parseInt(userData.formationCenterId));
@@ -208,6 +216,7 @@ export class UseruseCase {
 
     async changePasswordFirstConnection(userId: number, newPassword: string): Promise<User> {
         const userRepository = this.db.getRepository(User);
+        const messageUseCase = new MessageUseCase(AppDataSource);
         const user = await userRepository.findOne({
             where: {id: userId}
         });
@@ -221,7 +230,13 @@ export class UseruseCase {
         user.password = await this.hashPassword(newPassword);
         user.firstConnection = true;
 
-        return await userRepository.save(user);
+        const result = await userRepository.save(user);
+        if (!result) {
+            throw new Error("Erreur lors du changement de mot de passe");
+        }
+        await messageUseCase.sendMessage(MessageType.PASSWORD_CHANGED, user, null);
+
+        return result;
     }
 
     async desactivateUserById(userId: number): Promise<User> {
@@ -293,6 +308,148 @@ export class UseruseCase {
         return {token};
     }
 
+    async createEntityUser(entity: any, roleData: Role): Promise<void> {
+        const roleUseCase = new RoleUseCase(AppDataSource);
+        const role = await roleUseCase.getByName(roleData);
+        let user: CreateUserRequest = {
+            email: entity.email,
+            address: '',
+            newsletter: false,
+            lastName: '',
+            firstName: '',
+            roleId: role.id.toString(),
+            birthDate: new Date(),
+            clubId: null,
+            playerId: null,
+            formationCenterId: null
+        };
+        switch (roleData) {
+            case Role.ADMIN_CLUB:
+                user.clubId = entity.id;
+                break;
+            case Role.ADMIN_FORMATIONCENTER:
+                user.formationCenterId = entity.id;
+                break;
+            case Role.PLAYER:
+                user.firstName = entity.firstName;
+                user.lastName = entity.lastName;
+                user.address = entity.address;
+                user.playerId = entity.id;
+                user.birthDate = entity.birthDate;
+                break;
+            default:
+                break;
+        }
+        await this.createUser(user, undefined);
+        return;
+    }
+
+    async updateUser(userId: number, userData: UpdateUserRequest): Promise<User> {
+        try {
+            const userRepository = this.db.getRepository(User);
+            const user = await this.getUserById(userId);
+            if (!user) {
+                throw new Error("Utilisateur inconnu");
+            }
+
+            if (userData.firstName && user.firstname !== userData.firstName) {
+                user.firstname = userData.firstName;
+            }
+
+            if (userData.lastName && user.lastname !== userData.lastName) {
+                user.lastname = userData.lastName;
+            }
+
+            if (userData.address && user.address !== userData.address) {
+                user.address = userData.address;
+            }
+
+            if (userData.a2fEnabled && user.a2fEnabled !== userData.a2fEnabled) {
+                user.a2fEnabled = userData.a2fEnabled;
+            }
+
+            if (userData.newsletter && user.newsletter !== userData.newsletter) {
+                user.newsletter = userData.newsletter;
+            }
+
+            return await userRepository.save(user);
+        } catch (error: any) {
+            throw new Error("Erreur de mise à jour");
+        }
+    }
+
+    async createInvitedUser(invitedUser: InvitedUserRequest, hostId: number): Promise<User> {
+        try {
+            const host = await this.getUserById(hostId);
+            if (!host) {
+                throw new Error("Utilisateur inconnu");
+            }
+            let user: CreateUserRequest = {
+                email: invitedUser.email,
+                firstName: invitedUser.firstName,
+                lastName: invitedUser.lastName,
+                address: invitedUser.address,
+                birthDate: invitedUser.birthDate,
+                newsletter: false,
+                roleId: '',
+                clubId: null,
+                playerId: null,
+                formationCenterId: null,
+            }
+
+            if (host.club) {
+                return await this.fillUpInvitedUser(user, host, Role.CLUB)
+            } else if (host.formationCenter) {
+                return await this.fillUpInvitedUser(user, host, Role.FORMATIONCENTER)
+            } else {
+                throw new Error("Ce type d'invité n'est pas implémenté");
+            }
+
+        } catch (error) {
+            throw new Error("Erreur lors de l'invitation")
+        }
+    }
+
+    async fillUpInvitedUser(user: CreateUserRequest, host: User, role: Role): Promise<User> {
+        try {
+            const roleUseCase = new RoleUseCase(AppDataSource);
+            const invitedRole = await roleUseCase.getByName(role.toString());
+
+            if (!invitedRole) {
+                throw new Error("Utilisateur inconnu");
+            }
+
+            switch (role) {
+                case Role.CLUB:
+                    user.clubId = host.club.id.toString();
+                    user.roleId = invitedRole.id.toString();
+                    break;
+                case Role.FORMATIONCENTER:
+                    user.formationCenterId = host.formationCenter.id.toString();
+                    user.roleId = invitedRole.id.toString();
+                    break;
+                default:
+                    throw new Error("Ce type d'invité n'est pas implémenté");
+            }
+            return await this.createUser(user, undefined);
+        } catch (error) {
+            throw new Error("Erreur lors de l'invitation")
+        }
+    }
+
+    async getNewsletterUsers(): Promise<User[]> {
+        const userRepository = this.db.getRepository(User);
+        return await userRepository.find({
+            where: {newsletter: true}
+        })
+    }
+
+    async getAllClubUsers(club: Club): Promise<User[]> {
+        const userRepository = this.db.getRepository(User);
+        return await userRepository.find({
+            where: {club: club}
+        })
+    }
 }
 
 

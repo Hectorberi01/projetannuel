@@ -75,9 +75,7 @@ export class RoleUseCase {
     async upDateRoleData(id_Role: number, info: any) {
         try {
             const roleRepository = this.db.getRepository(Role);
-            console.log("info", info)
             const result = await this.getRoleById(id_Role)
-            console.log("result", result)
 
             if (result instanceof Role) {
                 const role = result;
@@ -88,6 +86,23 @@ export class RoleUseCase {
             }
         } catch (error) {
             console.error("Failed to update role with ID:", id_Role, error);
+        }
+    }
+
+    async getByName(name: string) {
+        try {
+            const roleRepository = this.db.getRepository(Role);
+            const result = await roleRepository.findOne({
+                where: {role: name}
+            })
+
+            if (!result) {
+                throw new Error(`${name} not found`);
+            }
+
+            return result;
+        } catch (error) {
+            throw new Error("Failed to get role :" + name);
         }
     }
 }

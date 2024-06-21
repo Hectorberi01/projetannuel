@@ -43,7 +43,6 @@ export const eventsRoutes = (app: express.Express) => {
         }
     })
 
-    // récupère l'évènement par son id
     app.get("/events/:Id", async (req: Request, res: Response) => {
         try {
             const eventidvalidation = EventIdValidation.validate(req.params)
@@ -70,7 +69,6 @@ export const eventsRoutes = (app: express.Express) => {
 
     })
 
-    //création d'un évenement
     app.post("/events", async (req: Request, res: Response, next: NextFunction) => {
         try {
             const eventvalidation = EventValidator.validate(req.body)
@@ -95,7 +93,6 @@ export const eventsRoutes = (app: express.Express) => {
         }
     })
 
-    // Route pour mettre à jour les informations de l'utilisateur
     app.put("/events/:Id", async (req: Request, res: Response) => {
         try {
             const eventidvalidation = EventIdValidation.validate(req.params)
@@ -134,7 +131,6 @@ export const eventsRoutes = (app: express.Express) => {
         }
     });
 
-    // sippression d'un utlisateur
     app.delete("/events/:Id", async (req: Request, res: Response) => {
         try {
             const eventidvalidation = EventIdValidation.validate(req.params)
@@ -154,9 +150,23 @@ export const eventsRoutes = (app: express.Express) => {
             // Répondre avec succès
             return res.status(200).json({message: 'User deleted successfully'});
         } catch (error) {
-            console.log(error)
             res.status(500).send({"error": "internal error retry later"})
-            return
+        }
+    })
+
+    app.put("/events/:Id/cancel", async (req: Request, res: Response) => {
+        try {
+            const idEventValidate = EventIdValidation.validate(req.params);
+
+            if (idEventValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(idEventValidate.error.details))
+            }
+
+            const eventUseCase = new EventuseCase(AppDataSource);
+            const result = await eventUseCase.cancelEvent(idEventValidate.value.Id);
+            res.status(200).send(result);
+        } catch (error: any) {
+            res.status(500).json(error.message);
         }
     })
 

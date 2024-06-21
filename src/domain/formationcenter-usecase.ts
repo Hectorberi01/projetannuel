@@ -2,6 +2,9 @@ import {DataSource, DeleteResult, EntityNotFoundError} from "typeorm";
 import {FormationCenterRequest} from "../handlers/validator/formation-validator";
 import {FormationCenter} from "../database/entities/formationcenter"
 import {Player} from "../database/entities/player";
+import {Role} from "../Enumerators/Role";
+import {UseruseCase} from "./user-usecase";
+import {AppDataSource} from "../database/database";
 
 export interface ListFormationCenterCase {
     limit: number;
@@ -35,6 +38,7 @@ export class FormationCenterUseCase {
         try {
             const formationRepository = this.db.getRepository(FormationCenter);
             const newFormation = new FormationCenter();
+            const userUseCase = new UseruseCase(AppDataSource);
 
             newFormation.name = formationData.name;
             newFormation.address = formationData.address;
@@ -42,7 +46,15 @@ export class FormationCenterUseCase {
             newFormation.email = formationData.email;
             newFormation.createDate = new Date();
 
-            return formationRepository.save(newFormation);
+            const result = formationRepository.save(newFormation);
+
+            if (!result) {
+                throw new Error("Erreur lors de la création du centre de formation")
+            }
+
+            await userUseCase.createEntityUser(newFormation, Role.ADMIN_FORMATIONCENTER);
+            return result;
+
         } catch (error) {
             console.error("Failed to creat club account :", error);
             throw error;
