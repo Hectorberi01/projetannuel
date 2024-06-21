@@ -1,8 +1,12 @@
 import express, {Request, Response} from "express";
 import {generateValidationErrorMessage} from "./validator/generate-validation-message";
 import {AppDataSource} from "../database/database";
-import {idSportValidation} from "./validator/sport-validator";
-import {createClubValidation, listClubValidation, updateClubValidation} from "./validator/club-validator";
+import {
+    createClubValidation,
+    idClubValidation,
+    listClubValidation,
+    updateClubValidation
+} from "./validator/club-validator";
 import {ClubUseCase} from "../domain/club-usecase";
 import {upload} from "../middlewares/multer-config";
 
@@ -35,7 +39,7 @@ export const clubRoutes = (app: express.Express) => {
 
     app.get("/clubs/:id", async (req: Request, res: Response) => {
         try {
-            const idSportValidate = idSportValidation.validate(req.params)
+            const idSportValidate = idClubValidation.validate(req.params)
 
             if (idSportValidate.error) {
                 res.status(400).send(generateValidationErrorMessage(idSportValidate.error.details))
@@ -68,7 +72,7 @@ export const clubRoutes = (app: express.Express) => {
 
     app.put("/clubs/:id", upload.single('image'), async (req: Request, res: Response) => {
         try {
-            const idSportValidate = idSportValidation.validate(req.params)
+            const idSportValidate = idClubValidation.validate(req.params)
 
             if (idSportValidate.error) {
                 res.status(400).send(generateValidationErrorMessage(idSportValidate.error.details))
@@ -91,7 +95,7 @@ export const clubRoutes = (app: express.Express) => {
 
     app.delete("/clubs/:id", async (req: Request, res: Response) => {
         try {
-            const idClubValidate = idSportValidation.validate(req.params)
+            const idClubValidate = idClubValidation.validate(req.params)
 
             if (idClubValidate.error) {
                 res.status(400).send(generateValidationErrorMessage(idClubValidate.error.details))
@@ -100,6 +104,22 @@ export const clubRoutes = (app: express.Express) => {
             const clubUseCase = new ClubUseCase(AppDataSource);
             const result = await clubUseCase.deleteClub(idClubValidate.value.id)
             return res.status(200).send(result);
+        } catch (error) {
+            res.status(500).send({"error": "internal error retry later"})
+        }
+    })
+
+    app.get("/clubs/:id/users", async (req: Request, res: Response) => {
+        try {
+            const idClubValidate = idClubValidation.validate(req.params)
+
+            if (idClubValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(idClubValidate.error.details))
+            }
+
+            const clubUseCase = new ClubUseCase(AppDataSource);
+            const result = await clubUseCase.getAllClubUsers(idClubValidate.value.id);
+            res.status(200).send(result);
         } catch (error) {
             res.status(500).send({"error": "internal error retry later"})
         }

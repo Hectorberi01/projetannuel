@@ -7,6 +7,7 @@ import {SportUseCase} from "./sport-usecase";
 import {Sport} from "../database/entities/sport";
 import {UseruseCase} from "./user-usecase";
 import {Role} from "../Enumerators/Role";
+import {User} from "../database/entities/user";
 
 
 export interface ListClubRequest {
@@ -121,5 +122,14 @@ export class ClubUseCase {
         if (clubData.events && club.events != clubData.events) club.events = clubData.events;
 
         return await clubRepository.update(clubId, club);
+    }
+
+    async getAllClubUsers(clubId: number): Promise<User[]> {
+        const userUseCase = new UseruseCase(AppDataSource)
+        const club = await this.getClubById(clubId);
+        if (!club) {
+            throw new Error(`${clubId} not found`);
+        }
+        return await userUseCase.getAllClubUsers(club);
     }
 }

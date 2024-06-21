@@ -19,6 +19,7 @@ import {MessageUseCase} from "./message-usecase";
 import {MessageType} from "../Enumerators/MessageType";
 import {v4 as uuidv4} from 'uuid';
 import {Role} from "../Enumerators/Role";
+import {Club} from "../database/entities/club";
 
 export interface ListUserCase {
     limit: number;
@@ -440,6 +441,13 @@ export class UseruseCase {
         const userRepository = this.db.getRepository(User);
         return await userRepository.find({
             where: {newsletter: true}
+        })
+    }
+
+    async getAllClubUsers(club: Club): Promise<User[]> {
+        const userRepository = this.db.getRepository(User);
+        return await userRepository.find({
+            where: {club: club}
         })
     }
 }
