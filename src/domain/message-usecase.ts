@@ -5,15 +5,18 @@ import {MessageTemplate} from '../database/entities/messagetemplate';
 import {User} from '../database/entities/user';
 import {sendDelayedMessage} from '../middlewares/rabbitmq';
 import dotenv from 'dotenv';
+import {EmailUseCase} from "./email-usecase";
+import {AppDataSource} from "../database/database";
+import {DataSource} from "typeorm";
 
 dotenv.config();
 
 export class MessageUseCase {
 
-    private db: any;
+    private db: DataSource;
     private transporter: nodemailer.Transporter;
 
-    constructor(db: any) {
+    constructor(db: DataSource) {
         this.db = db;
 
         this.transporter = nodemailer.createTransport({
@@ -27,6 +30,7 @@ export class MessageUseCase {
 
     async sendMessage(messageType: MessageType, user: User, extraData?: any): Promise<void> {
         let mailOptions;
+        const emailUseCase = new EmailUseCase(AppDataSource);
 
         switch (messageType) {
             case MessageType.FIRST_CONNECTION:
@@ -56,6 +60,7 @@ export class MessageUseCase {
             default:
                 throw new Error('Unknown message type');
         }
+        await emailUseCase.createEmail(user, messageType);
     }
 
     private async createFirstConnectionMessage(user: any, tmpPassword: any): Promise<nodemailer.SendMailOptions> {
@@ -106,7 +111,7 @@ export class MessageUseCase {
 
         return {
             from: process.env.EMAIL_USER,
-            to: user.email,
+            to: process.env.EMAIL_TEST,
             subject: template.subject,
             text: mustache.render(template.body, {...user, ...eventDetails}),
         };
@@ -138,7 +143,7 @@ export class MessageUseCase {
         return {
             from: process.env.EMAIL_USER,
             to: process.env.EMAIL_TEST,
-            subject: mustache.render(template.subject, { eventTitle }),
+            subject: mustache.render(template.subject, {eventTitle}),
             text: mustache.render(template.body, {
                 ...user,
                 eventTitle,
@@ -163,6 +168,12 @@ export class MessageUseCase {
 
     private async getTemplate(messageType: MessageType): Promise<MessageTemplate> {
         const templateRepository = this.db.getRepository(MessageTemplate);
-        return await templateRepository.findOne({where: {type: messageType}});
+        const template = await templateRepository.findOne({where: {type: messageType}});
+
+        if (!template) {
+            throw new Error("Template inconnu");
+        } else {
+            return template
+        }
     }
 }

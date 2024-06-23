@@ -15,6 +15,7 @@ import {
     updateUserValidation
 } from "./validator/user-validator";
 import {upload} from "../middlewares/multer-config";
+import {EventInvitationUseCase} from "../domain/eventinvitation-usecase";
 
 export const userRoutes = (app: express.Express) => {
 
@@ -214,6 +215,21 @@ export const userRoutes = (app: express.Express) => {
             }
             const userUseCase = new UseruseCase(AppDataSource);
             const result = await userUseCase.createInvitedUser(invitedUserValidate.value, idUserValidate.value.id);
+            res.status(200).send(result);
+        } catch (error: any) {
+            return res.status(500).json({message: error.message});
+        }
+    })
+
+    app.get("/users/:id/event-invitations", async (req: Request, res: Response) => {
+        try {
+            const idUserValidate = idUserValidation.validate(req.params);
+            if (idUserValidate.error) {
+                return res.status(400).send(generateValidationErrorMessage(idUserValidate.error.details));
+            }
+
+            const useCase = new EventInvitationUseCase(AppDataSource);
+            const result = await useCase.getInvitationByUserId(idUserValidate.value.id);
             res.status(200).send(result);
         } catch (error: any) {
             return res.status(500).json({message: error.message});

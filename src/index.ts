@@ -16,6 +16,7 @@ import {clubRoutes} from "./handlers/club-route";
 import {statsRoutes} from "./handlers/stats-route";
 import dotenv from 'dotenv';
 import {newsletterRoute} from "./handlers/newsletter-route";
+import {invitationRoute} from "./handlers/invitation-route";
 
 dotenv.config();
 
@@ -77,6 +78,7 @@ const main = async () => {
         questionsRoutes(app);
         statsRoutes(app);
         newsletterRoute(app);
+        invitationRoute(app);
         console.log("Routes are set up successfully");
     } catch (error) {
         console.error("Error setting up routes:", error);

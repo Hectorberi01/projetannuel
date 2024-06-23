@@ -1,39 +1,31 @@
 import Joi from "joi"
-import { User } from "../../database/entities/user";
-import { Club } from "../../database/entities/club";
-import { FormationCenter } from "../../database/entities/formationcenter";
+import {User} from "../../database/entities/user";
+import {Club} from "../../database/entities/club";
+import {FormationCenter} from "../../database/entities/formationcenter";
 
 
-export interface EventRequest{
-    title : string, 
-    description: string, 
-    startDate: Date, 
+export interface CreateEventRequest {
+    title: string,
+    description: string,
+    startDate: Date,
     endDate: Date,
-    recurrence: string,
     lieu: string,
-    capacity: number,
     type: string,
-    activity :string,
-    statut:string,
-    participants: User[];
     clubs: Club[];
     trainingCenters: FormationCenter[];
+    users: User[]
 }
 
-export const EventValidator = Joi.object<EventRequest>({
+export const createEventValidation = Joi.object<CreateEventRequest>({
     title: Joi.string().required(),
     description: Joi.string().required(),
     startDate: Joi.date().required(),
     endDate: Joi.date().required(),
-    recurrence: Joi.string().optional(),
-    statut: Joi.string().optional(),
     lieu: Joi.string().optional(),
-    activity: Joi.string().optional(),
-    capacity: Joi.number().integer().required(),
     type: Joi.string().optional(),
-    participants:Joi.array().items(Joi.object()).optional(),
-    clubs:Joi.array().items(Joi.object()).optional(),
-    trainingCenters:Joi.array().items(Joi.object()).optional(),
+    clubs: Joi.array().optional(),
+    trainingCenters: Joi.array().optional(),
+    users: Joi.array().optional(),
 })
 
 export const listEventValidation = Joi.object<ListEventRequest>({
@@ -47,9 +39,9 @@ export interface ListEventRequest {
 }
 
 export const EventIdValidation = Joi.object<EventIdRequest>({
-    Id: Joi.number().required(),
+    id: Joi.number().required(),
 })
 
 export interface EventIdRequest {
-    Id: number
+    id: number
 }

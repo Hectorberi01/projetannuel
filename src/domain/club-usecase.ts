@@ -86,6 +86,7 @@ export class ClubUseCase {
             relations: {
                 sports: true,
                 image: true,
+                users: true
             }
         });
 

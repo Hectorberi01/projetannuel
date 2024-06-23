@@ -65,14 +65,14 @@ export class FormationCenterUseCase {
     async getFormationCenterById(id_formation: number): Promise<FormationCenter> {
         const formationRepository = this.db.getRepository(FormationCenter);
 
-        const club = await formationRepository.findOne({
+        const fc = await formationRepository.findOne({
             where: {id: id_formation},
-            relations: ['sports']
+            relations: ['sports', 'users']
         });
-        if (!club) {
+        if (!fc) {
             throw new EntityNotFoundError(FormationCenter, id_formation);
         }
-        return club;
+        return fc;
     }
 
     async deleteFormationCenter(id_formation: number): Promise<DeleteResult> {

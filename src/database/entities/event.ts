@@ -1,7 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable } from 'typeorm';
-import { User } from './user';
-import { Club } from './club';
-import { FormationCenter } from './formationcenter';
+import {Column, Entity, JoinTable, ManyToMany, OneToMany, PrimaryGeneratedColumn} from 'typeorm';
+import {User} from './user';
+import {Club} from './club';
+import {FormationCenter} from './formationcenter';
+import {EventInvitation} from "./eventinvitation";
+import {EventStatut} from "../../Enumerators/EventStatut";
 
 @Entity()
 export class Event {
@@ -11,7 +13,7 @@ export class Event {
     @Column()
     title!: string;
 
-    @Column({ type: 'text', nullable: true })
+    @Column({type: 'text', nullable: true})
     description!: string;
 
     @Column()
@@ -23,20 +25,11 @@ export class Event {
     @Column()
     lieu!: string;
 
-    @Column({ nullable: true })
+    @Column({nullable: true})
     type!: string;
 
-    @Column({ nullable: true })
-    recurrence!: string;
-
-    @Column({ nullable: true })
-    activity!: string;
-
-    @Column({ nullable: true })
-    capacity!: number;
-
-    @Column({ nullable: true })
-    statut!: string;
+    @Column({nullable: true})
+    statut!: EventStatut;
 
     @ManyToMany(() => User, user => user.events)
     @JoinTable()
@@ -50,35 +43,34 @@ export class Event {
     @JoinTable()
     trainingCenters!: FormationCenter[];
 
+    @OneToMany(() => EventInvitation, invitation => invitation.event)
+    invitations!: EventInvitation[];
+
     constructor(
         id?: number,
         title?: string,
         description?: string,
         startDate?: Date,
         endDate?: Date,
-        recurrence?: string,
         lieu?: string,
-        capacity?: number,
         type?: string,
-        statut?: string,
-        activity?: string,
+        statut?: EventStatut,
         participants?: User[],
         clubs?: Club[],
-        trainingCenters?: FormationCenter[]
+        trainingCenters?: FormationCenter[],
+        invitations?: EventInvitation[]
     ) {
         if (id) this.id = id;
         if (title) this.title = title;
         if (description) this.description = description;
         if (startDate) this.startDate = startDate;
         if (endDate) this.endDate = endDate;
-        if (recurrence) this.recurrence = recurrence;
         if (lieu) this.lieu = lieu;
-        if (capacity) this.capacity = capacity;
         if (type) this.type = type;
         if (statut) this.statut = statut;
-        if (activity) this.activity = activity;
         if (participants) this.participants = participants;
         if (clubs) this.clubs = clubs;
         if (trainingCenters) this.trainingCenters = trainingCenters;
+        if (invitations) this.invitations = invitations;
     }
 }

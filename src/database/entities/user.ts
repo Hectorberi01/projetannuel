@@ -7,7 +7,9 @@ import {Club} from './club';
 import {FormationCenter} from './formationcenter';
 import {Player} from './player';
 import {Image} from './image';
-import { Exclude } from 'class-transformer';
+import {Exclude} from 'class-transformer';
+import {EventInvitation} from "./eventinvitation";
+import {Email} from "./email";
 
 @Entity()
 export class User {
@@ -85,6 +87,12 @@ export class User {
     @Column({type: 'timestamp', nullable: true})
     a2fCodeCreatedAt!: Date;
 
+    @OneToMany(() => EventInvitation, invitation => invitation.user)
+    invitations!: EventInvitation[];
+
+    @OneToMany(() => Email, email => email.user)
+    emails!: Email[];
+
     constructor(
         id?: number,
         firstname?: string,
@@ -108,6 +116,8 @@ export class User {
         a2fEnabled?: boolean,
         a2fCode?: string,
         a2fCodeCreatedAt?: Date,
+        invitations?: EventInvitation[],
+        emails?: Email[]
     ) {
         if (id) this.id = id;
         if (firstname) this.firstname = firstname;
@@ -131,5 +141,7 @@ export class User {
         if (a2fEnabled) this.a2fEnabled = a2fEnabled;
         if (a2fCode) this.a2fCode = a2fCode;
         if (a2fCodeCreatedAt) this.a2fCodeCreatedAt = a2fCodeCreatedAt;
+        if (invitations) this.invitations = invitations;
+        if (emails) this.emails = emails;
     }
 }
