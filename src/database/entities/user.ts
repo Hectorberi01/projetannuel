@@ -8,6 +8,8 @@ import {FormationCenter} from './formationcenter';
 import {Player} from './player';
 import {Image} from './image';
 import { Exclude } from 'class-transformer';
+import { Folder } from './Folder';
+import {Document} from './document'
 
 @Entity()
 export class User {
@@ -85,6 +87,12 @@ export class User {
     @Column({type: 'timestamp', nullable: true})
     a2fCodeCreatedAt!: Date;
 
+    @OneToMany(() => Document, document => document.user)
+    documents!: Document[];
+
+    @OneToMany(() => Folder, folder => folder.documents)
+    folder!: Folder[];
+
     constructor(
         id?: number,
         firstname?: string,
@@ -108,6 +116,8 @@ export class User {
         a2fEnabled?: boolean,
         a2fCode?: string,
         a2fCodeCreatedAt?: Date,
+        folder?: Folder[],
+        document? : Document[]
     ) {
         if (id) this.id = id;
         if (firstname) this.firstname = firstname;
@@ -131,5 +141,7 @@ export class User {
         if (a2fEnabled) this.a2fEnabled = a2fEnabled;
         if (a2fCode) this.a2fCode = a2fCode;
         if (a2fCodeCreatedAt) this.a2fCodeCreatedAt = a2fCodeCreatedAt;
+        if (folder) this.folder = folder;
+        if (document) this.documents = document;
     }
 }
