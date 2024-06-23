@@ -223,7 +223,7 @@ export const documentsRoutes = (app: express.Express) => {
                 fileId:req.params.fileId,
                 folderId:  req.params.Idfolder
             });
-            console.log("movefilevalidation",movefilevalidation)
+           
             if (movefilevalidation.error) {
                 return res.status(400).send(generateValidationErrorMessage(movefilevalidation.error.details));
             }

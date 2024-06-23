@@ -221,13 +221,12 @@ export class DocumentUseCase {
      * @returns  Folder 
      */
     async createFolder(foldername: string, userId: number) {
-
-        const fileMetadata = {
-            name: foldername,
-            mimeType: 'application/vnd.google-apps.folder',
-        };
-
+        
         try {
+            const fileMetadata = {
+                name: foldername,
+                mimeType: 'application/vnd.google-apps.folder',
+            };
             const file = await this.driveClient.files.create({
                 resource: fileMetadata,
                 fields: 'id',
