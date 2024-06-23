@@ -22,11 +22,6 @@ export interface ListDocumentsRequest {
     userId: number;
 }
 
-interface DocumentWithViewUrl {
-    document: Document;
-    viewUrl: string;
-}
-
 
 const KEYFILEPATH = path.join(__dirname, '../../', "sportvision.com.json")
 const SCOPES = [
@@ -77,10 +72,16 @@ export class DocumentUseCase {
         this.driveClient = google.drive({ version: 'v3', auth: this.oauth2Client });
     }
 
-    /**
-    * Cette méthode revoie la liste de tout les document en base de données 
+   /**
+    * cette methode renvoie la liste des documents ainsi que les documents rattacher
+    * à un utilisateur. Si l'utilisateur est un admin, il pourra voir tout les documents et dossier
+    * Si ADMIN_FORMATIONCENTER il verra la liste des (files & doc) de tout les utilisateurs ayant pour 
+    * role ADMIN_FORMATIONCENTER et FORMATIONCENTER
+    * il est de même pour ADMIN_CLUB,
+    * pour les utilisateurs simple n'ayant pas de role admin il verrons que leurs propre (doc &files)
     * @param listDocuments 
-    * @returns liste de tout les documents
+    * @param userRole 
+    * @returns 
     */
     async getAllDocuments(listDocuments: ListDocumentsRequest, userRole: string): Promise<{ documents: Document[], folders: Folder[], totalDocuments: number, totalFolders: number }> {
     
@@ -91,7 +92,8 @@ export class DocumentUseCase {
             .leftJoinAndSelect('folder.user', 'user');
 
         if (userRole === 'ADMIN') {
-                // ADMIN can see all documents and folders
+            documentsQuery = documentsQuery
+            foldersQuery = foldersQuery
         }else if (userRole === 'ADMIN_CLUB') {
 
             documentsQuery = documentsQuery.where('user.role = :role', { role: 'CLUB' });
@@ -106,7 +108,7 @@ export class DocumentUseCase {
 
             documentsQuery = documentsQuery.where('user.id = :userId', { userId: listDocuments.userId });
             foldersQuery = foldersQuery.where('user.id = :userId', { userId: listDocuments.userId });
-            
+
         } else {
             throw new Error('Invalid role');
         }
@@ -123,19 +125,6 @@ export class DocumentUseCase {
             totalDocuments,
             totalFolders
         };
-        // console.log('limit',listDocuments.limit)
-        // const query = this.db.getRepository(Document).createQueryBuilder('document')
-        // .leftJoinAndSelect('document.user', 'user')
-        // .leftJoinAndSelect('document.folder', 'folder')
-        // .where('user.id = :userId', { userId: listDocuments.userId })
-        // query.skip((listDocuments.page - 1) * listDocuments.limit);
-        // query.take(listDocuments.limit);
-
-        // const [documents, total] = await query.getManyAndCount();
-        // return {
-        //     documents,
-        //     total
-        // };
     }
 
     /**
@@ -156,6 +145,7 @@ export class DocumentUseCase {
 
         return document;
     }
+
 
     /**
     * Téléchargement du document depuis google grive
@@ -351,14 +341,14 @@ export class DocumentUseCase {
         return { document: savedDocument, viewUrl };
     }
 
+
     /**
-    * Cette méthode permet de télécharger le fichier dans un dossier spécifique
+    * Cette méthode permet de déplacer le fichier dans un autre dossier 
     * @param folderId  l'id google drive qui corespond au dossier dans google drive
     * @param fileId l'id google drive qui corespond au fichier dans google drive
     * @param userId identifian de l'utilisateur 
     * @returns l'objet document et l'url complet de drive qui corresponds au fichier
     */
-
     async moveFileToFolder(fileId: string, folderId: string, userId: number) {
         const folderRepository = this.db.getRepository(Folder);
         const documentRepository = this.db.getRepository(Document);
@@ -407,6 +397,10 @@ export class DocumentUseCase {
                 removeParents: previousParents,
                 fields: 'id, parents',
             });
+
+            document.folder = folder;
+            await documentRepository.save(document);
+
             console.log(files.status);
             return files.status;
         } catch (err) {
@@ -415,63 +409,3 @@ export class DocumentUseCase {
         }
     }
 }
-
-
-
-
-// async createDocument(file: Express.Multer.File): Promise<DocumentWithViewUrl> {
-
-//     // ID du dossier cible
-//     const folderId = "1nMa_AFe1_49HYEireHmyfJdxIT2E4JXk";
-
-//     // Vérifiez si le dossier existe
-//     try {
-//         await this.driveClient.files.get({ fileId: folderId });
-//     } catch (error) {
-//         throw new Error(`Folder not found: ${folderId}`);
-//     }
-
-//     // Créez le flux du fichier
-
-//     console.log("file.buffer", file.buffer)
-//     const bufferStream = new Stream.PassThrough();
-//     bufferStream.end(file.buffer);
-
-//     // Téléchargez le fichier sur Google Drive
-//     const { data } = await this.driveClient.files.create({
-//         media: {
-//             mimeType: file.mimetype,
-//             body: bufferStream,
-//         },
-//         requestBody: {
-//             name: file.originalname,
-//             parents: [folderId],
-//         },
-//         fields: "id,name,mimeType",
-//     });
-
-//     console.log(`Uploaded file ${data.name} ${data.id}`);
-
-//     await this.driveClient.permissions.create({
-//         fileId: data.id,
-//         requestBody: {
-//             role: 'reader',
-//             type: 'anyone',
-//         },
-//     });
-
-//     // Supprimez le fichier du stockage local
-//     //await unlink(file.path);
-
-//     // Enregistrez les détails du document dans la base de données
-//     const documentRepository = this.db.getRepository(Document);
-//     const document = new Document();
-//     document.name = file.originalname;
-//     document.type = 'player_detection_football';
-//     document.path = `https://drive.google.com/file/d/${data.id}`;
-
-//     const savedDocument = await documentRepository.save(document);
-//     const viewUrl = `https://drive.google.com/file/d/${data.id}/view?usp=sharing`;
-
-//     return { document: savedDocument, viewUrl };
-// }

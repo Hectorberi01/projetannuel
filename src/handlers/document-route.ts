@@ -103,6 +103,10 @@ export const documentsRoutes = (app: express.Express) => {
         }
     })
 
+  
+    /**
+     * liste des documents et dossier il faut passer en paramètre l'id de l'utilisateur
+     */
     app.get("/files/:userId", async (req: Request, res: Response) => {
         try {
             
@@ -145,29 +149,7 @@ export const documentsRoutes = (app: express.Express) => {
             console.log(error);
             res.status(500).send({ "error": "internal error retry later" });
         }
-        // try {
-        //     const listDocumentValidate = listDocumentValidation.validate(req.body);
-
-        //     if (listDocumentValidate.error) {
-        //         res.status(400).send(generateValidationErrorMessage(listDocumentValidate.error.details))
-        //     }
-
-        //     let limit = 50
-        //     if (listDocumentValidate.value.limit) {
-        //         limit = listDocumentValidate.value.limit;
-        //     }
-        //     const page = listDocumentValidate.value.page ?? 1
-
-        //     const documentUseCase = new DocumentUseCase(AppDataSource)
-        //     const listClubs = await documentUseCase.getAllDocuments({...listDocumentValidate, page, limit})
-        //     res.status(200).send(listClubs)
-        // } catch (error) {
-        //     console.log(error)
-        //     res.status(500).send({"error": "internal error retry later"})
-        //     return
-        // }
     });
-
    
 
     // création de dossier dans google drive
@@ -192,7 +174,9 @@ export const documentsRoutes = (app: express.Express) => {
         }
     })
 
-    // mettre le document dans un dossier spécifique dans google drive 
+
+    // mettre le document dans un dossier spécifique dans google drive
+    // ici il faut l'id de l'utilisateur et du l'id qui correspond au dossier dans google grive
     app.post("/folsders/:folderid/upload/:userId/files",upload.single('file'),(req:Request,res:Response)=>{
         try{
             const UploadFileToFolder  = UploadFileToFolderValidation.validate({ 
