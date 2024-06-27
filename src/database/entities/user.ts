@@ -10,6 +10,8 @@ import {Image} from './image';
 import {Exclude} from 'class-transformer';
 import {EventInvitation} from "./eventinvitation";
 import {Email} from "./email";
+import {EventProposal} from "./eventProposal";
+import {Cotisation} from "./cotisation";
 
 @Entity()
 export class User {
@@ -93,6 +95,12 @@ export class User {
     @OneToMany(() => Email, email => email.user)
     emails!: Email[];
 
+    @OneToMany(type => EventProposal, eventProposal => eventProposal.club)
+    eventProposals!: EventProposal[];
+
+    @OneToMany(type => Cotisation, cotisation => cotisation.user)
+    cotisations!: Cotisation[];
+
     constructor(
         id?: number,
         firstname?: string,
@@ -117,7 +125,9 @@ export class User {
         a2fCode?: string,
         a2fCodeCreatedAt?: Date,
         invitations?: EventInvitation[],
-        emails?: Email[]
+        emails?: Email[],
+        eventsProposals?: EventProposal[],
+        cotisations?: Cotisation[],
     ) {
         if (id) this.id = id;
         if (firstname) this.firstname = firstname;
@@ -143,5 +153,7 @@ export class User {
         if (a2fCodeCreatedAt) this.a2fCodeCreatedAt = a2fCodeCreatedAt;
         if (invitations) this.invitations = invitations;
         if (emails) this.emails = emails;
+        if (eventsProposals) this.eventProposals = eventsProposals;
+        if (cotisations) this.cotisations = cotisations;
     }
 }

@@ -173,7 +173,7 @@ export const eventsRoutes = (app: express.Express) => {
 
     app.get("/events/:id/invitations", async (req: Request, res: Response) => {
 
-        try{
+        try {
             const idEventValidate = EventIdValidation.validate(req.params);
             if (idEventValidate.error) {
                 res.status(400).send(generateValidationErrorMessage(idEventValidate.error.details))
@@ -181,9 +181,22 @@ export const eventsRoutes = (app: express.Express) => {
             const useCase = new EventInvitationUseCase(AppDataSource);
             const result = await useCase.getInvitationByEventId(idEventValidate.value.id);
             res.status(200).send(result);
-        } catch (error: any){
+        } catch (error: any) {
             return res.status(500).json({message: error.message});
         }
     })
 
+    app.put("/events/create-from/proposal/:id", async (req: Request, res: Response) => {
+        try {
+            const idEventValidate = EventIdValidation.validate(req.params);
+            if (idEventValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(idEventValidate.error.details))
+            }
+            const useCase = new EventuseCase(AppDataSource);
+            const result = await useCase.createFromEventProposal(idEventValidate.value.id);
+            res.status(200).send(result);
+        } catch (error) {
+            res.status(500).send({"error": "internal error retry later"})
+        }
+    })
 }

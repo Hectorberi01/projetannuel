@@ -17,6 +17,8 @@ import {statsRoutes} from "./handlers/stats-route";
 import dotenv from 'dotenv';
 import {newsletterRoute} from "./handlers/newsletter-route";
 import {invitationRoute} from "./handlers/invitation-route";
+import {transactionRoute} from "./handlers/transaction-route";
+import {eventProposalRoutes} from "./handlers/eventproposal-route";
 
 dotenv.config();
 
@@ -79,6 +81,8 @@ const main = async () => {
         statsRoutes(app);
         newsletterRoute(app);
         invitationRoute(app);
+        transactionRoute(app);
+        eventProposalRoutes(app);
         console.log("Routes are set up successfully");
     } catch (error) {
         console.error("Error setting up routes:", error);

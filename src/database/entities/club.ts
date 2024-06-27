@@ -3,6 +3,8 @@ import {Sport} from './sport';
 import {Event} from './event';
 import {User} from './user';
 import {Image} from './image';
+import {EventProposal} from "./eventProposal";
+import {Cotisation} from "./cotisation";
 
 @Entity()
 export class Club {
@@ -35,6 +37,12 @@ export class Club {
     @JoinColumn()
     image!: Image;
 
+    @OneToMany(type => EventProposal, eventProposal => eventProposal.club)
+    eventProposals!: EventProposal[];
+
+    @OneToMany(type => Cotisation, cotisation => cotisation.user)
+    cotisations!: Cotisation[];
+
     constructor(
         id?: number,
         name?: string,
@@ -45,6 +53,8 @@ export class Club {
         events?: Event[],
         users?: User[],
         image?: Image,
+        eventProposals?: EventProposal[],
+        cotisations?: Cotisation[],
     ) {
         if (id) this.id = id;
         if (name) this.name = name;
@@ -55,5 +65,7 @@ export class Club {
         if (events) this.events = events;
         if (users) this.users = users;
         if (image) this.image = image;
+        if (eventProposals) this.eventProposals = eventProposals;
+        if (cotisations) this.cotisations = cotisations;
     }
 }

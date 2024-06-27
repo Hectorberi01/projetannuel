@@ -3,6 +3,8 @@ import {Sport} from './sport';
 import {Player} from './player';
 import {Event} from './event';
 import {User} from './user';
+import {EventProposal} from "./eventProposal";
+import {Cotisation} from "./cotisation";
 
 @Entity()
 export class FormationCenter {
@@ -34,7 +36,13 @@ export class FormationCenter {
     @OneToMany(() => User, user => user.formationCenter)
     users!: User[];
 
-    constructor(id?: number, name?: string, address?: string, sport?: Sport[], creationDate?: Date, email?: string, users?: User[]) {
+    @OneToMany(type => EventProposal, eventProposal => eventProposal.club)
+    eventProposals!: EventProposal[];
+
+    @OneToMany(type => Cotisation, cotisation => cotisation.user)
+    cotisations!: Cotisation[];
+
+    constructor(id?: number, name?: string, address?: string, sport?: Sport[], creationDate?: Date, email?: string, users?: User[], eventProposals?: EventProposal[], cotisations?: Cotisation[]) {
         if (id) this.id = id;
         if (name) this.name = name;
         if (address) this.address = address;
@@ -42,5 +50,7 @@ export class FormationCenter {
         if (sport) this.sports = sport;
         if (creationDate) this.createDate = creationDate;
         if (users) this.users = users;
+        if (eventProposals) this.eventProposals = eventProposals;
+        if (cotisations) this.cotisations = cotisations;
     }
 }

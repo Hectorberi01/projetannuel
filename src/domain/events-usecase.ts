@@ -10,6 +10,8 @@ import {User} from "../database/entities/user";
 import {ClubUseCase} from "./club-usecase";
 import {FormationCenterUseCase} from "./formationcenter-usecase";
 import {UseruseCase} from "./user-usecase";
+import {EventProposalUseCase} from "./eventproposal-usecase";
+import {EventProposal} from "../database/entities/eventProposal";
 
 
 export interface ListEventUseCase {
@@ -206,6 +208,32 @@ export class EventuseCase {
             return event;
         } catch (error: any) {
             throw new Error("Erreur lors de l'annulation de l'évennement");
+        }
+    }
+
+    async createFromEventProposal(eventProposalId: number): Promise<Event> {
+        try {
+            const eventProposalUseCase = new EventProposalUseCase(AppDataSource);
+            const eventProposal = await eventProposalUseCase.getEventProposalById(eventProposalId);
+            if (!eventProposal) {
+                throw new EntityNotFoundError(EventProposal, eventProposalId);
+            }
+
+            let event: CreateEventRequest = {
+                title: eventProposal.title,
+                description: eventProposal.description,
+                startDate: eventProposal.startDate,
+                endDate: eventProposal.endDate,
+                lieu: eventProposal.place,
+                type: "Rencontre",
+                clubs: [eventProposal.club],
+                trainingCenters: [],
+                users: [eventProposal.player.user]
+            }
+
+            return await this.createEvent(event);
+        } catch (error) {
+            throw new Error();
         }
     }
 }

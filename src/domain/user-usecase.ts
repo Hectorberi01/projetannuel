@@ -20,6 +20,7 @@ import {MessageType} from "../Enumerators/MessageType";
 import {v4 as uuidv4} from 'uuid';
 import {Role} from "../Enumerators/Role";
 import {Club} from "../database/entities/club";
+import {Player} from "../database/entities/player";
 
 export interface ListUserCase {
     limit: number;
@@ -49,6 +50,7 @@ export class UseruseCase {
     async createUser(userData: CreateUserRequest, file: Express.Multer.File | undefined): Promise<User> {
         try {
             const userRepository = this.db.getRepository(User);
+            const playerRepository = this.db.getRepository(Player);
             const imageUseCase = new ImageUseCase(AppDataSource);
             const roleUseCase = new RoleUseCase(AppDataSource);
             const messageUseCase = new MessageUseCase(AppDataSource);
@@ -82,7 +84,8 @@ export class UseruseCase {
             } else if (role.role === "PLAYER") {
                 const playerUseCase = new PlayerUseCase(AppDataSource);
                 // @ts-ignore
-                user.player = await playerUseCase.getPlayerById(parseInt(userData.playerId));
+                const player = await playerUseCase.getPlayerById(parseInt(userData.playerId));
+                user.player = player;
             } else if (role.role !== "ADMIN") {
                 throw new Error("Ce type de rôle n'est pas encore implémenté.");
             }
@@ -99,7 +102,14 @@ export class UseruseCase {
                     user.image = uploadedImage;
                 }
             }
+
             user = await userRepository.save(user);
+
+            if (role.role === "PLAYER" && user.player) {
+                const player = user.player;
+                player.user = user; // Link the user to the player
+                await playerRepository.save(player); // Save the updated player
+            }
 
             await messageUseCase.sendMessage(MessageType.FIRST_CONNECTION, user, tmpPassword);
 
@@ -239,7 +249,7 @@ export class UseruseCase {
         return result;
     }
 
-    async desactivateUserById(userId: number): Promise<User> {
+    async deactivateUserById(userId: number): Promise<User> {
         const userRepository = this.db.getRepository(User);
         const user = await this.getUserById(userId);
 
@@ -449,6 +459,19 @@ export class UseruseCase {
         return await userRepository.find({
             where: {club: club}
         })
+    }
+
+    async getClubByUser(userId: number): Promise<Club> {
+        try {
+            const user = await this.getUserById(userId);
+            if (!user) {
+                throw new Error("Utilisateur inconnu");
+            }
+
+            return user.club;
+        } catch (error) {
+            throw new Error("Erreur lors de la récupération du club")
+        }
     }
 }
 
