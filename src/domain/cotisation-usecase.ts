@@ -1,14 +1,18 @@
-import {DataSource} from "typeorm";
+import {DataSource, Repository} from "typeorm";
 import {Cotisation} from "../database/entities/cotisation";
 import {EntityType} from "../Enumerators/EntityType";
 import {CotisationStatus} from "../Enumerators/CotisationStatus";
 import {UseruseCase} from "./user-usecase";
-import {AppDataSource} from "../database/database";
 import {ClubUseCase} from "./club-usecase";
 import {FormationCenterUseCase} from "./formationcenter-usecase";
 import {MessageUseCase} from "./message-usecase";
 import {MessageType} from "../Enumerators/MessageType";
 import {User} from "../database/entities/user";
+import {AppDataSource} from "../database/database";
+import {InfoUseCase} from "./info-usecase";
+import {CreateInfoRequest} from "../handlers/validator/info-validator";
+import {InfoType} from "../Enumerators/InfoType";
+import {InfoLevel} from "../Enumerators/InfoLevel";
 
 export interface ListCotisationRequest {
     limit: number;
@@ -17,15 +21,14 @@ export interface ListCotisationRequest {
 
 export class CotisationUseCase {
 
+    private cotisationRepository: Repository<Cotisation>;
+
     constructor(private readonly db: DataSource) {
+        this.cotisationRepository = this.db.getRepository(Cotisation);
     }
 
     async createCotisation(entityType: EntityType, entityId: number): Promise<Cotisation> {
-
         try {
-            const repo = this.db.getRepository(Cotisation);
-            const messageUseCase = new MessageUseCase(AppDataSource);
-            const userUseCase = new UseruseCase(AppDataSource);
             let cotisation = new Cotisation();
             cotisation.status = CotisationStatus.UNPAID;
             const today = new Date();
@@ -34,19 +37,21 @@ export class CotisationUseCase {
             cotisation.entityType = entityType;
             let user: User;
 
+            const userUseCase = new UseruseCase(this.db);
+
             if (entityType === EntityType.USER) {
                 const userEntity = await userUseCase.getUserById(entityId);
                 if (!userEntity) {
-                    throw new Error();
+                    throw new Error("Utilisateur inconnu");
                 }
                 cotisation.user = userEntity;
                 cotisation.amount = 1;
                 user = userEntity;
             } else if (entityType === EntityType.CLUB) {
-                const useCase = new ClubUseCase(AppDataSource);
-                const club = await useCase.getClubById(entityId);
+                const clubUseCase = new ClubUseCase(this.db);
+                const club = await clubUseCase.getClubById(entityId);
                 if (!club) {
-                    throw new Error();
+                    throw new Error("Club inconnu");
                 }
                 cotisation.club = club;
                 cotisation.amount = 10;
@@ -56,10 +61,10 @@ export class CotisationUseCase {
                 }
                 user = potentialDir;
             } else if (entityType === EntityType.FORMATIONCENTER) {
-                const useCase = new FormationCenterUseCase(AppDataSource);
-                const formationCenter = await useCase.getFormationCenterById(entityId);
+                const formationCenterUseCase = new FormationCenterUseCase(this.db);
+                const formationCenter = await formationCenterUseCase.getFormationCenterById(entityId);
                 if (!formationCenter) {
-                    throw new Error();
+                    throw new Error("Centre de formation inconnu");
                 }
                 cotisation.formationCenter = formationCenter;
                 cotisation.amount = 10;
@@ -72,22 +77,22 @@ export class CotisationUseCase {
                 throw new Error("Type d'entité non implémenté");
             }
 
-            const result = await repo.save(cotisation);
+            const result = await this.cotisationRepository.save(cotisation);
 
             if (!result) {
-                throw new Error("Erreur lors de la création de la cotisation")
+                throw new Error("Erreur lors de la création de la cotisation");
             }
 
+            const messageUseCase = new MessageUseCase(this.db);
             await messageUseCase.sendMessage(MessageType.CREATE_COTISATION, user, cotisation);
             return result;
         } catch (error: any) {
-            throw new Error("Erreur lors de la création de la cotisation")
+            throw new Error("Erreur lors de la création de la cotisation: " + error.message);
         }
     }
 
     async getAllCotisations(list: ListCotisationRequest): Promise<{ cotisations: Cotisation[], total: number }> {
-
-        const query = this.db.getRepository(Cotisation).createQueryBuilder('cotisation')
+        const query = this.cotisationRepository.createQueryBuilder('cotisation')
             .leftJoinAndSelect('cotisation.transaction', 'formationCenter')
             .skip((list.page - 1) * list.limit)
             .take(list.limit);
@@ -101,34 +106,32 @@ export class CotisationUseCase {
 
     async getCotisationById(id: number): Promise<Cotisation> {
         try {
-            const repo = this.db.getRepository(Cotisation);
-            const cotisation = await repo.findOne({where: {id: id}});
+            const cotisation = await this.cotisationRepository.findOne({where: {id: id}});
             if (!cotisation) {
-                throw new Error("utilisateur inconnu");
+                throw new Error("Cotisation inconnue");
             }
             return cotisation;
-        } catch (error) {
-            throw new Error("Erreur lors de la récupération de la cotisation")
+        } catch (error: any) {
+            throw new Error("Erreur lors de la récupération de la cotisation: " + error.message);
         }
     }
 
     async verifyUnpaidCotisation(): Promise<Cotisation[]> {
         try {
-            const repo = this.db.getRepository(Cotisation);
-            const cotisations = await repo.find({
+            const cotisations = await this.cotisationRepository.find({
                 where: {status: CotisationStatus.UNPAID},
                 relations: {
                     user: true
                 }
-            })
+            });
 
             for (const cotisation of cotisations) {
                 await this.manageUnpaidCotisation(cotisation);
             }
 
-            return cotisations
+            return cotisations;
         } catch (error: any) {
-            throw new Error("Erreur lors de la récupération des cotisations non payées")
+            throw new Error("Erreur lors de la récupération des cotisations non payées: " + error.message);
         }
     }
 
@@ -137,42 +140,127 @@ export class CotisationUseCase {
             if (!cotisation) {
                 throw new Error("Cotisation incorrecte");
             }
-            const repo = this.db.getRepository(Cotisation);
-            const msgUseCase = new MessageUseCase(AppDataSource);
-            const userUseCase = new UseruseCase(AppDataSource);
+
+            const userUseCase = new UseruseCase(this.db);
+            const messageUseCase = new MessageUseCase(this.db);
+
             if (cotisation.limitDate < new Date()) {
-                const result = await repo.delete(cotisation);
+                const result = await this.cotisationRepository.delete(cotisation);
                 if (!result) {
                     throw new Error("Suppression de la cotisation impossible");
                 }
                 await userUseCase.deactivateUserById(cotisation.user.id);
-                await msgUseCase.sendMessage(MessageType.DELETE_COTISATION, cotisation.user, cotisation);
+                await messageUseCase.sendMessage(MessageType.DELETE_COTISATION, cotisation.user, cotisation);
             } else if (cotisation.limitDate > new Date()) {
-                await msgUseCase.sendMessage(MessageType.REMINDER_COTISATION, cotisation.user, cotisation);
+                await messageUseCase.sendMessage(MessageType.REMINDER_COTISATION, cotisation.user, cotisation);
             }
-        } catch (error) {
-            throw new Error("Impossible de gérer cette cotisation");
+        } catch (error: any) {
+            throw new Error("Impossible de gérer cette cotisation: " + error.message);
         }
     }
 
-    async getCotisationFromUser(userId: number): Promise<Cotisation> {
+    async getCotisationFromEntity(entityType: EntityType, entityId: number): Promise<Cotisation | null> {
         try {
-            const repo = this.db.getRepository(Cotisation);
-            const userUseCase = new UseruseCase(AppDataSource);
-            const user = await userUseCase.getUserById(userId);
-            if (!user) {
-                throw new Error("Utilisateur inconnu");
+            const userUseCase = new UseruseCase(this.db);
+
+            if (entityType === EntityType.USER) {
+                const user = await userUseCase.getUserById(entityId);
+                if (!user) {
+                    throw new Error("Utilisateur inconnu");
+                }
+
+                const result = await this.cotisationRepository.findOne({
+                    where: {user: user},
+                });
+
+                if (!result) {
+                    throw new Error("Pas de cotisation");
+                }
+                return result;
+            } else if (entityType === EntityType.CLUB) {
+                const clubUseCase = new ClubUseCase(this.db);
+                const club = await clubUseCase.getClubById(entityId);
+                if (!club) {
+                    throw new Error("Club inconnu");
+                }
+
+                const result = await this.cotisationRepository.findOne({
+                    where: {club: club},
+                });
+
+                if (!result) {
+                    throw new Error("Pas de cotisation");
+                }
+                return result;
+            } else if (entityType === EntityType.FORMATIONCENTER) {
+                const formationCenterUseCase = new FormationCenterUseCase(this.db);
+                const fc = await formationCenterUseCase.getFormationCenterById(entityId);
+                if (!fc) {
+                    throw new Error("Centre de formation inconnu");
+                }
+
+                const result = await this.cotisationRepository.findOne({
+                    where: {formationCenter: fc},
+                });
+
+                if (!result) {
+                    throw new Error("Pas de cotisation");
+                }
+                return result;
+            }
+            return null;
+        } catch (error: any) {
+            throw new Error("Impossible de trouver la cotisation: " + error.message);
+        }
+    }
+
+    async updateCotisationStatus(cotisationId: number, status: CotisationStatus): Promise<Cotisation> {
+        try {
+            const infoUseCase = new InfoUseCase(AppDataSource);
+            const cotisation = await this.cotisationRepository.findOne({
+                where: {id: cotisationId},
+            })
+
+            if (!cotisation) {
+                throw new Error("Cotisation inconnu");
             }
 
-            const cotisation = await repo.findOne({
-                where: {user: user},
-            })
-            if (!cotisation) {
-                throw new Error("Erreur lors de la récupération");
+            cotisation.status = status;
+            cotisation.paymentDate = new Date();
+            const result = await this.cotisationRepository.save(cotisation);
+            let infoRequest: CreateInfoRequest = {
+                type: InfoType.COTISATION_PAYMENT,
+                level: InfoLevel.LOW,
+                text: `Utilisateur ${cotisation.user.firstname} ${cotisation.user.lastname} [${cotisation.user.id}] a payé sa cotisation`,
+                user: cotisation.user,
             }
-            return cotisation;
+            await infoUseCase.createInfo(infoRequest);
+            return result;
         } catch (error: any) {
-            throw new Error("Erreur lors de la récupération");
+            throw new Error("Maj impossible de la cotisation: " + error.message);
+        }
+    }
+
+    async getUsersWithCotisationPaidYesterday(): Promise<User[]> {
+        try {
+            const cotisations = await this.cotisationRepository.find({
+                where: {
+                    status: CotisationStatus.PAID,
+                    entityType: EntityType.USER,
+                },
+                relations: {
+                    user: true
+                }
+            })
+
+            const users: User[] = [];
+            if (cotisations.length === 0) {
+                return users;
+            }
+            cotisations.forEach(c => users.push(c.user));
+            return users;
+        } catch (error: any) {
+            throw new Error("Impossible de trouver les users: " + error.message);
         }
     }
 }

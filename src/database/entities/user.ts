@@ -12,6 +12,7 @@ import {EventInvitation} from "./eventinvitation";
 import {Email} from "./email";
 import {EventProposal} from "./eventProposal";
 import {Cotisation} from "./cotisation";
+import {Info} from "./info";
 
 @Entity()
 export class User {
@@ -101,6 +102,9 @@ export class User {
     @OneToMany(type => Cotisation, cotisation => cotisation.user)
     cotisations!: Cotisation[];
 
+    @OneToMany(type => Info, info => info.user)
+    infos!: Info[];
+
     constructor(
         id?: number,
         firstname?: string,
@@ -128,6 +132,7 @@ export class User {
         emails?: Email[],
         eventsProposals?: EventProposal[],
         cotisations?: Cotisation[],
+        infos?: Info[]
     ) {
         if (id) this.id = id;
         if (firstname) this.firstname = firstname;
@@ -155,5 +160,6 @@ export class User {
         if (emails) this.emails = emails;
         if (eventsProposals) this.eventProposals = eventsProposals;
         if (cotisations) this.cotisations = cotisations;
+        if (infos) this.infos = infos;
     }
 }

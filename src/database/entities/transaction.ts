@@ -1,5 +1,6 @@
 import {Column, CreateDateColumn, Entity, OneToOne, PrimaryGeneratedColumn} from 'typeorm';
 import {Cotisation} from "./cotisation";
+import {TransactionType} from "../../Enumerators/TransactionType";
 
 @Entity()
 export class Transaction {
@@ -27,10 +28,13 @@ export class Transaction {
     @CreateDateColumn()
     createdAt!: Date;
 
+    @Column()
+    type!: TransactionType;
+
     @OneToOne(() => Cotisation, cotisation => cotisation.transaction)
     cotisation!: Cotisation;
 
-    constructor(id?: number, orderId?: string, status?: string, amount?: number, currency?: string, donorName?: string, donorEmail?: string, createdAt?: Date, cotisation?: Cotisation) {
+    constructor(id?: number, orderId?: string, status?: string, amount?: number, currency?: string, donorName?: string, donorEmail?: string, createdAt?: Date, cotisation?: Cotisation, type?: TransactionType) {
         if (id) this.id = id;
         if (orderId) this.orderId = orderId;
         if (status) this.status = status;
@@ -40,5 +44,6 @@ export class Transaction {
         if (donorEmail) this.donorEmail = donorEmail;
         if (createdAt) this.createdAt = createdAt
         if (cotisation) this.cotisation = cotisation;
+        if (type) this.type = type;
     }
 }

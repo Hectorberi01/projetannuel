@@ -9,22 +9,21 @@ import {EventInvitationUseCase} from "../domain/eventinvitation-usecase";
 export const eventsRoutes = (app: express.Express) => {
 
     app.get("/events", async (req: Request, res: Response) => {
-        const eventvalidator = listEventValidation.validate(req.query);
-        if (eventvalidator.error) {
-            res.status(400).send({
-                error: "Invalid query parameters",
-                details: eventvalidator.error.details
-            });
-            return;
-        }
-
-        const listeventRequest = eventvalidator.value;
-        const limit = listeventRequest.limit ?? 50;
-        const page = listeventRequest.page ?? 1;
-
-        const eventUseCase = new EventuseCase(AppDataSource);
-
         try {
+            const eventvalidator = listEventValidation.validate(req.query);
+            if (eventvalidator.error) {
+                res.status(400).send({
+                    error: "Invalid query parameters",
+                    details: eventvalidator.error.details
+                });
+                return;
+            }
+
+            const listeventRequest = eventvalidator.value;
+            const limit = listeventRequest.limit ?? 50;
+            const page = listeventRequest.page ?? 1;
+
+            const eventUseCase = new EventuseCase(AppDataSource);
             const listEvent = await eventUseCase.getAllEvents({...listeventRequest, page, limit});
             res.status(200).send(listEvent);
         } catch (error) {

@@ -21,7 +21,7 @@ export class Cotisation {
     @Column()
     limitDate!: Date;
 
-    @Column()
+    @Column({ nullable: true })
     paymentDate!: Date;
 
     @OneToOne(type => Transaction, transaction => transaction.cotisation)

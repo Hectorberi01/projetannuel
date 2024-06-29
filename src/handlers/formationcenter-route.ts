@@ -7,6 +7,9 @@ import {
 } from "./validator/formation-validator";
 import {FormationCenterUseCase} from "../domain/formationcenter-usecase";
 import {generateValidationErrorMessage} from "./validator/generate-validation-message";
+import {idClubValidation} from "./validator/club-validator";
+import {CotisationUseCase} from "../domain/cotisation-usecase";
+import {EntityType} from "../Enumerators/EntityType";
 
 export const formationcenterRoutes = (app: express.Express) => {
 
@@ -154,6 +157,20 @@ export const formationcenterRoutes = (app: express.Express) => {
             res.status(200).send(result);
         } catch (error) {
             res.status(500).send(error)
+        }
+    })
+
+    app.get("/formations-centers/:id/cotisations", async (req: Request, res: Response) => {
+        try {
+            const idClubValidate = idClubValidation.validate(req.params)
+            if (idClubValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(idClubValidate.error.details))
+            }
+            const useCase = new CotisationUseCase(AppDataSource);
+            const result = await useCase.getCotisationFromEntity(EntityType.FORMATIONCENTER, idClubValidate.value.id);
+            res.status(200).send(result);
+        } catch (error) {
+            res.status(500).send({"error": "internal error retry later"})
         }
     })
 }

@@ -17,6 +17,7 @@ import {
 import {upload} from "../middlewares/multer-config";
 import {EventInvitationUseCase} from "../domain/eventinvitation-usecase";
 import {CotisationUseCase} from "../domain/cotisation-usecase";
+import {EntityType} from "../Enumerators/EntityType";
 
 export const userRoutes = (app: express.Express) => {
 
@@ -259,7 +260,7 @@ export const userRoutes = (app: express.Express) => {
                 return res.status(400).send(generateValidationErrorMessage(idUserValidate.error.details));
             }
             const useCase = new CotisationUseCase(AppDataSource);
-            const result = await useCase.getCotisationFromUser(idUserValidate.value.id);
+            const result = await useCase.getCotisationFromEntity(EntityType.USER, idUserValidate.value.id);
             res.status(200).send(result);
         } catch (error: any) {
             return res.status(500).json({message: error.message});

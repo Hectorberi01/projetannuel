@@ -57,6 +57,12 @@ export class MessageUseCase {
                 mailOptions = await this.createNewsletterMessage(user, extraData.subject, extraData.text);
                 await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 0);
                 break;
+            case MessageType.CREATE_COTISATION:
+                break;
+            case MessageType.REMINDER_COTISATION:
+                break;
+            case MessageType.DELETE_COTISATION:
+                break;
             default:
                 throw new Error('Unknown message type');
         }

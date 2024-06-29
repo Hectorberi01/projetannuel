@@ -9,6 +9,8 @@ import {
 } from "./validator/club-validator";
 import {ClubUseCase} from "../domain/club-usecase";
 import {upload} from "../middlewares/multer-config";
+import {CotisationUseCase} from "../domain/cotisation-usecase";
+import {EntityType} from "../Enumerators/EntityType";
 
 
 export const clubRoutes = (app: express.Express) => {
@@ -119,6 +121,20 @@ export const clubRoutes = (app: express.Express) => {
 
             const clubUseCase = new ClubUseCase(AppDataSource);
             const result = await clubUseCase.getAllClubUsers(idClubValidate.value.id);
+            res.status(200).send(result);
+        } catch (error) {
+            res.status(500).send({"error": "internal error retry later"})
+        }
+    })
+
+    app.get("/clubs/:id/cotisations", async (req: Request, res: Response) => {
+        try {
+            const idClubValidate = idClubValidation.validate(req.params)
+            if (idClubValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(idClubValidate.error.details))
+            }
+            const cotisationUseCase = new CotisationUseCase(AppDataSource);
+            const result = await cotisationUseCase.getCotisationFromEntity(EntityType.CLUB, idClubValidate.value.id);
             res.status(200).send(result);
         } catch (error) {
             res.status(500).send({"error": "internal error retry later"})

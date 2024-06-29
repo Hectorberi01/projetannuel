@@ -9,8 +9,8 @@ export const transactionRoute = (app: express.Express) => {
     app.post("/transactions/create-paypal-order", async (req: Request, res: Response) => {
         try {
             const transactionUseCase = new TransactionUseCase(AppDataSource);
-            const {amount} = req.body;
-            const order = await transactionUseCase.createOrder(amount, 'EUR');
+            const { amount, type } = req.body;
+            const order = await transactionUseCase.createOrder(amount, 'EUR', type);
             res.json(order);
         } catch (error: any) {
             res.status(500).send(error.message);
@@ -20,8 +20,8 @@ export const transactionRoute = (app: express.Express) => {
     app.post("/transactions/capture-paypal-order", async (req: Request, res: Response) => {
         try {
             const transactionUseCase = new TransactionUseCase(AppDataSource);
-            const {orderID} = req.body;
-            const captureData = await transactionUseCase.captureOrder(orderID);
+            const { orderID, cotisationId } = req.body;
+            const captureData = await transactionUseCase.captureOrder(orderID, cotisationId);
             res.json(captureData);
         } catch (error: any) {
             res.status(500).send(error.message);
