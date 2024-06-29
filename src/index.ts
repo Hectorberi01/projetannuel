@@ -21,6 +21,7 @@ import {transactionRoute} from './handlers/transaction-route';
 import {eventProposalRoutes} from './handlers/eventproposal-route';
 import {infoRoute} from "./handlers/info-route";
 import {cotisationRoute} from "./handlers/cotisation-route";
+import {adminRoute} from "./handlers/admin-route";
 
 dotenv.config();
 
@@ -70,6 +71,7 @@ const main = async () => {
 
     console.log("Setting up routes...");
     try {
+        adminRoute(app)
         clubRoutes(app);
         documentsRoutes(app);
         formationcenterRoutes(app);
