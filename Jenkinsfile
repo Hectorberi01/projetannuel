@@ -6,6 +6,7 @@ pipeline {
     }
 
     environment {
+        PATH = "/opt/homebrew/bin:$PATH"
         ACCESS_TOKEN_SECRET = credentials('ACCESS_TOKEN_SECRET')
         R2_ACCOUNT_ID = credentials('R2_ACCOUNT_ID')
         R2_ACCESS_KEY_ID = credentials('R2_ACCESS_KEY_ID')
@@ -23,7 +24,7 @@ pipeline {
     stages {
         stage('Install System Dependencies') {
             steps {
-                sh 'chmod +x install_dependencies.sh && ./install_dependencies.sh'
+                sh '/opt/homebrew/bin/brew install pkg-config cairo pango libpng jpeg giflib librsvg'
             }
         }
 
