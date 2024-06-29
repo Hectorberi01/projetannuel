@@ -8,6 +8,7 @@ import dotenv from 'dotenv';
 import {EmailUseCase} from "./email-usecase";
 import {AppDataSource} from "../database/database";
 import {DataSource} from "typeorm";
+import {Cotisation} from "../database/entities/cotisation";
 
 dotenv.config();
 
@@ -58,10 +59,24 @@ export class MessageUseCase {
                 await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 0);
                 break;
             case MessageType.CREATE_COTISATION:
+                mailOptions = await this.createCreatedCotisationMessage(user, extraData);
+                await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 0);
                 break;
             case MessageType.REMINDER_COTISATION:
+                mailOptions = await this.createReminderCotisationMessage(user, extraData);
+                await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 0);
                 break;
             case MessageType.DELETE_COTISATION:
+                mailOptions = await this.createDeleteCotisationMessage(user);
+                await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 0);
+                break;
+            case MessageType.PAYMENT_COTISATION:
+                mailOptions = await this.createPaymentCotisationMessage(user);
+                await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 0);
+                break;
+            case MessageType.CARD_CREATED:
+                mailOptions = await this.createCardCotisationMessage(user);
+                await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 0);
                 break;
             default:
                 throw new Error('Unknown message type');
@@ -156,6 +171,81 @@ export class MessageUseCase {
                 eventDateTime
             }),
         };
+    }
+
+    private async createCardCotisationMessage(user: User): Promise<nodemailer.SendMailOptions> {
+        const template = await this.getTemplate(MessageType.CARD_CREATED)
+        if (!template) {
+            throw new Error("Template non trouvé")
+        }
+
+        return {
+            from: process.env.EMAIL_USER,
+            to: process.env.EMAIL_TEST,
+            subject: template.subject,
+            text: mustache.render(template.body, {user})
+        }
+    }
+
+    private async createReminderCotisationMessage(user: User, extraData: any): Promise<nodemailer.SendMailOptions> {
+        const template = await this.getTemplate(MessageType.REMINDER_COTISATION);
+        if (!template) {
+            throw new Error("Template non trouvé");
+        }
+
+        const cotisation: Cotisation = extraData.cotisation;
+        const daysLeft = Math.ceil((cotisation.limitDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+
+        return {
+            from: process.env.EMAIL_USER,
+            to: user.email,
+            subject: template.subject,
+            text: mustache.render(template.body, {user, cotisation, daysLeft})
+        };
+    }
+
+    private async createDeleteCotisationMessage(user: User): Promise<nodemailer.SendMailOptions> {
+        const template = await this.getTemplate(MessageType.DELETE_COTISATION);
+        if (!template) {
+            throw new Error("Template non trouvé");
+        }
+
+        return {
+            from: process.env.EMAIL_USER,
+            to: process.env.EMAIL_TEST,
+            subject: template.subject,
+            text: mustache.render(template.body, {user})
+        }
+    }
+
+    private async createCreatedCotisationMessage(user: User, extraData: any): Promise<nodemailer.SendMailOptions> {
+        const template = await this.getTemplate(MessageType.CREATE_COTISATION);
+        if (!template) {
+            throw new Error("Template non trouvé");
+        }
+
+        const cotisation: Cotisation = extraData.cotisation;
+
+        return {
+            from: process.env.EMAIL_USER,
+            to: user.email,
+            subject: template.subject,
+            text: mustache.render(template.body, {user, cotisation})
+        };
+    }
+
+    private async createPaymentCotisationMessage(user: User): Promise<nodemailer.SendMailOptions> {
+        const template = await this.getTemplate(MessageType.PAYMENT_COTISATION);
+        if (!template) {
+            throw new Error("Template non trouvé")
+        }
+
+        return {
+            from: process.env.EMAIL_USER,
+            to: process.env.EMAIL_TEST,
+            subject: template.subject,
+            text: mustache.render(template.body, {user})
+        }
     }
 
     public async sendEmail(mailOptions: nodemailer.SendMailOptions): Promise<void> {
