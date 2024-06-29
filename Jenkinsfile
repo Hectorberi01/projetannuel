@@ -38,13 +38,14 @@ pipeline {
             steps {
                 sh 'npm run start:dev &'
                 sh 'sleep 10' // Attendre que l'application démarre
+                sh 'ps aux | grep node' // Afficher les processus node en cours
             }
         }
 
         stage('Check Application Status') {
             steps {
                 script {
-                    def response = sh(script: "curl -s -o /dev/null -w '%{http_code}' http://localhost:4000", returnStdout: true).trim()
+                    def response = sh(script: "curl -s -o /dev/null -w '%{http_code}' http://localhost:4000/health", returnStdout: true).trim()
                     if (response != '200') {
                         error "Application did not start correctly. HTTP response code: ${response}"
                     }
@@ -56,7 +57,7 @@ pipeline {
     post {
         always {
             echo 'Pipeline finished'
-            sh 'pkill -f "node" || true' // Arrêter l'application Node.js
+            sh 'pkill -f node || true' // Arrêter l'application Node.js
         }
         success {
             echo 'Pipeline succeeded'

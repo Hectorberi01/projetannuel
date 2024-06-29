@@ -5,6 +5,10 @@ import {InfoUseCase} from "../domain/info-usecase";
 
 export const infoRoute = (app: express.Express) => {
 
+    app.get('/health', (req, res) => {
+        res.status(200).send('health');
+    });
+
     app.get("/infos", async (req: Request, res: Response) => {
         try {
             const listvalidator = listInfoValidation.validate(req.query);
