@@ -23,7 +23,7 @@ pipeline {
     stages {
         stage('Install System Dependencies') {
             steps {
-                sh 'brew install pkg-config cairo pango libpng jpeg giflib librsvg'
+                sh 'chmod +x install_dependencies.sh && ./install_dependencies.sh'
             }
         }
 
