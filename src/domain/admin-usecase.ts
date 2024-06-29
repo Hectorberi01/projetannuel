@@ -8,15 +8,12 @@ export class AdminUseCase {
 
     async reindexDatabase(): Promise<void> {
         try {
-            // Vérifiez que la connexion est établie
             if (!this.db.isInitialized) {
                 await this.db.initialize();
             }
 
-            // Obtenez la liste de toutes les tables de la base de données
             const tables = await this.db.query('SHOW TABLES');
 
-            // Exécutez OPTIMIZE TABLE pour chaque table
             for (const table of tables) {
                 const tableName = table[`Tables_in_${this.db.options.database}`];
                 console.log(`Optimizing table: ${tableName}`);

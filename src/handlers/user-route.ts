@@ -266,4 +266,18 @@ export const userRoutes = (app: express.Express) => {
             return res.status(500).json({message: error.message});
         }
     })
+
+    app.get("/users/:id/emails", async (req: Request, res: Response) => {
+        try {
+            const idUserValidate = idUserValidation.validate(req.params);
+            if (idUserValidate.error) {
+                return res.status(400).send(generateValidationErrorMessage(idUserValidate.error.details));
+            }
+            const useCase = new UseruseCase(AppDataSource);
+            const result = await useCase.getEmailByUserId(idUserValidate.value.id);
+            res.status(200).send(result);
+        } catch (error: any) {
+            return res.status(500).json({message: error.message});
+        }
+    })
 }

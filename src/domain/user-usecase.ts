@@ -28,6 +28,9 @@ import {InfoType} from "../Enumerators/InfoType";
 import {InfoLevel} from "../Enumerators/InfoLevel";
 import * as fs from 'fs';
 import * as path from 'path';
+import {EmailUseCase} from "./email-usecase";
+import {AppDataSource} from "../database/database";
+import {Email} from "../database/entities/email";
 
 
 export interface ListUserCase {
@@ -572,6 +575,22 @@ export class UseruseCase {
         const messageUseCase = new MessageUseCase(this.db);
         await messageUseCase.sendMessage(MessageType.CARD_CREATED, user, null);
     }
+
+    async getEmailByUserId(userId: number): Promise<Email[]> {
+        const user = await this.getUserById(userId);
+        const emailUseCase = new EmailUseCase(AppDataSource);
+
+        if (!user) {
+            throw new Error("Utilisateur inconnu");
+        }
+
+        const result = await emailUseCase.getEmailsByUser(user);
+        if (!result) {
+            throw new Error("Utilisateur inconnu");
+        }
+        return result;
+    }
+
 }
 
 

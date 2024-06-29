@@ -59,4 +59,16 @@ export class EmailUseCase {
             throw new Error("Impossible de mettre à jour ce mail")
         }
     }
+
+    async getEmailsByUser(user: User): Promise<Email[]> {
+        const repo = this.db.getRepository(Email);
+        const result = await repo.find({
+            where: {user: user}
+        });
+
+        if (!result) {
+            throw new Error("Erreur lors de la récupération des mails");
+        }
+        return result;
+    }
 }
