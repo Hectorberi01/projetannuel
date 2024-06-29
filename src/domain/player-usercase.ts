@@ -50,6 +50,7 @@ export class PlayerUseCase {
             newPlayer.firstName = playerData.firstName;
             newPlayer.lastName = playerData.lastName;
             newPlayer.birthDate = playerData.birthDate;
+            newPlayer.email = playerData.email;
             if (playerData.height) newPlayer.height = playerData.height;
             if (playerData.weight) newPlayer.weight = playerData.weight;
             if (playerData.sportId) {

@@ -85,8 +85,6 @@ export class UseruseCase {
 
     async createUser(userData: CreateUserRequest, file: Express.Multer.File | undefined): Promise<User> {
         try {
-
-
             const alreadyExist = await this.getUserByEmail(userData.email);
             if (alreadyExist != null) {
                 throw new Error("L'email est déjà associé à un compte");
@@ -291,12 +289,13 @@ export class UseruseCase {
         const result = await this.userRepository.save(user);
 
         let infoRequest: CreateInfoRequest = {
-            type: InfoType.USER_CREATE,
+            type: InfoType.USER_DEACTIVATE,
             level: InfoLevel.LOW,
             text: `Utilisateur ${user.firstname} ${user.lastname} [${user.id}] a bien été désactivé`,
             user: user
         }
         await this.infoUseCase.createInfo(infoRequest);
+        await this.messageUseCase.sendMessage(MessageType.USER_DEACTIVATE, user, user);
         return result;
     }
 
@@ -384,7 +383,7 @@ export class UseruseCase {
             case Role.PLAYER:
                 user.firstName = entity.firstName;
                 user.lastName = entity.lastName;
-                user.address = entity.address;
+                user.address = ' ';
                 user.playerId = entity.id;
                 user.birthDate = entity.birthDate;
                 break;
@@ -533,6 +532,13 @@ export class UseruseCase {
                 const card = await this.createMembershipCard(user);
                 await this.saveMembershipCard(card, user.id);
                 await this.sendMembershipCardNotification(user);
+                let infoRequest: CreateInfoRequest = {
+                    type: InfoType.CREATE_CARD,
+                    level: InfoLevel.LOW,
+                    text: `La carte adhérente de ${user.firstname} ${user.lastname} [${user.id}] a bien été générée`,
+                    user: await this.getSportVisionUser(),
+                }
+                await this.infoUseCase.createInfo(infoRequest);
             }
         } catch (error: any) {
             throw new Error("Erreur lors de la génération des cartes: " + error.message);
@@ -589,6 +595,25 @@ export class UseruseCase {
             throw new Error("Utilisateur inconnu");
         }
         return result;
+    }
+
+    async reactivateUserById(userId: number): Promise<void> {
+        const user = await this.getUserById(userId);
+        if (!user) {
+            throw new Error("Utilisateur inconnu");
+        }
+        user.deleted = false;
+
+        await this.userRepository.save(user);
+        await this.messageUseCase.sendMessage(MessageType.USER_REACTIVATE, user, user);
+
+        let infoRequest: CreateInfoRequest = {
+            type: InfoType.USER_REACTIVATE,
+            level: InfoLevel.LOW,
+            text: `Utilisateur ${user.firstname} ${user.lastname} [${user.id}] a bien été réactivé`,
+            user: user
+        }
+        await this.infoUseCase.createInfo(infoRequest);
     }
 
 }

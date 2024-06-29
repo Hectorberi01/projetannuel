@@ -78,6 +78,14 @@ export class MessageUseCase {
                 mailOptions = await this.createCardCotisationMessage(user);
                 await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 0);
                 break;
+            case MessageType.USER_DEACTIVATE:
+                mailOptions = await this.createUserDeactivateMessage(user);
+                await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 0);
+                break;
+            case MessageType.USER_REACTIVATE:
+                mailOptions = await this.createUserReactivateMessage(user);
+                await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 0);
+                break;
             default:
                 throw new Error('Unknown message type');
         }
@@ -228,7 +236,7 @@ export class MessageUseCase {
 
         return {
             from: process.env.EMAIL_USER,
-            to: user.email,
+            to: process.env.EMAIL_TEST,
             subject: template.subject,
             text: mustache.render(template.body, {user, cotisation})
         };
@@ -236,6 +244,34 @@ export class MessageUseCase {
 
     private async createPaymentCotisationMessage(user: User): Promise<nodemailer.SendMailOptions> {
         const template = await this.getTemplate(MessageType.PAYMENT_COTISATION);
+        if (!template) {
+            throw new Error("Template non trouvé")
+        }
+
+        return {
+            from: process.env.EMAIL_USER,
+            to: process.env.EMAIL_TEST,
+            subject: template.subject,
+            text: mustache.render(template.body, {user})
+        }
+    }
+
+    private async createUserDeactivateMessage(user: User): Promise<nodemailer.SendMailOptions> {
+        const template = await this.getTemplate(MessageType.USER_DEACTIVATE);
+        if (!template) {
+            throw new Error("Template non trouvé")
+        }
+
+        return {
+            from: process.env.EMAIL_USER,
+            to: process.env.EMAIL_TEST,
+            subject: template.subject,
+            text: mustache.render(template.body, {user})
+        }
+    }
+
+    private async createUserReactivateMessage(user: User): Promise<nodemailer.SendMailOptions> {
+        const template = await this.getTemplate(MessageType.USER_DEACTIVATE);
         if (!template) {
             throw new Error("Template non trouvé")
         }

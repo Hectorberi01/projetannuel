@@ -280,4 +280,20 @@ export const userRoutes = (app: express.Express) => {
             return res.status(500).json({message: error.message});
         }
     })
+
+    app.put("/users/:id/reactivate", async (req: Request, res: Response) => {
+        try {
+            const idUserValidate = idUserValidation.validate(req.params);
+            if (idUserValidate.error) {
+                return res.status(400).json({message: generateValidationErrorMessage(idUserValidate.error.details)});
+            }
+
+            const userUseCase = new UseruseCase(AppDataSource);
+            const result = await userUseCase.reactivateUserById(idUserValidate.value.id);
+            return res.status(200).json(result);
+        } catch (error: any) {
+            return res.status(500).json({message: error.message});
+        }
+    });
+
 }

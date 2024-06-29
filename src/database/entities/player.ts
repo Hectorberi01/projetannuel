@@ -28,6 +28,9 @@ export class Player {
     @Column({type: 'json', nullable: true})
     stats!: string;
 
+    @Column()
+    email!: string;
+
     @ManyToOne(() => FormationCenter, formationCenter => formationCenter.players)
     formationCenter!: FormationCenter;
 
@@ -54,6 +57,7 @@ export class Player {
         user?: User,
         image?: Image[],
         eventProposals?: EventProposal[],
+        email?: string
     ) {
         if (id) this.id = id;
         if (firstName) this.firstName = firstName;
@@ -64,5 +68,6 @@ export class Player {
         if (user) this.user = user;
         if (image) this.image = image;
         if (eventProposals) this.eventProposals = eventProposals;
+        if (email) this.email = email;
     }
 }
