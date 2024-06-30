@@ -106,7 +106,12 @@ export class CotisationUseCase {
 
     async getCotisationById(id: number): Promise<Cotisation> {
         try {
-            const cotisation = await this.cotisationRepository.findOne({where: {id: id}});
+            const cotisation = await this.cotisationRepository.findOne({
+                where: {id: id},
+                relations: {
+                    user: true
+                }
+            });
             if (!cotisation) {
                 throw new Error("Cotisation inconnue");
             }
@@ -141,8 +146,8 @@ export class CotisationUseCase {
                 throw new Error("Cotisation incorrecte");
             }
 
-            const userUseCase = new UseruseCase(this.db);
-            const messageUseCase = new MessageUseCase(this.db);
+            const userUseCase = new UseruseCase(AppDataSource);
+            const messageUseCase = new MessageUseCase(AppDataSource);
 
             if (cotisation.limitDate < new Date()) {
                 const result = await this.cotisationRepository.delete(cotisation);
@@ -216,10 +221,9 @@ export class CotisationUseCase {
 
     async updateCotisationStatus(cotisationId: number, status: CotisationStatus): Promise<Cotisation> {
         try {
+            const messageUseCase = new MessageUseCase(AppDataSource);
             const infoUseCase = new InfoUseCase(AppDataSource);
-            const cotisation = await this.cotisationRepository.findOne({
-                where: {id: cotisationId},
-            })
+            const cotisation = await this.getCotisationById(cotisationId);
 
             if (!cotisation) {
                 throw new Error("Cotisation inconnu");
@@ -235,6 +239,7 @@ export class CotisationUseCase {
                 user: cotisation.user,
             }
             await infoUseCase.createInfo(infoRequest);
+            await messageUseCase.sendMessage(MessageType.PAYMENT_COTISATION, cotisation.user)
             return result;
         } catch (error: any) {
             throw new Error("Maj impossible de la cotisation: " + error.message);

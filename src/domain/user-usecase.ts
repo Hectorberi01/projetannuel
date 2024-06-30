@@ -139,7 +139,9 @@ export class UseruseCase {
             }
 
             await this.messageUseCase.sendMessage(MessageType.FIRST_CONNECTION, user, tmpPassword);
-            await this.cotisationUseCase.createCotisation(EntityType.USER, user.id)
+            if (user.role.role !== "ADMIN"){
+                await this.cotisationUseCase.createCotisation(EntityType.USER, user.id)
+            }
             let infoRequest: CreateInfoRequest = {
                 type: InfoType.USER_CREATE,
                 level: InfoLevel.LOW,
@@ -512,7 +514,7 @@ export class UseruseCase {
 
     async getSportVisionUser(): Promise<User> {
         const user = await this.userRepository.findOne({
-            where: {id: 42}
+            where: {email: "sportvision.infos@gmail.com"}
         })
 
         if (!user) {

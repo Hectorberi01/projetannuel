@@ -10,7 +10,6 @@ import {Image} from './image';
 import { Exclude } from 'class-transformer';
 import { Folder } from './Folder';
 import {Document} from './document'
-import {Exclude} from 'class-transformer';
 import {EventInvitation} from "./eventinvitation";
 import {Email} from "./email";
 import {EventProposal} from "./eventProposal";
@@ -138,7 +137,7 @@ export class User {
         a2fCode?: string,
         a2fCodeCreatedAt?: Date,
         folder?: Folder[],
-        document? : Document[]
+        document? : Document[],
         invitations?: EventInvitation[],
         emails?: Email[],
         eventsProposals?: EventProposal[],

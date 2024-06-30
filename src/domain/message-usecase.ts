@@ -201,12 +201,12 @@ export class MessageUseCase {
             throw new Error("Template non trouvé");
         }
 
-        const cotisation: Cotisation = extraData.cotisation;
+        const cotisation: Cotisation = extraData;
         const daysLeft = Math.ceil((cotisation.limitDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
 
         return {
             from: process.env.EMAIL_USER,
-            to: user.email,
+            to: process.env.EMAIL_TEST,
             subject: template.subject,
             text: mustache.render(template.body, {user, cotisation, daysLeft})
         };
