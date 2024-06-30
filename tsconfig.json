@@ -105,5 +105,10 @@
     /* Completeness */
     // "skipDefaultLibCheck": true,                      /* Skip type checking .d.ts files that are included with TypeScript. */
     "skipLibCheck": true                                 /* Skip type checking all .d.ts files. */
-  }
+  },
+
+  "include": [
+    "src/**/*.ts", // Assurez-vous que les fichiers sources TypeScript sont inclus
+    "types.d.ts" // Incluez votre fichier de déclaration
+]
 }
