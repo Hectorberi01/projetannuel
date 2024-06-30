@@ -1,29 +1,29 @@
 import express, {NextFunction, Request, Response} from "express";
-import {EventIdValidation, EventValidator, listEventValidation} from "./validator/events-validator";
+import {createEventValidation, EventIdValidation, listEventValidation} from "./validator/events-validator";
 import {generateValidationErrorMessage} from "./validator/generate-validation-message";
 import {AppDataSource} from "../database/database";
 import {EventuseCase} from "../domain/events-usecase";
+import {EventInvitationUseCase} from "../domain/eventinvitation-usecase";
 
 
 export const eventsRoutes = (app: express.Express) => {
 
     app.get("/events", async (req: Request, res: Response) => {
-        const eventvalidator = listEventValidation.validate(req.query);
-        if (eventvalidator.error) {
-            res.status(400).send({
-                error: "Invalid query parameters",
-                details: eventvalidator.error.details
-            });
-            return;
-        }
-
-        const listeventRequest = eventvalidator.value;
-        const limit = listeventRequest.limit ?? 50;
-        const page = listeventRequest.page ?? 1;
-
-        const eventUseCase = new EventuseCase(AppDataSource);
-
         try {
+            const eventvalidator = listEventValidation.validate(req.query);
+            if (eventvalidator.error) {
+                res.status(400).send({
+                    error: "Invalid query parameters",
+                    details: eventvalidator.error.details
+                });
+                return;
+            }
+
+            const listeventRequest = eventvalidator.value;
+            const limit = listeventRequest.limit ?? 50;
+            const page = listeventRequest.page ?? 1;
+
+            const eventUseCase = new EventuseCase(AppDataSource);
             const listEvent = await eventUseCase.getAllEvents({...listeventRequest, page, limit});
             res.status(200).send(listEvent);
         } catch (error) {
@@ -43,8 +43,7 @@ export const eventsRoutes = (app: express.Express) => {
         }
     })
 
-    // récupère l'évènement par son id
-    app.get("/events/:Id", async (req: Request, res: Response) => {
+    app.get("/events/:id", async (req: Request, res: Response) => {
         try {
             const eventidvalidation = EventIdValidation.validate(req.params)
 
@@ -53,7 +52,7 @@ export const eventsRoutes = (app: express.Express) => {
             }
 
             const eventUsecase = new EventuseCase(AppDataSource);
-            const value = eventidvalidation.value.Id;
+            const value = eventidvalidation.value.id;
             console.log("value", value)
             const event = await eventUsecase.getEventById(value)
             if (!event) {
@@ -70,10 +69,9 @@ export const eventsRoutes = (app: express.Express) => {
 
     })
 
-    //création d'un évenement
     app.post("/events", async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const eventvalidation = EventValidator.validate(req.body)
+            const eventvalidation = createEventValidation.validate(req.body)
             if (eventvalidation.error) {
                 res.status(400).send(generateValidationErrorMessage(eventvalidation.error.details))
                 return
@@ -95,8 +93,7 @@ export const eventsRoutes = (app: express.Express) => {
         }
     })
 
-    // Route pour mettre à jour les informations de l'utilisateur
-    app.put("/events/:Id", async (req: Request, res: Response) => {
+    app.put("/events/:id", async (req: Request, res: Response) => {
         try {
             const eventidvalidation = EventIdValidation.validate(req.params)
 
@@ -107,7 +104,7 @@ export const eventsRoutes = (app: express.Express) => {
 
             const value = eventidvalidation.value;
             // Récupérer l'ID de l'utilisateur à mettre à jour depuis les paramètres de la requête
-            const eventId = value.Id;
+            const eventId = value.id;
             // Récupérer les données à mettre à jour à partir du corps de la requête
             const updatedData = req.body;
 
@@ -124,7 +121,7 @@ export const eventsRoutes = (app: express.Express) => {
             // Appeler la fonction upDateUserData pour récupérer l'utilisateur à mettre à jour
             const eventUsecase = new EventuseCase(AppDataSource);
 
-            eventUsecase.updateEvent(eventId, updatedData)
+            await eventUsecase.updateEvent(eventId, updatedData)
 
             // Répondre avec succès et renvoyer les informations mises à jour de l'utilisateur
             return res.status(200).json({"message": "les information sont enrégistées avec succès"});
@@ -134,8 +131,7 @@ export const eventsRoutes = (app: express.Express) => {
         }
     });
 
-    // sippression d'un utlisateur
-    app.delete("/events/:Id", async (req: Request, res: Response) => {
+    app.delete("/events/:id", async (req: Request, res: Response) => {
         try {
             const eventidvalidation = EventIdValidation.validate(req.params)
 
@@ -144,7 +140,7 @@ export const eventsRoutes = (app: express.Express) => {
             }
 
             const eventUsecase = new EventuseCase(AppDataSource);
-            const userid = eventidvalidation.value.Id;
+            const userid = eventidvalidation.value.id;
             const event = await eventUsecase.deleteEvent(userid)
 
             // Vérifier si l'utilisateur a été supprimé avec succès
@@ -154,10 +150,52 @@ export const eventsRoutes = (app: express.Express) => {
             // Répondre avec succès
             return res.status(200).json({message: 'User deleted successfully'});
         } catch (error) {
-            console.log(error)
             res.status(500).send({"error": "internal error retry later"})
-            return
         }
     })
 
+    app.put("/events/:id/cancel", async (req: Request, res: Response) => {
+        try {
+            const idEventValidate = EventIdValidation.validate(req.params);
+
+            if (idEventValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(idEventValidate.error.details))
+            }
+
+            const eventUseCase = new EventuseCase(AppDataSource);
+            const result = await eventUseCase.cancelEvent(idEventValidate.value.id);
+            res.status(200).send(result);
+        } catch (error: any) {
+            res.status(500).json(error.message);
+        }
+    })
+
+    app.get("/events/:id/invitations", async (req: Request, res: Response) => {
+
+        try {
+            const idEventValidate = EventIdValidation.validate(req.params);
+            if (idEventValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(idEventValidate.error.details))
+            }
+            const useCase = new EventInvitationUseCase(AppDataSource);
+            const result = await useCase.getInvitationByEventId(idEventValidate.value.id);
+            res.status(200).send(result);
+        } catch (error: any) {
+            return res.status(500).json({message: error.message});
+        }
+    })
+
+    app.put("/events/create-from/proposal/:id", async (req: Request, res: Response) => {
+        try {
+            const idEventValidate = EventIdValidation.validate(req.params);
+            if (idEventValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(idEventValidate.error.details))
+            }
+            const useCase = new EventuseCase(AppDataSource);
+            const result = await useCase.createFromEventProposal(idEventValidate.value.id);
+            res.status(200).send(result);
+        } catch (error) {
+            res.status(500).send({"error": "internal error retry later"})
+        }
+    })
 }

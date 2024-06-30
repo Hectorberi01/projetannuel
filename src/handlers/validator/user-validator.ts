@@ -81,3 +81,35 @@ export const a2fUserValidation = Joi.object<A2FUserRequest>({
     userId: Joi.number().required(),
     code: Joi.string().required()
 })
+
+export interface UpdateUserRequest {
+    firstName: string
+    lastName: string
+    newsletter: boolean
+    a2fEnabled: boolean
+    address: string
+}
+
+export const updateUserValidation = Joi.object<UpdateUserRequest>({
+    firstName: Joi.string().optional(),
+    lastName: Joi.string().optional(),
+    newsletter: Joi.boolean().optional(),
+    a2fEnabled: Joi.boolean().optional(),
+    address: Joi.string().optional(),
+})
+
+export interface InvitedUserRequest {
+    email: string,
+    firstName: string,
+    lastName: string,
+    address: string,
+    birthDate: Date,
+}
+
+export const invitedUserValidation = Joi.object<InvitedUserRequest>({
+    email: Joi.string().required(),
+    firstName: Joi.string().required(),
+    lastName: Joi.string().required(),
+    address: Joi.string().required(),
+    birthDate: Joi.date().required(),
+})

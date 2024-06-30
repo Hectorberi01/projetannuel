@@ -6,6 +6,7 @@ const joiPassword = Joi.extend(joiPasswordExtendCore);
 export interface CreatePlayerRequest {
     id: number,
     firstName: string,
+    email: string
     lastName: string,
     height: number,
     weight: number,
@@ -19,6 +20,7 @@ export interface CreatePlayerRequest {
 export const createPlayerValidation = Joi.object<CreatePlayerRequest>({
     firstName: Joi.string().required(),
     lastName: Joi.string().required(),
+    email: Joi.string().required(),
     height: Joi.number().optional(),
     weight: Joi.number().optional(),
     birthDate: Joi.date().required(),

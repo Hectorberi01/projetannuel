@@ -1,11 +1,13 @@
 import amqp from 'amqplib';
 import {MessageUseCase} from "../domain/message-usecase";
 import {AppDataSource} from "../database/database";
+import {NewsletterUsecase} from "../domain/newsletter-usecase";
 
 async function consumeMessages() {
     try {
         const connection = await amqp.connect('amqp://localhost');
         const channel = await connection.createChannel();
+        const newsletterUseCase = new NewsletterUsecase(AppDataSource);
 
         const queue = 'email_queue';
 
@@ -26,6 +28,7 @@ async function consumeMessages() {
                 try {
                     await messageUseCase.sendEmail(mailOptions);
                     channel.ack(msg);
+                    await newsletterUseCase.sleep(1500);
                 } catch (error) {
                     console.error('Error processing message:', error);
                     channel.nack(msg);
@@ -39,3 +42,4 @@ async function consumeMessages() {
 }
 
 consumeMessages();
+

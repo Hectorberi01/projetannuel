@@ -3,6 +3,7 @@ import {Sport} from './sport';
 import {FormationCenter} from './formationcenter';
 import {User} from './user';
 import {Image} from './image';
+import {EventProposal} from "./eventProposal";
 
 @Entity()
 export class Player {
@@ -27,6 +28,9 @@ export class Player {
     @Column({type: 'json', nullable: true})
     stats!: string;
 
+    @Column()
+    email!: string;
+
     @ManyToOne(() => FormationCenter, formationCenter => formationCenter.players)
     formationCenter!: FormationCenter;
 
@@ -40,6 +44,9 @@ export class Player {
     @OneToMany(() => Image, image => image.player)
     image!: Image[];
 
+    @OneToMany(type => EventProposal, eventProposal => eventProposal.club)
+    eventProposals!: EventProposal[];
+
     constructor(
         id?: number,
         firstName?: string,
@@ -48,7 +55,9 @@ export class Player {
         formationCenter?: FormationCenter,
         sport?: Sport,
         user?: User,
-        image?: Image[]
+        image?: Image[],
+        eventProposals?: EventProposal[],
+        email?: string
     ) {
         if (id) this.id = id;
         if (firstName) this.firstName = firstName;
@@ -58,5 +67,7 @@ export class Player {
         if (sport) this.sport = sport;
         if (user) this.user = user;
         if (image) this.image = image;
+        if (eventProposals) this.eventProposals = eventProposals;
+        if (email) this.email = email;
     }
 }

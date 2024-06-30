@@ -5,6 +5,8 @@ import {SportUseCase} from "./sport-usecase";
 import {AppDataSource} from "../database/database";
 import {FormationCenterUseCase} from "./formationcenter-usecase";
 import {ImageUseCase} from "./image-usecase";
+import {Role} from "../Enumerators/Role";
+import {UseruseCase} from "./user-usecase";
 
 export interface ListPlayerCase {
     limit: number;
@@ -41,12 +43,14 @@ export class PlayerUseCase {
             const imageUseCase = new ImageUseCase(AppDataSource);
             const formationCenterUseCase = new FormationCenterUseCase(AppDataSource);
             const playerRepository = this.db.getRepository(Player);
+            const userUseCase = new UseruseCase(AppDataSource);
 
             const newPlayer = new Player();
 
             newPlayer.firstName = playerData.firstName;
             newPlayer.lastName = playerData.lastName;
             newPlayer.birthDate = playerData.birthDate;
+            newPlayer.email = playerData.email;
             if (playerData.height) newPlayer.height = playerData.height;
             if (playerData.weight) newPlayer.weight = playerData.weight;
             if (playerData.sportId) {
@@ -73,7 +77,14 @@ export class PlayerUseCase {
                 }
             }
 
-            return await playerRepository.save(newPlayer)
+            const result = await playerRepository.save(newPlayer);
+
+            if (!result) {
+                throw new Error("Erreur lors de la création du joueur");
+            }
+
+            await userUseCase.createEntityUser(newPlayer, Role.PLAYER);
+            return result;
         } catch (error) {
             console.error("Failed to create player  with ID:", error);
             throw error;

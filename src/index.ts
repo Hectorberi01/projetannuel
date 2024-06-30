@@ -1,20 +1,28 @@
-import express from "express";
-import {documentsRoutes} from "./handlers/document-route";
-import {formationcenterRoutes} from "./handlers/formationcenter-route";
-import {playerRoutes} from "./handlers/player-route";
-import {roleRoutes} from "./handlers/roles-route";
-import {userRoutes} from "./handlers/user-route";
-import {eventsRoutes} from "./handlers/events-route";
-import {sportRoutes} from "./handlers/sport-route";
-import {AppDataSource} from "./database/database";
+import express from 'express';
+import {documentsRoutes} from './handlers/document-route';
+import {formationcenterRoutes} from './handlers/formationcenter-route';
+import {playerRoutes} from './handlers/player-route';
+import {roleRoutes} from './handlers/roles-route';
+import {userRoutes} from './handlers/user-route';
+import {eventsRoutes} from './handlers/events-route';
+import {sportRoutes} from './handlers/sport-route';
+import {AppDataSource} from './database/database';
 import 'reflect-metadata';
 import 'dotenv/config';
 import path from 'path';
-import {sondagesRoutes} from "./handlers/sondage-route";
-import {questionsRoutes} from "./handlers/question-route";
-import {clubRoutes} from "./handlers/club-route";
-import {statsRoutes} from "./handlers/stats-route";
+import {sondagesRoutes} from './handlers/sondage-route';
+import {questionsRoutes} from './handlers/question-route';
+import {clubRoutes} from './handlers/club-route';
+import {statsRoutes} from './handlers/stats-route';
 import dotenv from 'dotenv';
+import {newsletterRoute} from './handlers/newsletter-route';
+import {invitationRoute} from './handlers/invitation-route';
+import {transactionRoute} from './handlers/transaction-route';
+import {eventProposalRoutes} from './handlers/eventproposal-route';
+import {infoRoute} from "./handlers/info-route";
+import {cotisationRoute} from "./handlers/cotisation-route";
+import {adminRoute} from "./handlers/admin-route";
+
 dotenv.config();
 
 const cors = require('cors');
@@ -38,7 +46,7 @@ const validateEnvVariables = () => {
 };
 
 const main = async () => {
-    validateEnvVariables(); // Appeler la fonction de validation ici
+    validateEnvVariables();
 
     const app = express();
     const port = 4000;
@@ -57,12 +65,13 @@ const main = async () => {
     }
 
     app.use(express.json());
-    app.use('/images', express.static(path.join(__dirname, 'images'))); // Utilise le chemin relatif
+    app.use('/images', express.static(path.join(__dirname, 'images')));
 
     app.use(cors());
 
     console.log("Setting up routes...");
     try {
+        adminRoute(app)
         clubRoutes(app);
         documentsRoutes(app);
         formationcenterRoutes(app);
@@ -74,11 +83,19 @@ const main = async () => {
         sondagesRoutes(app);
         questionsRoutes(app);
         statsRoutes(app);
+        newsletterRoute(app);
+        invitationRoute(app);
+        transactionRoute(app);
+        eventProposalRoutes(app);
+        infoRoute(app);
+        cotisationRoute(app);
         console.log("Routes are set up successfully");
     } catch (error) {
         console.error("Error setting up routes:", error);
         process.exit(1);
     }
+
+    require('./middlewares/cronJobs');
 
     app.listen(port, () => {
         console.log(`Server running on port ${port}`);

@@ -9,10 +9,15 @@ import {
     createUserValidation,
     fcUserValidation,
     idUserValidation,
+    invitedUserValidation,
     listUserValidation,
-    loginUserValidation
+    loginUserValidation,
+    updateUserValidation
 } from "./validator/user-validator";
 import {upload} from "../middlewares/multer-config";
+import {EventInvitationUseCase} from "../domain/eventinvitation-usecase";
+import {CotisationUseCase} from "../domain/cotisation-usecase";
+import {EntityType} from "../Enumerators/EntityType";
 
 export const userRoutes = (app: express.Express) => {
 
@@ -126,7 +131,7 @@ export const userRoutes = (app: express.Express) => {
             }
 
             const userUseCase = new UseruseCase(AppDataSource);
-            const result = await userUseCase.desactivateUserById(idUserValidate.value.id);
+            const result = await userUseCase.deactivateUserById(idUserValidate.value.id);
             return res.status(200).json(result);
         } catch (error: any) {
             return res.status(500).json({message: error.message});
@@ -165,4 +170,130 @@ export const userRoutes = (app: express.Express) => {
             return res.status(500).send({message: error.message});
         }
     });
+
+    app.put("/users/:id", async (req: Request, res: Response) => {
+        try {
+            const idUserValidate = idUserValidation.validate(req.params);
+            if (idUserValidate.error) {
+                return res.status(400).send(generateValidationErrorMessage(idUserValidate.error.details));
+            }
+            const updateUserValidate = updateUserValidation.validate(req.body);
+            if (updateUserValidate.error) {
+                return res.status(400).send(updateUserValidate.error.details)
+            }
+            const userUseCase = new UseruseCase(AppDataSource);
+            const result = await userUseCase.updateUser(idUserValidate.value.id, updateUserValidate.value);
+            return res.status(200).send(result);
+        } catch (error: any) {
+            return res.status(500).json({message: error.message});
+        }
+    });
+
+    app.put("/users/:id/regenerate-a2f", async (req: Request, res: Response) => {
+        try {
+            const idUserValidate = idUserValidation.validate(req.params);
+            if (idUserValidate.error) {
+                return res.status(400).send(generateValidationErrorMessage(idUserValidate.error.details));
+            }
+
+            const userUseCase = new UseruseCase(AppDataSource);
+            const result = await userUseCase.generateAndSendA2FCode(idUserValidate.value.id);
+            res.status(200).send(result);
+
+        } catch (error: any) {
+            return res.status(500).json({message: error.message});
+        }
+    })
+
+    app.put("/users/:id/invite-user", async (req: Request, res: Response) => {
+        try {
+            const idUserValidate = idUserValidation.validate(req.params);
+            if (idUserValidate.error) {
+                return res.status(400).send(generateValidationErrorMessage(idUserValidate.error.details));
+            }
+            const invitedUserValidate = invitedUserValidation.validate(req.body);
+            if (invitedUserValidate.error) {
+                return res.status(400).send(generateValidationErrorMessage(invitedUserValidate.error.details));
+            }
+            const userUseCase = new UseruseCase(AppDataSource);
+            const result = await userUseCase.createInvitedUser(invitedUserValidate.value, idUserValidate.value.id);
+            res.status(200).send(result);
+        } catch (error: any) {
+            return res.status(500).json({message: error.message});
+        }
+    })
+
+    app.get("/users/:id/event-invitations", async (req: Request, res: Response) => {
+        try {
+            const idUserValidate = idUserValidation.validate(req.params);
+            if (idUserValidate.error) {
+                return res.status(400).send(generateValidationErrorMessage(idUserValidate.error.details));
+            }
+
+            const useCase = new EventInvitationUseCase(AppDataSource);
+            const result = await useCase.getInvitationByUserId(idUserValidate.value.id);
+            res.status(200).send(result);
+        } catch (error: any) {
+            return res.status(500).json({message: error.message});
+        }
+    })
+
+    app.get("/users/:id/club", async (req: Request, res: Response) => {
+
+        try {
+            const idUserValidate = idUserValidation.validate(req.params);
+            if (idUserValidate.error) {
+                return res.status(400).send(generateValidationErrorMessage(idUserValidate.error.details));
+            }
+            const useCase = new UseruseCase(AppDataSource);
+            const result = await useCase.getClubByUser(idUserValidate.value.id);
+            res.status(200).send(result);
+        } catch (error: any) {
+            return res.status(500).json({message: error.message});
+        }
+    })
+
+    app.get("/users/:id/cotisation", async (req: Request, res: Response) => {
+        try {
+            const idUserValidate = idUserValidation.validate(req.params);
+            if (idUserValidate.error) {
+                return res.status(400).send(generateValidationErrorMessage(idUserValidate.error.details));
+            }
+            const useCase = new CotisationUseCase(AppDataSource);
+            const result = await useCase.getCotisationFromEntity(EntityType.USER, idUserValidate.value.id);
+            res.status(200).send(result);
+        } catch (error: any) {
+            return res.status(500).json({message: error.message});
+        }
+    })
+
+    app.get("/users/:id/emails", async (req: Request, res: Response) => {
+        try {
+            const idUserValidate = idUserValidation.validate(req.params);
+            if (idUserValidate.error) {
+                return res.status(400).send(generateValidationErrorMessage(idUserValidate.error.details));
+            }
+            const useCase = new UseruseCase(AppDataSource);
+            const result = await useCase.getEmailByUserId(idUserValidate.value.id);
+            res.status(200).send(result);
+        } catch (error: any) {
+            return res.status(500).json({message: error.message});
+        }
+    })
+
+    app.put("/users/:id/reactivate", async (req: Request, res: Response) => {
+        try {
+            const idUserValidate = idUserValidation.validate(req.params);
+            if (idUserValidate.error) {
+                return res.status(400).json({message: generateValidationErrorMessage(idUserValidate.error.details)});
+            }
+
+            const userUseCase = new UseruseCase(AppDataSource);
+            const result = await userUseCase.reactivateUserById(idUserValidate.value.id);
+            return res.status(200).json(result);
+        } catch (error: any) {
+            return res.status(500).json({message: error.message});
+        }
+    });
+
 }

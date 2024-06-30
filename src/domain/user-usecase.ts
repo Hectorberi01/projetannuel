@@ -1,8 +1,13 @@
-import {DataSource, EntityNotFoundError} from "typeorm";
+import {DataSource, EntityNotFoundError, Repository} from "typeorm";
 import {User} from "../database/entities/user";
-import {ChangePasswordRequest, CreateUserRequest, LoginUserRequest} from "../handlers/validator/user-validator";
+import {
+    ChangePasswordRequest,
+    CreateUserRequest,
+    InvitedUserRequest,
+    LoginUserRequest,
+    UpdateUserRequest
+} from "../handlers/validator/user-validator";
 import {RoleUseCase} from "./roles-usecase";
-import {AppDataSource} from "../database/database";
 import {ClubUseCase} from "./club-usecase";
 import {FormationCenterUseCase} from "./formationcenter-usecase";
 import {PlayerUseCase} from "./player-usercase";
@@ -12,6 +17,21 @@ import {ImageUseCase} from "./image-usecase";
 import {MessageUseCase} from "./message-usecase";
 import {MessageType} from "../Enumerators/MessageType";
 import {v4 as uuidv4} from 'uuid';
+import {Role} from "../Enumerators/Role";
+import {Club} from "../database/entities/club";
+import {Player} from "../database/entities/player";
+import {CotisationUseCase} from "./cotisation-usecase";
+import {EntityType} from "../Enumerators/EntityType";
+import {InfoUseCase} from "./info-usecase";
+import {CreateInfoRequest} from "../handlers/validator/info-validator";
+import {InfoType} from "../Enumerators/InfoType";
+import {InfoLevel} from "../Enumerators/InfoLevel";
+import * as fs from 'fs';
+import * as path from 'path';
+import {EmailUseCase} from "./email-usecase";
+import {AppDataSource} from "../database/database";
+import {Email} from "../database/entities/email";
+
 
 export interface ListUserCase {
     limit: number;
@@ -20,12 +40,37 @@ export interface ListUserCase {
 
 export class UseruseCase {
 
+    // usecases
+    private infoUseCase: InfoUseCase;
+    private messageUseCase: MessageUseCase;
+    private cotisationUseCase: CotisationUseCase;
+    private imageUseCase: ImageUseCase;
+    private roleUseCase: RoleUseCase;
+    private clubUseCase: ClubUseCase;
+    private formationCenterUseCase: FormationCenterUseCase;
+    private playerUseCase: PlayerUseCase;
+
+    // repositories
+    private userRepository: Repository<User>;
+    private playerRepository: Repository<Player>;
+
     constructor(private readonly db: DataSource) {
+        this.infoUseCase = new InfoUseCase(db);
+        this.messageUseCase = new MessageUseCase(db);
+        this.cotisationUseCase = new CotisationUseCase(db);
+        this.imageUseCase = new ImageUseCase(db);
+        this.roleUseCase = new RoleUseCase(db);
+        this.clubUseCase = new ClubUseCase(db);
+        this.formationCenterUseCase = new FormationCenterUseCase(db);
+        this.playerUseCase = new PlayerUseCase(db);
+
+        this.userRepository = this.db.getRepository(User);
+        this.playerRepository = this.db.getRepository(Player);
     }
 
     async getAllUsers(listuser: ListUserCase): Promise<{ user: User[], total: number }> {
 
-        const query = this.db.getRepository(User).createQueryBuilder('user')
+        const query = this.userRepository.createQueryBuilder('user')
             .leftJoinAndSelect('user.role', 'role')
             .leftJoinAndSelect('user.events', 'events')
             .where('user.deleted = false or user.deleted = null')
@@ -40,11 +85,6 @@ export class UseruseCase {
 
     async createUser(userData: CreateUserRequest, file: Express.Multer.File | undefined): Promise<User> {
         try {
-            const userRepository = this.db.getRepository(User);
-            const imageUseCase = new ImageUseCase(AppDataSource);
-            const roleUseCase = new RoleUseCase(AppDataSource);
-            const messageUseCase = new MessageUseCase(AppDataSource);
-
             const alreadyExist = await this.getUserByEmail(userData.email);
             if (alreadyExist != null) {
                 throw new Error("L'email est déjà associé à un compte");
@@ -60,21 +100,19 @@ export class UseruseCase {
             user.createDate = new Date();
             user.firstConnection = false;
 
-            const role = await roleUseCase.getRoleById(parseInt(userData.roleId));
+            const role = await this.roleUseCase.getRoleById(parseInt(userData.roleId));
             user.role = role;
 
-            if (role.role === "CLUB") {
-                const clubUseCase = new ClubUseCase(AppDataSource);
+            if (role.role === "CLUB" || role.role === "ADMIN_CLUB") {
                 // @ts-ignore
-                user.club = await clubUseCase.getClubById(parseInt(userData.clubId));
-            } else if (role.role === "FORMATIONCENTER") {
-                const formationCenterUseCase = new FormationCenterUseCase(AppDataSource);
+                user.club = await this.clubUseCase.getClubById(parseInt(userData.clubId));
+            } else if (role.role === "FORMATIONCENTER" || role.role === "ADMIN_FORMATIONCENTER") {
                 // @ts-ignore
-                user.formationCenter = await formationCenterUseCase.getFormationCenterById(parseInt(userData.formationCenterId));
+                user.formationCenter = await this.formationCenterUseCase.getFormationCenterById(parseInt(userData.formationCenterId));
             } else if (role.role === "PLAYER") {
-                const playerUseCase = new PlayerUseCase(AppDataSource);
                 // @ts-ignore
-                user.player = await playerUseCase.getPlayerById(parseInt(userData.playerId));
+                const player = await this.playerUseCase.getPlayerById(parseInt(userData.playerId));
+                user.player = player;
             } else if (role.role !== "ADMIN") {
                 throw new Error("Ce type de rôle n'est pas encore implémenté.");
             }
@@ -85,16 +123,30 @@ export class UseruseCase {
             user.deleted = false;
 
             if (file != null) {
-                const uploadedImage = await imageUseCase.createImage(file);
+                const uploadedImage = await this.imageUseCase.createImage(file);
                 if (uploadedImage) {
                     // @ts-ignore
                     user.image = uploadedImage;
                 }
             }
-            user = await userRepository.save(user);
 
-            await messageUseCase.sendMessage(MessageType.FIRST_CONNECTION, user, tmpPassword);
+            user = await this.userRepository.save(user);
 
+            if (role.role === "PLAYER" && user.player) {
+                const player = user.player;
+                player.user = user; // Link the user to the player
+                await this.playerRepository.save(player); // Save the updated player
+            }
+
+            await this.messageUseCase.sendMessage(MessageType.FIRST_CONNECTION, user, tmpPassword);
+            await this.cotisationUseCase.createCotisation(EntityType.USER, user.id)
+            let infoRequest: CreateInfoRequest = {
+                type: InfoType.USER_CREATE,
+                level: InfoLevel.LOW,
+                text: `Utilisateur ${user.firstname} ${user.lastname} [${user.id}] a bien été créé`,
+                user: user
+            }
+            await this.infoUseCase.createInfo(infoRequest);
             return user;
         } catch (error: any) {
             throw new Error("Erreur lors de la création de l'utilisateur: " + error.message);
@@ -141,8 +193,7 @@ export class UseruseCase {
     }
 
     async getUserById(userId: number): Promise<User> {
-        const userRepository = this.db.getRepository(User);
-        const user = await userRepository.createQueryBuilder("user")
+        const user = await this.userRepository.createQueryBuilder("user")
             .leftJoinAndSelect("user.role", "role")
             .leftJoinAndSelect("user.club", "club")
             .leftJoinAndSelect("user.formationCenter", "formationCenter")
@@ -159,9 +210,8 @@ export class UseruseCase {
     }
 
     async getUserByEmail(email: string): Promise<User | null> {
-        const userRepository = this.db.getRepository(User);
 
-        return await userRepository.findOne({
+        return await this.userRepository.findOne({
             where: {email: email},
             relations: ['role']
         });
@@ -197,8 +247,7 @@ export class UseruseCase {
     }
 
     async getRecentUsers(): Promise<User[]> {
-        const userRepository = this.db.getRepository(User);
-        return await userRepository.find({
+        return await this.userRepository.find({
             order: {
                 id: 'DESC'
             },
@@ -207,8 +256,7 @@ export class UseruseCase {
     }
 
     async changePasswordFirstConnection(userId: number, newPassword: string): Promise<User> {
-        const userRepository = this.db.getRepository(User);
-        const user = await userRepository.findOne({
+        const user = await this.userRepository.findOne({
             where: {id: userId}
         });
 
@@ -221,11 +269,16 @@ export class UseruseCase {
         user.password = await this.hashPassword(newPassword);
         user.firstConnection = true;
 
-        return await userRepository.save(user);
+        const result = await this.userRepository.save(user);
+        if (!result) {
+            throw new Error("Erreur lors du changement de mot de passe");
+        }
+        await this.messageUseCase.sendMessage(MessageType.PASSWORD_CHANGED, user, null);
+
+        return result;
     }
 
-    async desactivateUserById(userId: number): Promise<User> {
-        const userRepository = this.db.getRepository(User);
+    async deactivateUserById(userId: number): Promise<User> {
         const user = await this.getUserById(userId);
 
         if (!user) {
@@ -233,12 +286,20 @@ export class UseruseCase {
         }
 
         user.deleted = true;
-        return await userRepository.save(user);
+        const result = await this.userRepository.save(user);
+
+        let infoRequest: CreateInfoRequest = {
+            type: InfoType.USER_DEACTIVATE,
+            level: InfoLevel.LOW,
+            text: `Utilisateur ${user.firstname} ${user.lastname} [${user.id}] a bien été désactivé`,
+            user: user
+        }
+        await this.infoUseCase.createInfo(infoRequest);
+        await this.messageUseCase.sendMessage(MessageType.USER_DEACTIVATE, user, user);
+        return result;
     }
 
     async changePassword(userId: number, changePassword: ChangePasswordRequest): Promise<User> {
-        const userRepository = this.db.getRepository(User);
-        const messageUseCase = new MessageUseCase(AppDataSource);
         const user = await this.getUserById(userId);
 
         if (!user) {
@@ -252,27 +313,32 @@ export class UseruseCase {
         }
 
         user.password = await this.hashPassword(changePassword.newPassword);
-        const result = await userRepository.save(user);
-        await messageUseCase.sendMessage(MessageType.PASSWORD_CHANGED, user, null)
+        const result = await this.userRepository.save(user);
+        await this.messageUseCase.sendMessage(MessageType.PASSWORD_CHANGED, user, null)
 
+        let infoRequest: CreateInfoRequest = {
+            type: InfoType.USER_CHANGE_PASSWORD,
+            level: InfoLevel.LOW,
+            text: `user ${user.firstname} ${user.lastname} [${user.id}] a changé son mot de passe`,
+            user: user
+        }
+        await this.infoUseCase.createInfo(infoRequest);
         return result;
     }
 
     async generateAndSendA2FCode(userId: number) {
-        const userRepository = this.db.getRepository(User);
-        const messageUseCase = new MessageUseCase(AppDataSource);
         const user = await this.getUserById(userId);
 
         if (!user) {
             throw new Error("Utilisateur inconnu");
         }
 
-        const a2fCode = uuidv4().slice(0, 6); // Generate a short unique code
+        const a2fCode = uuidv4().slice(0, 6);
         user.a2fCode = a2fCode;
         user.a2fCodeCreatedAt = new Date();
 
-        await userRepository.save(user);
-        await messageUseCase.sendMessage(MessageType.A2F_CODE, user, a2fCode);
+        await this.userRepository.save(user);
+        await this.messageUseCase.sendMessage(MessageType.A2F_CODE, user, a2fCode);
     }
 
     async validateA2FCode(userId: number, code: string): Promise<{ token: string }> {
@@ -291,6 +357,263 @@ export class UseruseCase {
 
         const token = await this.generateToken(user);
         return {token};
+    }
+
+    async createEntityUser(entity: any, roleData: Role): Promise<void> {
+        const role = await this.roleUseCase.getByName(roleData);
+        let user: CreateUserRequest = {
+            email: entity.email,
+            address: '',
+            newsletter: false,
+            lastName: '',
+            firstName: '',
+            roleId: role.id.toString(),
+            birthDate: new Date(),
+            clubId: null,
+            playerId: null,
+            formationCenterId: null
+        };
+        switch (roleData) {
+            case Role.ADMIN_CLUB:
+                user.clubId = entity.id;
+                break;
+            case Role.ADMIN_FORMATIONCENTER:
+                user.formationCenterId = entity.id;
+                break;
+            case Role.PLAYER:
+                user.firstName = entity.firstName;
+                user.lastName = entity.lastName;
+                user.address = ' ';
+                user.playerId = entity.id;
+                user.birthDate = entity.birthDate;
+                break;
+            default:
+                break;
+        }
+        await this.createUser(user, undefined);
+        return;
+    }
+
+    async updateUser(userId: number, userData: UpdateUserRequest): Promise<User> {
+        try {
+            const user = await this.getUserById(userId);
+            if (!user) {
+                throw new Error("Utilisateur inconnu");
+            }
+
+            if (userData.firstName && user.firstname !== userData.firstName) {
+                user.firstname = userData.firstName;
+            }
+
+            if (userData.lastName && user.lastname !== userData.lastName) {
+                user.lastname = userData.lastName;
+            }
+
+            if (userData.address && user.address !== userData.address) {
+                user.address = userData.address;
+            }
+
+            if (userData.a2fEnabled && user.a2fEnabled !== userData.a2fEnabled) {
+                user.a2fEnabled = userData.a2fEnabled;
+            }
+
+            if (userData.newsletter && user.newsletter !== userData.newsletter) {
+                user.newsletter = userData.newsletter;
+            }
+
+            return await this.userRepository.save(user);
+        } catch (error: any) {
+            throw new Error("Erreur de mise à jour");
+        }
+    }
+
+    async createInvitedUser(invitedUser: InvitedUserRequest, hostId: number): Promise<User> {
+        try {
+            const host = await this.getUserById(hostId);
+            if (!host) {
+                throw new Error("Utilisateur inconnu");
+            }
+            let user: CreateUserRequest = {
+                email: invitedUser.email,
+                firstName: invitedUser.firstName,
+                lastName: invitedUser.lastName,
+                address: invitedUser.address,
+                birthDate: invitedUser.birthDate,
+                newsletter: false,
+                roleId: '',
+                clubId: null,
+                playerId: null,
+                formationCenterId: null,
+            }
+
+            if (host.club) {
+                return await this.fillUpInvitedUser(user, host, Role.CLUB)
+            } else if (host.formationCenter) {
+                return await this.fillUpInvitedUser(user, host, Role.FORMATIONCENTER)
+            } else {
+                throw new Error("Ce type d'invité n'est pas implémenté");
+            }
+
+        } catch (error) {
+            throw new Error("Erreur lors de l'invitation")
+        }
+    }
+
+    async fillUpInvitedUser(user: CreateUserRequest, host: User, role: Role): Promise<User> {
+        try {
+            const invitedRole = await this.roleUseCase.getByName(role.toString());
+
+            if (!invitedRole) {
+                throw new Error("Utilisateur inconnu");
+            }
+
+            switch (role) {
+                case Role.CLUB:
+                    user.clubId = host.club.id.toString();
+                    user.roleId = invitedRole.id.toString();
+                    break;
+                case Role.FORMATIONCENTER:
+                    user.formationCenterId = host.formationCenter.id.toString();
+                    user.roleId = invitedRole.id.toString();
+                    break;
+                default:
+                    throw new Error("Ce type d'invité n'est pas implémenté");
+            }
+            return await this.createUser(user, undefined);
+        } catch (error) {
+            throw new Error("Erreur lors de l'invitation")
+        }
+    }
+
+    async getNewsletterUsers(): Promise<User[]> {
+        return await this.userRepository.find({
+            where: {newsletter: true}
+        })
+    }
+
+    async getAllClubUsers(club: Club): Promise<User[]> {
+        return await this.userRepository.find({
+            where: {club: club}
+        })
+    }
+
+    async getClubByUser(userId: number): Promise<Club> {
+        try {
+            const user = await this.getUserById(userId);
+            if (!user) {
+                throw new Error("Utilisateur inconnu");
+            }
+
+            return user.club;
+        } catch (error) {
+            throw new Error("Erreur lors de la récupération du club")
+        }
+    }
+
+    async getSportVisionUser(): Promise<User> {
+        const user = await this.userRepository.findOne({
+            where: {id: 42}
+        })
+
+        if (!user) {
+            throw new Error("Utilisateur inconnu");
+        }
+
+        return user;
+    }
+
+
+    async generateCotisationCard(): Promise<void> {
+        try {
+            const cotisationUseCase = new CotisationUseCase(this.db);
+            const users = await cotisationUseCase.getUsersWithCotisationPaidYesterday();
+
+            for (const user of users) {
+                const card = await this.createMembershipCard(user);
+                await this.saveMembershipCard(card, user.id);
+                await this.sendMembershipCardNotification(user);
+                let infoRequest: CreateInfoRequest = {
+                    type: InfoType.CREATE_CARD,
+                    level: InfoLevel.LOW,
+                    text: `La carte adhérente de ${user.firstname} ${user.lastname} [${user.id}] a bien été générée`,
+                    user: await this.getSportVisionUser(),
+                }
+                await this.infoUseCase.createInfo(infoRequest);
+            }
+        } catch (error: any) {
+            throw new Error("Erreur lors de la génération des cartes: " + error.message);
+        }
+    }
+
+    private async createMembershipCard(user: User): Promise<Buffer> {
+        const {createCanvas, loadImage} = require('canvas');
+        const canvas = createCanvas(400, 250);
+        const ctx = canvas.getContext('2d');
+
+        // Background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Texte
+        ctx.fillStyle = '#000000';
+        ctx.font = '20px Arial';
+        ctx.fillText(`Nom: ${user.firstname} ${user.lastname}`, 50, 50);
+        ctx.fillText(`Matricule: ${user.matricule}`, 50, 100);
+        ctx.fillText(`Email: ${user.email}`, 50, 150);
+
+        // Logo
+        const logo = await loadImage('/Users/ethan/Documents/dev/projetannuel/src/documents/logo.png');
+        ctx.drawImage(logo, 300, 10, 80, 80);
+
+        return canvas.toBuffer();
+    }
+
+    private async saveMembershipCard(card: Buffer, userId: number): Promise<void> {
+        const documentsPath = path.join(__dirname, '..', 'documents');
+        if (!fs.existsSync(documentsPath)) {
+            fs.mkdirSync(documentsPath, {recursive: true});
+        }
+        const cardPath = path.join(documentsPath, `membership_card_${userId}.png`);
+        fs.writeFileSync(cardPath, card);
+    }
+
+    private async sendMembershipCardNotification(user: User): Promise<void> {
+        const messageUseCase = new MessageUseCase(this.db);
+        await messageUseCase.sendMessage(MessageType.CARD_CREATED, user, null);
+    }
+
+    async getEmailByUserId(userId: number): Promise<Email[]> {
+        const user = await this.getUserById(userId);
+        const emailUseCase = new EmailUseCase(AppDataSource);
+
+        if (!user) {
+            throw new Error("Utilisateur inconnu");
+        }
+
+        const result = await emailUseCase.getEmailsByUser(user);
+        if (!result) {
+            throw new Error("Utilisateur inconnu");
+        }
+        return result;
+    }
+
+    async reactivateUserById(userId: number): Promise<void> {
+        const user = await this.getUserById(userId);
+        if (!user) {
+            throw new Error("Utilisateur inconnu");
+        }
+        user.deleted = false;
+
+        await this.userRepository.save(user);
+        await this.messageUseCase.sendMessage(MessageType.USER_REACTIVATE, user, user);
+
+        let infoRequest: CreateInfoRequest = {
+            type: InfoType.USER_REACTIVATE,
+            level: InfoLevel.LOW,
+            text: `Utilisateur ${user.firstname} ${user.lastname} [${user.id}] a bien été réactivé`,
+            user: user
+        }
+        await this.infoUseCase.createInfo(infoRequest);
     }
 
 }

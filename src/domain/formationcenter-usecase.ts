@@ -2,6 +2,11 @@ import {DataSource, DeleteResult, EntityNotFoundError} from "typeorm";
 import {FormationCenterRequest} from "../handlers/validator/formation-validator";
 import {FormationCenter} from "../database/entities/formationcenter"
 import {Player} from "../database/entities/player";
+import {Role} from "../Enumerators/Role";
+import {UseruseCase} from "./user-usecase";
+import {AppDataSource} from "../database/database";
+import {CotisationUseCase} from "./cotisation-usecase";
+import {EntityType} from "../Enumerators/EntityType";
 
 export interface ListFormationCenterCase {
     limit: number;
@@ -33,8 +38,10 @@ export class FormationCenterUseCase {
 
     async createFormationCenter(formationData: FormationCenterRequest): Promise<FormationCenter | Error> {
         try {
+            const cotisationUseCase = new CotisationUseCase(AppDataSource);
             const formationRepository = this.db.getRepository(FormationCenter);
             const newFormation = new FormationCenter();
+            const userUseCase = new UseruseCase(AppDataSource);
 
             newFormation.name = formationData.name;
             newFormation.address = formationData.address;
@@ -42,7 +49,16 @@ export class FormationCenterUseCase {
             newFormation.email = formationData.email;
             newFormation.createDate = new Date();
 
-            return formationRepository.save(newFormation);
+            const result = await formationRepository.save(newFormation);
+
+            if (!result) {
+                throw new Error("Erreur lors de la création du centre de formation")
+            }
+
+            await userUseCase.createEntityUser(newFormation, Role.ADMIN_FORMATIONCENTER);
+            await cotisationUseCase.createCotisation(EntityType.FORMATIONCENTER, result.id)
+            return result;
+
         } catch (error) {
             console.error("Failed to creat club account :", error);
             throw error;
@@ -53,14 +69,14 @@ export class FormationCenterUseCase {
     async getFormationCenterById(id_formation: number): Promise<FormationCenter> {
         const formationRepository = this.db.getRepository(FormationCenter);
 
-        const club = await formationRepository.findOne({
+        const fc = await formationRepository.findOne({
             where: {id: id_formation},
-            relations: ['sports']
+            relations: ['sports', 'users']
         });
-        if (!club) {
+        if (!fc) {
             throw new EntityNotFoundError(FormationCenter, id_formation);
         }
-        return club;
+        return fc;
     }
 
     async deleteFormationCenter(id_formation: number): Promise<DeleteResult> {

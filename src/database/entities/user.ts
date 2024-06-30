@@ -10,6 +10,12 @@ import {Image} from './image';
 import { Exclude } from 'class-transformer';
 import { Folder } from './Folder';
 import {Document} from './document'
+import {Exclude} from 'class-transformer';
+import {EventInvitation} from "./eventinvitation";
+import {Email} from "./email";
+import {EventProposal} from "./eventProposal";
+import {Cotisation} from "./cotisation";
+import {Info} from "./info";
 
 @Entity()
 export class User {
@@ -93,6 +99,21 @@ export class User {
     @OneToMany(() => Folder, folder => folder.documents)
     folder!: Folder[];
 
+    @OneToMany(() => EventInvitation, invitation => invitation.user)
+    invitations!: EventInvitation[];
+
+    @OneToMany(() => Email, email => email.user)
+    emails!: Email[];
+
+    @OneToMany(type => EventProposal, eventProposal => eventProposal.club)
+    eventProposals!: EventProposal[];
+
+    @OneToMany(type => Cotisation, cotisation => cotisation.user)
+    cotisations!: Cotisation[];
+
+    @OneToMany(type => Info, info => info.user)
+    infos!: Info[];
+
     constructor(
         id?: number,
         firstname?: string,
@@ -118,6 +139,11 @@ export class User {
         a2fCodeCreatedAt?: Date,
         folder?: Folder[],
         document? : Document[]
+        invitations?: EventInvitation[],
+        emails?: Email[],
+        eventsProposals?: EventProposal[],
+        cotisations?: Cotisation[],
+        infos?: Info[]
     ) {
         if (id) this.id = id;
         if (firstname) this.firstname = firstname;
@@ -143,5 +169,10 @@ export class User {
         if (a2fCodeCreatedAt) this.a2fCodeCreatedAt = a2fCodeCreatedAt;
         if (folder) this.folder = folder;
         if (document) this.documents = document;
+        if (invitations) this.invitations = invitations;
+        if (emails) this.emails = emails;
+        if (eventsProposals) this.eventProposals = eventsProposals;
+        if (cotisations) this.cotisations = cotisations;
+        if (infos) this.infos = infos;
     }
 }
