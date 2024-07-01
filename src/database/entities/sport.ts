@@ -2,6 +2,7 @@ import {Column, Entity, ManyToMany, OneToMany, PrimaryGeneratedColumn} from 'typ
 import "reflect-metadata"
 import {Player} from './player';
 import {FormationCenter} from './formationcenter';
+import {PlayerProposal} from "./playerproposal";
 
 @Entity()
 export class Sport {
@@ -15,9 +16,12 @@ export class Sport {
     @ManyToMany(() => FormationCenter, formationCenter => formationCenter.sports)
     formationCenters!: FormationCenter[];
 
+    @OneToMany(type => PlayerProposal, playerProposal => playerProposal.formationCenter)
+    playerProposals!: PlayerProposal[];
 
-    constructor(id?: number, name?: string) {
+    constructor(id?: number, name?: string, playerProposals?: PlayerProposal[]) {
         if (id) this.id = id;
         if (name) this.name = name;
+        if (playerProposals) this.playerProposals = playerProposals;
     }
 }

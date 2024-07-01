@@ -67,7 +67,7 @@ export class PlayerUseCase {
                 }
             }
 
-            if (playerData.stats) newPlayer.stats = playerData.stats;
+            if (playerData.stats && playerData.stats !== "") newPlayer.stats = playerData.stats;
 
             if (file != null) {
                 const uploadedImage = await imageUseCase.createImage(file);

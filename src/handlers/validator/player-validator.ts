@@ -4,7 +4,6 @@ const {joiPasswordExtendCore} = require('joi-password');
 const joiPassword = Joi.extend(joiPasswordExtendCore);
 
 export interface CreatePlayerRequest {
-    id: number,
     firstName: string,
     email: string
     lastName: string,
