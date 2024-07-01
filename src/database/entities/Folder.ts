@@ -5,10 +5,9 @@ import {
     ManyToOne,
     OneToMany,
     CreateDateColumn,
-    UpdateDateColumn,
     JoinColumn
 } from "typeorm";
-import {Document} from './document'
+import { Document } from './document';
 import { User } from "./user";
 
 @Entity()
@@ -17,7 +16,7 @@ export class Folder {
     id!: number;
 
     @Column()
-    googleId!: string
+    googleId!: string;
 
     @Column()
     name!: string;
@@ -25,23 +24,22 @@ export class Folder {
     @OneToMany(() => Document, document => document.folder)
     documents!: Document[];
 
-    @ManyToOne(() => User, user => user.folder, { nullable: false })
+    @ManyToOne(() => User, user => user.folders, { nullable: false })
     @JoinColumn({ name: 'userId' })
     user!: User;
 
     @CreateDateColumn()
     createdAt!: Date;
 
-    constructor( 
-        name?:string,
+    constructor(
+        name?: string,
         googleId?: string,
-        document?: Document[],
+        documents?: Document[],
         user?: User
-    ){
-        if(name) this.name = name
-        if(googleId) this.googleId = googleId
-        if(document) this.documents = document
-        if(user) this.user = user
+    ) {
+        if (name) this.name = name;
+        if (googleId) this.googleId = googleId;
+        if (documents) this.documents = documents;
+        if (user) this.user = user;
     }
-
 }

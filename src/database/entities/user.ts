@@ -1,20 +1,29 @@
-import {Column, Entity, JoinColumn, ManyToMany, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn} from 'typeorm';
-import {Role} from './roles';
-import {Event} from './event';
-import {Answer} from './answer';
-import {Sondage} from './sondage';
-import {Club} from './club';
-import {FormationCenter} from './formationcenter';
-import {Player} from './player';
-import {Image} from './image';
+import {
+    Column,
+    Entity,
+    JoinColumn,
+    ManyToMany,
+    ManyToOne,
+    OneToMany,
+    OneToOne,
+    PrimaryGeneratedColumn
+} from 'typeorm';
+import { Role } from './roles';
+import { Event } from './event';
+import { Answer } from './answer';
+import { Sondage } from './sondage';
+import { Club } from './club';
+import { FormationCenter } from './formationcenter';
+import { Player } from './player';
+import { Image } from './image';
 import { Exclude } from 'class-transformer';
 import { Folder } from './Folder';
-import {Document} from './document'
-import {EventInvitation} from "./eventinvitation";
-import {Email} from "./email";
-import {EventProposal} from "./eventProposal";
-import {Cotisation} from "./cotisation";
-import {Info} from "./info";
+import { Document } from './document';
+import { EventInvitation } from "./eventinvitation";
+import { Email } from "./email";
+import { EventProposal } from "./eventProposal";
+import { Cotisation } from "./cotisation";
+import { Info } from "./info";
 
 @Entity()
 export class User {
@@ -27,13 +36,13 @@ export class User {
     @Column()
     lastname!: string;
 
-    @Column({unique: true})
+    @Column({ unique: true })
     email!: string;
 
-    @Column({type: 'timestamp'})
+    @Column({ type: 'timestamp' })
     birthDate!: Date;
 
-    @Column({type: 'timestamp', default: () => 'CURRENT_TIMESTAMP'})
+    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
     createDate!: Date;
 
     @Column()
@@ -42,7 +51,7 @@ export class User {
     @ManyToOne(() => Role, role => role.users)
     role!: Role;
 
-    @Column({unique: true})
+    @Column({ unique: true })
     matricule!: string;
 
     @Column()
@@ -65,38 +74,38 @@ export class User {
     deleted!: boolean;
 
     @ManyToOne(() => Club, club => club.users)
-    @JoinColumn({name: 'clubId'})
+    @JoinColumn({ name: 'clubId' })
     club!: Club;
 
     @ManyToOne(() => FormationCenter, formationCenter => formationCenter.users)
-    @JoinColumn({name: 'formationCenterId'})
+    @JoinColumn({ name: 'formationCenterId' })
     formationCenter!: FormationCenter;
 
     @OneToOne(() => Player, player => player.user)
-    @JoinColumn({name: 'playerId'})
+    @JoinColumn({ name: 'playerId' })
     player!: Player;
 
     @OneToOne(() => Image, image => image.user)
-    @JoinColumn({name: 'imageId'})
+    @JoinColumn({ name: 'imageId' })
     image!: Image;
 
     @Column()
     firstConnection!: boolean;
 
-    @Column({default: false})
+    @Column({ default: false })
     a2fEnabled!: boolean;
 
-    @Column({nullable: true})
+    @Column({ nullable: true })
     a2fCode!: string;
 
-    @Column({type: 'timestamp', nullable: true})
+    @Column({ type: 'timestamp', nullable: true })
     a2fCodeCreatedAt!: Date;
 
     @OneToMany(() => Document, document => document.user)
     documents!: Document[];
 
-    @OneToMany(() => Folder, folder => folder.documents)
-    folder!: Folder[];
+    @OneToMany(() => Folder, folder => folder.user)
+    folders!: Folder[];
 
     @OneToMany(() => EventInvitation, invitation => invitation.user)
     invitations!: EventInvitation[];
@@ -136,8 +145,8 @@ export class User {
         a2fEnabled?: boolean,
         a2fCode?: string,
         a2fCodeCreatedAt?: Date,
-        folder?: Folder[],
-        document? : Document[],
+        folders?: Folder[],
+        documents?: Document[],
         invitations?: EventInvitation[],
         emails?: Email[],
         eventsProposals?: EventProposal[],
@@ -166,8 +175,8 @@ export class User {
         if (a2fEnabled) this.a2fEnabled = a2fEnabled;
         if (a2fCode) this.a2fCode = a2fCode;
         if (a2fCodeCreatedAt) this.a2fCodeCreatedAt = a2fCodeCreatedAt;
-        if (folder) this.folder = folder;
-        if (document) this.documents = document;
+        if (folders) this.folders = folders;
+        if (documents) this.documents = documents;
         if (invitations) this.invitations = invitations;
         if (emails) this.emails = emails;
         if (eventsProposals) this.eventProposals = eventsProposals;

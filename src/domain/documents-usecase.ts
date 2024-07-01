@@ -33,10 +33,10 @@ const auth = new google.auth.GoogleAuth({
     scopes: SCOPES,
 })
 
-const CLIENT_ID = '217952883974-nbov9en8884cj3gkvgtvh53ulfr7619r.apps.googleusercontent.com'
-const CLIENT_SECRET = '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'
-const REDIRECT_URI = 'https://developers.google.com/oauthplayground'
-const REFRESH_TOKEN = '1//04_cki4Tv90-qCgYIARAAGAQSNwF-L9IrCskLzlzPXNUEwGB35OsvITRfeBVKV0h5bRtbcswbHR77ATLwqQT5gX4RhZDX-ZaLQbg'
+const CLIENT_ID = process.env.CLIENT_ID
+const CLIENT_SECRET = process.env.CLIENT_SECRET
+const REDIRECT_URI = process.env.REDIRECT_URI
+const REFRESH_TOKEN = process.env.REFRESH_TOKEN
 
 /****************************************************************************************** */
 
@@ -61,10 +61,10 @@ export class DocumentUseCase {
     * Initialisation des parametre de connexion pour l'utilisation de l'API GOOGLE Drive
     */
     initDriveClient() {
-        const CLIENT_ID = '217952883974-nbov9en8884cj3gkvgtvh53ulfr7619r.apps.googleusercontent.com';
-        const CLIENT_SECRET = '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';
+        const CLIENT_ID = '521771635926-eapkcq4qp6lqkdvcibrd65qc34mv2v84.apps.googleusercontent.com';
+        const CLIENT_SECRET = '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';
         const REDIRECT_URI = 'https://developers.google.com/oauthplayground';
-        const REFRESH_TOKEN = '1//04_cki4Tv90-qCgYIARAAGAQSNwF-L9IrCskLzlzPXNUEwGB35OsvITRfeBVKV0h5bRtbcswbHR77ATLwqQT5gX4RhZDX-ZaLQbg';
+        const REFRESH_TOKEN = '1//04vaSjG0wSTLnCgYIARAAGAQSNwF-L9IrYFzaPUQGUvmiukpebyvdBSoayaPZMAwUpsx0uvDIEZLyKLbLCjNp6p8N2a0iS94DPek';
 
         this.oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
         this.oauth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
@@ -160,8 +160,6 @@ export class DocumentUseCase {
                 .where('document.id = :id', { id: documentId })
                 .getOne();
 
-            console.log("documentone", document)
-
             if (!document) {
                 throw new Error(`Invalid document id =${documentId}`)
             }
@@ -172,15 +170,12 @@ export class DocumentUseCase {
             if (!fileId) {
                 throw new Error(`Invalid file ID for document id = ${documentId}`)
             }
-            console.log("fileId", fileId)
 
             try {
                 const response = await this.driveClient.files.get({
                     fileId: fileId,
                     alt: 'media',
                 }, { responseType: 'stream' });
-
-                console.log("bb", response.data);
 
                 return response.data as Readable;
 
@@ -231,8 +226,6 @@ export class DocumentUseCase {
                 resource: fileMetadata,
                 fields: 'id',
             });
-
-            console.log('Folder Id:', file.data.id);
 
             await this.driveClient.permissions.create({
                 fileId: file.data.id,
@@ -307,8 +300,6 @@ export class DocumentUseCase {
             },
             fields: "id,name,mimeType",
         });
-
-        console.log(`Uploaded file ${data.name} ${data.id}`);
 
         await this.driveClient.permissions.create({
             fileId: data.id,
@@ -407,4 +398,77 @@ export class DocumentUseCase {
             throw err;
         }
     }
+
+    async uploadToFolderFromBuffer(folderId: number, file: { buffer: Buffer, originalname: string, mimetype: string }, userId: number) {
+        const folderRepository = this.db.getRepository(Folder)
+
+        const folder = await folderRepository.findOne({
+            where: { id: folderId },
+            relations: ['user']
+        })
+
+        if (!folder) {
+            throw new Error(`Folder with Google Drive ID ${folderId} not found in the database`);
+        }
+
+        if (folder.user.id !== userId) {
+            throw new Error('You do not have permission to upload files to this folder');
+        }
+
+        // Vérifiez si le dossier existe
+        try {
+            await this.driveClient.files.get({ fileId: folder.googleId });
+        } catch (error) {
+            throw new Error(`Folder not found: ${folderId}`);
+        }
+
+        // Créez le flux du fichier
+        const bufferStream = new Stream.PassThrough();
+        bufferStream.end(file.buffer);
+
+        // Téléchargez le fichier sur Google Drive
+        const { data } = await this.driveClient.files.create({
+            media: {
+                mimeType: file.mimetype,
+                body: bufferStream,
+            },
+            requestBody: {
+                name: file.originalname,
+                parents: [folder.googleId],
+            },
+            fields: "id,name,mimeType",
+        });
+
+        console.log(`Uploaded file ${data.name} ${data.id}`);
+
+        await this.driveClient.permissions.create({
+            fileId: data.id,
+            requestBody: {
+                role: 'reader',
+                type: 'anyone',
+            },
+        });
+
+        // Enrégistrer les informations en base de données
+        const documentRepository = this.db.getRepository(Document);
+        const document = new Document();
+        document.name = file.originalname;
+        document.type = 'membership_card';
+        document.path = `https://drive.google.com/file/d/${data.id}`;
+        document.filegoogleId = data.id
+        document.folder = folder
+
+        const userRepository = this.db.getRepository(User);
+        const user = await userRepository.findOne({ where: { id: userId } });
+        if (!user) {
+            throw new Error(`User not found: ${userId}`);
+        }
+        document.user = user;
+
+        const savedDocument = await documentRepository.save(document);
+        const viewUrl = `https://drive.google.com/file/d/${data.id}/view?usp=sharing`;
+
+        return { document: savedDocument, viewUrl };
+    }
+
 }

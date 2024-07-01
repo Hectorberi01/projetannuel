@@ -183,9 +183,7 @@ export const documentsRoutes = (app: express.Express) => {
                 id: req.params.folderid,
                 userId: req.params.userId 
             })
-    
-            console.log("req.file",req.file)
-            console.log("UploadFileToFolder",UploadFileToFolder)
+
             if(UploadFileToFolder.error){
                 res.status(400).send(generateValidationErrorMessage(UploadFileToFolder.error.details))
                 return
@@ -246,10 +244,6 @@ export const documentsRoutes = (app: express.Express) => {
         }
     });
 }
-
-
-
-
 
 
  // app.post("/documents", upload.single('file'), async (req: Request, res: Response) => {

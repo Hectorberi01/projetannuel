@@ -1,4 +1,4 @@
-import {Column, Entity, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn} from "typeorm";
+import {Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn} from "typeorm";
 import {Transaction} from './transaction'
 import {CotisationStatus} from "../../Enumerators/CotisationStatus";
 import {User} from "./user";
@@ -31,6 +31,7 @@ export class Cotisation {
     entityType!: EntityType;
 
     @ManyToOne(type => User, user => user.cotisations)
+    @JoinColumn({ name: 'userId' })
     user!: User
 
     @ManyToOne(type => Club, club => club.cotisations)

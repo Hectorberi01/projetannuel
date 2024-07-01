@@ -169,19 +169,17 @@ export class CotisationUseCase {
             const userUseCase = new UseruseCase(this.db);
 
             if (entityType === EntityType.USER) {
-                const user = await userUseCase.getUserById(entityId);
-                if (!user) {
-                    throw new Error("Utilisateur inconnu");
-                }
+                const cotisation = await this.cotisationRepository.createQueryBuilder("cotisation")
+                    .leftJoinAndSelect("cotisation.user", "user")
+                    .where("user.id = :id", { id: entityId })
+                    .getOne();
 
-                const result = await this.cotisationRepository.findOne({
-                    where: {user: user},
-                });
-
-                if (!result) {
+                if (!cotisation) {
                     throw new Error("Pas de cotisation");
                 }
-                return result;
+
+                console.log('Cotisation found:', cotisation);
+                return cotisation;
             } else if (entityType === EntityType.CLUB) {
                 const clubUseCase = new ClubUseCase(this.db);
                 const club = await clubUseCase.getClubById(entityId);

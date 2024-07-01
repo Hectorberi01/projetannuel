@@ -26,11 +26,10 @@ import {InfoUseCase} from "./info-usecase";
 import {CreateInfoRequest} from "../handlers/validator/info-validator";
 import {InfoType} from "../Enumerators/InfoType";
 import {InfoLevel} from "../Enumerators/InfoLevel";
-import * as fs from 'fs';
-import * as path from 'path';
 import {EmailUseCase} from "./email-usecase";
 import {AppDataSource} from "../database/database";
 import {Email} from "../database/entities/email";
+import {DocumentUseCase} from "./documents-usecase";
 
 
 export interface ListUserCase {
@@ -85,6 +84,7 @@ export class UseruseCase {
 
     async createUser(userData: CreateUserRequest, file: Express.Multer.File | undefined): Promise<User> {
         try {
+            const documentUseCase = new DocumentUseCase(AppDataSource);
             const alreadyExist = await this.getUserByEmail(userData.email);
             if (alreadyExist != null) {
                 throw new Error("L'email est déjà associé à un compte");
@@ -139,8 +139,11 @@ export class UseruseCase {
             }
 
             await this.messageUseCase.sendMessage(MessageType.FIRST_CONNECTION, user, tmpPassword);
-            if (user.role.role !== "ADMIN"){
+            await documentUseCase.createFolder(user.matricule, user.id);
+            if (user.role.role !== "ADMIN") {
                 await this.cotisationUseCase.createCotisation(EntityType.USER, user.id)
+            } else {
+                await this.generateCotisationCardFromUser(user.id);
             }
             let infoRequest: CreateInfoRequest = {
                 type: InfoType.USER_CREATE,
@@ -201,6 +204,7 @@ export class UseruseCase {
             .leftJoinAndSelect("user.formationCenter", "formationCenter")
             .leftJoinAndSelect("user.player", "player")
             .leftJoinAndSelect("user.image", "image")
+            .leftJoinAndSelect("user.folders", "folders")
             .where("user.id = :id", {id: userId})
             .getOne();
 
@@ -524,15 +528,18 @@ export class UseruseCase {
         return user;
     }
 
-
     async generateCotisationCard(): Promise<void> {
         try {
             const cotisationUseCase = new CotisationUseCase(this.db);
             const users = await cotisationUseCase.getUsersWithCotisationPaidYesterday();
 
-            for (const user of users) {
+            for (let user of users) {
+                if (!user){
+                    continue;
+                }
+                user = await this.getUserById(user.id);
                 const card = await this.createMembershipCard(user);
-                await this.saveMembershipCard(card, user.id);
+                await this.saveMembershipCard(card, user);
                 await this.sendMembershipCardNotification(user);
                 let infoRequest: CreateInfoRequest = {
                     type: InfoType.CREATE_CARD,
@@ -542,6 +549,27 @@ export class UseruseCase {
                 }
                 await this.infoUseCase.createInfo(infoRequest);
             }
+        } catch (error: any) {
+            throw new Error("Erreur lors de la génération des cartes: " + error.message);
+        }
+    }
+
+    async generateCotisationCardFromUser(userId: number): Promise<void> {
+        try {
+            const user = await this.getUserById(userId);
+            if (!user) {
+                throw new Error("Utilisateur inconnu");
+            }
+            const card = await this.createMembershipCard(user);
+            await this.saveMembershipCard(card, user);
+            await this.sendMembershipCardNotification(user);
+            let infoRequest: CreateInfoRequest = {
+                type: InfoType.CREATE_CARD,
+                level: InfoLevel.LOW,
+                text: `La carte adhérente de ${user.firstname} ${user.lastname} [${user.id}] a bien été générée`,
+                user: await this.getSportVisionUser(),
+            }
+            await this.infoUseCase.createInfo(infoRequest);
         } catch (error: any) {
             throw new Error("Erreur lors de la génération des cartes: " + error.message);
         }
@@ -570,13 +598,15 @@ export class UseruseCase {
         return canvas.toBuffer();
     }
 
-    private async saveMembershipCard(card: Buffer, userId: number): Promise<void> {
-        const documentsPath = path.join(__dirname, '..', 'documents');
-        if (!fs.existsSync(documentsPath)) {
-            fs.mkdirSync(documentsPath, {recursive: true});
-        }
-        const cardPath = path.join(documentsPath, `membership_card_${userId}.png`);
-        fs.writeFileSync(cardPath, card);
+    private async saveMembershipCard(card: Buffer, user: User): Promise<void> {
+        const documentUseCase = new DocumentUseCase(AppDataSource);
+        const file = {
+            buffer: card,
+            originalname: `membership_card_${user.matricule}.png`,
+            mimetype: 'image/png'
+        };
+
+        await documentUseCase.uploadToFolderFromBuffer(user.folders[0].id, file, user.id);
     }
 
     private async sendMembershipCardNotification(user: User): Promise<void> {
