@@ -7,6 +7,7 @@ import {UseruseCase} from "./user-usecase";
 import {AppDataSource} from "../database/database";
 import {CotisationUseCase} from "./cotisation-usecase";
 import {EntityType} from "../Enumerators/EntityType";
+import {User} from "../database/entities/user";
 
 export interface ListFormationCenterCase {
     limit: number;
@@ -16,6 +17,11 @@ export interface ListFormationCenterCase {
 export class FormationCenterUseCase {
 
     constructor(private readonly db: DataSource) {
+    }
+
+    private getUserUseCase() {
+        const {UseruseCase} = require("./user-usecase");
+        return new UseruseCase(this.db);
     }
 
     async getAllFormationsCenters(listformation: ListFormationCenterCase): Promise<{
@@ -119,14 +125,25 @@ export class FormationCenterUseCase {
     }
 
     async getAssociatedPlayers(formationCenterId: number): Promise<Player[]> {
-
         const playerRepository = this.db.getRepository(Player);
         const formationCenter = await this.getFormationCenterById(formationCenterId);
 
         if (!formationCenter) {
-            throw new Error(`Sport ${formationCenterId} was not found`);
+            throw new Error(`Formation center ${formationCenterId} was not found`);
         }
 
-        return playerRepository.findBy({formationCenter: formationCenter});
+        return playerRepository.find({
+            where: { formationCenter: formationCenter },
+            relations: ["sport"]
+        });
+    }
+
+    async getAllFormationsCentersUsers(clubId: number): Promise<User[]> {
+        const fc = await this.getFormationCenterById(clubId);
+        if (!fc) {
+            throw new Error(`${clubId} not found`);
+        }
+        const userUseCase = this.getUserUseCase();
+        return await userUseCase.getAllFCUsers(fc);
     }
 }

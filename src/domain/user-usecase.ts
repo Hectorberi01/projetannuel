@@ -30,6 +30,7 @@ import {EmailUseCase} from "./email-usecase";
 import {AppDataSource} from "../database/database";
 import {Email} from "../database/entities/email";
 import {DocumentUseCase} from "./documents-usecase";
+import {FormationCenter} from "../database/entities/formationcenter";
 
 
 export interface ListUserCase {
@@ -503,6 +504,12 @@ export class UseruseCase {
         })
     }
 
+    async getAllFCUsers(fc: FormationCenter): Promise<User[]> {
+        return await this.userRepository.find({
+            where: {formationCenter: fc}
+        })
+    }
+
     async getClubByUser(userId: number): Promise<Club> {
         try {
             const user = await this.getUserById(userId);
@@ -511,6 +518,19 @@ export class UseruseCase {
             }
 
             return user.club;
+        } catch (error) {
+            throw new Error("Erreur lors de la récupération du club")
+        }
+    }
+
+    async getFormationCenterByUser(userId: number): Promise<FormationCenter> {
+        try {
+            const user = await this.getUserById(userId);
+            if (!user) {
+                throw new Error("Utilisateur inconnu");
+            }
+
+            return user.formationCenter;
         } catch (error) {
             throw new Error("Erreur lors de la récupération du club")
         }

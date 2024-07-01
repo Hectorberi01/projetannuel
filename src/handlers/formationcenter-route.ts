@@ -10,6 +10,8 @@ import {generateValidationErrorMessage} from "./validator/generate-validation-me
 import {idClubValidation} from "./validator/club-validator";
 import {CotisationUseCase} from "../domain/cotisation-usecase";
 import {EntityType} from "../Enumerators/EntityType";
+import {ClubUseCase} from "../domain/club-usecase";
+import {FormationCenter} from "../database/entities/formationcenter";
 
 export const formationcenterRoutes = (app: express.Express) => {
 
@@ -42,7 +44,7 @@ export const formationcenterRoutes = (app: express.Express) => {
         }
     });
 
-    app.get("/formations-centers/:id", async (req: Request, res: Response) => {
+    app.get("/formation-centers/:id", async (req: Request, res: Response) => {
         try {
             const formationidvalidation = FormationCenterIdValidation.validate(req.params)
 
@@ -119,7 +121,7 @@ export const formationcenterRoutes = (app: express.Express) => {
     });
 
     // sippression d'un centre de formation 
-    app.delete("/formations-centers/:id", async (req: Request, res: Response) => {
+    app.delete("/formation-centers/:id", async (req: Request, res: Response) => {
         try {
             const formationidvalidation = FormationCenterIdValidation.validate(req.params)
 
@@ -144,7 +146,7 @@ export const formationcenterRoutes = (app: express.Express) => {
         }
     })
 
-    app.get("/formations-centers/:id/players", async (req: Request, res: Response) => {
+    app.get("/formation-centers/:id/players", async (req: Request, res: Response) => {
         try {
             const idFormationCenterValidate = FormationCenterIdValidation.validate(req.params)
 
@@ -160,7 +162,7 @@ export const formationcenterRoutes = (app: express.Express) => {
         }
     })
 
-    app.get("/formations-centers/:id/cotisations", async (req: Request, res: Response) => {
+    app.get("/formation-centers/:id/cotisations", async (req: Request, res: Response) => {
         try {
             const idClubValidate = idClubValidation.validate(req.params)
             if (idClubValidate.error) {
@@ -173,4 +175,21 @@ export const formationcenterRoutes = (app: express.Express) => {
             res.status(500).send({"error": "internal error retry later"})
         }
     })
+
+    app.get("/formation-centers/:id/users", async (req: Request, res: Response) => {
+        try {
+            const idFormationCenter = idClubValidation.validate(req.params)
+
+            if (idFormationCenter.error) {
+                res.status(400).send(generateValidationErrorMessage(idFormationCenter.error.details))
+            }
+
+            const useCase = new FormationCenterUseCase(AppDataSource);
+            const result = await useCase.getAllFormationsCentersUsers(idFormationCenter.value.id);
+            res.status(200).send(result);
+        } catch (error) {
+            res.status(500).send({"error": "internal error retry later"})
+        }
+    })
+
 }

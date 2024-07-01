@@ -72,36 +72,19 @@ export const documentsRoutes = (app: express.Express) => {
     * @param{Integer} Id du document en base de données et non 
     * l'id du fichier dans google drive 
     * */
-    app.get('/documents/:id/download', async (req: Request, res: Response) => {
+    app.get('/documents/:documentId/download', async (req: Request, res: Response) => {
+        const documentId = parseInt(req.params.documentId);
+        const documentService = new DocumentUseCase(AppDataSource);
 
         try {
-            const idDocumentValidate = idDocumentValidation.validate(req.params);
-
-            if (idDocumentValidate.error) {
-                res.status(400).send(generateValidationErrorMessage(idDocumentValidate.error.details));
-            }
-
-            let documentStream: any
-            const documentUseCase = new DocumentUseCase(AppDataSource);
-            documentStream = await documentUseCase.downloadFile(idDocumentValidate.value.id)
-            
-            res.setHeader('Content-Disposition', `attachment; filename=${idDocumentValidate.value.id}.pdf`);
-            res.setHeader('Content-Type', 'application/pdf');
-            
-            if (documentStream instanceof Readable) {
-                
-                documentStream.pipe(res);
-            } else if (Buffer.isBuffer(documentStream)) {
-                
-                res.end(documentStream);
-            } else {
-                throw new Error('Invalid stream type returned');
-            }
-            console.log("hector")
+            const fileStream = await documentService.downloadFile(documentId);
+            res.setHeader('Content-Disposition', `attachment; filename=document_${documentId}.png`);
+            fileStream.pipe(res);
         } catch (error) {
-            res.status(500).send(error);
+            console.error('Error downloading file:', error);
+            res.status(500).send({ message: 'Error downloading file' });
         }
-    })
+    });
 
   
     /**

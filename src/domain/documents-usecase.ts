@@ -153,40 +153,28 @@ export class DocumentUseCase {
     * @returns le document en format buffer
     */
     async downloadFile(documentId: number): Promise<Readable> {
-        try {
-            const documentRepository = this.db.getRepository(Document)
-            const document = await documentRepository.createQueryBuilder('document')
-                .leftJoinAndSelect('document.folder', 'folder')
-                .where('document.id = :id', { id: documentId })
-                .getOne();
+        const documentRepository = this.db.getRepository(Document)
+        const document = await documentRepository.createQueryBuilder('document')
+            .leftJoinAndSelect('document.folder', 'folder')
+            .where('document.id = :id', { id: documentId })
+            .getOne();
 
-            if (!document) {
-                throw new Error(`Invalid document id =${documentId}`)
-            }
-
-            // on récupère l'id google drive rattacher au document 
-            const fileId = document.filegoogleId
-
-            if (!fileId) {
-                throw new Error(`Invalid file ID for document id = ${documentId}`)
-            }
-
-            try {
-                const response = await this.driveClient.files.get({
-                    fileId: fileId,
-                    alt: 'media',
-                }, { responseType: 'stream' });
-
-                return response.data as Readable;
-
-            } catch (error) {
-                throw new Error(`${error}`)
-            }
-
-        } catch (error) {
-            console.error('Error fetching file from Google Drive:', error);
-            throw new Error(`Error fetching file from Google Drive: ${error}`);
+        if (!document) {
+            throw new Error(`Invalid document id =${documentId}`)
         }
+
+        const fileId = document.filegoogleId;
+
+        if (!fileId) {
+            throw new Error(`Invalid file ID for document id = ${documentId}`)
+        }
+
+        const response = await this.driveClient.files.get(
+            { fileId: fileId, alt: 'media' },
+            { responseType: 'stream' }
+        );
+
+        return response.data as Readable;
     }
 
     async readableStreamToNodeStream(readableStream: ReadableStream<Uint8Array>): Promise<Readable> {
