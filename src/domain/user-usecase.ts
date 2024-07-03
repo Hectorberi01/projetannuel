@@ -554,7 +554,7 @@ export class UseruseCase {
             const users = await cotisationUseCase.getUsersWithCotisationPaidYesterday();
 
             for (let user of users) {
-                if (!user){
+                if (!user) {
                     continue;
                 }
                 user = await this.getUserById(user.id);
@@ -568,6 +568,9 @@ export class UseruseCase {
                     user: await this.getSportVisionUser(),
                 }
                 await this.infoUseCase.createInfo(infoRequest);
+                let cotisation = user.cotisations[0];
+                cotisation.generated = true;
+                await this.cotisationUseCase.updateCotisation(cotisation.id, cotisation);
             }
         } catch (error: any) {
             throw new Error("Erreur lors de la génération des cartes: " + error.message);

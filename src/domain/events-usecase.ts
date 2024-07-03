@@ -9,7 +9,6 @@ import {EventInvitationUseCase} from "./eventinvitation-usecase";
 import {User} from "../database/entities/user";
 import {ClubUseCase} from "./club-usecase";
 import {FormationCenterUseCase} from "./formationcenter-usecase";
-import {UseruseCase} from "./user-usecase";
 import {EventProposalUseCase} from "./eventproposal-usecase";
 import {EventProposal} from "../database/entities/eventProposal";
 
@@ -79,7 +78,6 @@ export class EventuseCase {
             const invitationUseCase = new EventInvitationUseCase(AppDataSource);
             const clubUseCase = new ClubUseCase(AppDataSource);
             const fcUseCase = new FormationCenterUseCase(AppDataSource);
-            const userUseCase = new UseruseCase(AppDataSource);
             let invitedUsers: Set<User> = new Set();
 
             if (newEvent.clubs != null && newEvent.clubs.length > 0) {

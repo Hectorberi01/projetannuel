@@ -1,4 +1,4 @@
-import {Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn} from "typeorm";
+import {Column, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn} from "typeorm";
 import {Transaction} from './transaction'
 import {CotisationStatus} from "../../Enumerators/CotisationStatus";
 import {User} from "./user";
@@ -21,7 +21,7 @@ export class Cotisation {
     @Column()
     limitDate!: Date;
 
-    @Column({ nullable: true })
+    @Column({nullable: true})
     paymentDate!: Date;
 
     @OneToOne(type => Transaction, transaction => transaction.cotisation)
@@ -31,7 +31,7 @@ export class Cotisation {
     entityType!: EntityType;
 
     @ManyToOne(type => User, user => user.cotisations)
-    @JoinColumn({ name: 'userId' })
+    @JoinColumn({name: 'userId'})
     user!: User
 
     @ManyToOne(type => Club, club => club.cotisations)
@@ -40,7 +40,10 @@ export class Cotisation {
     @ManyToOne(type => FormationCenter, formationCenter => formationCenter.cotisations)
     formationCenter!: FormationCenter;
 
-    constructor(id?: number, amount?: number, status?: CotisationStatus, limitDate?: Date, paymentDate?: Date, transaction?: Transaction, entityType?: EntityType, user?: User, club?: Club, formationCenter?: FormationCenter) {
+    @Column({default: false})
+    generated!: boolean
+
+    constructor(id?: number, amount?: number, status?: CotisationStatus, limitDate?: Date, paymentDate?: Date, transaction?: Transaction, entityType?: EntityType, user?: User, club?: Club, formationCenter?: FormationCenter, generated?: boolean) {
         if (id) this.id = id;
         if (amount) this.amount = amount;
         if (status) this.status = status;
@@ -52,5 +55,6 @@ export class Cotisation {
         if (club) this.club = club;
         if (formationCenter) this.formationCenter = formationCenter;
         if (transaction) this.transaction = transaction;
+        if (generated) this.generated = generated;
     }
 }

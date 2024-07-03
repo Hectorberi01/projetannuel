@@ -124,7 +124,10 @@ export class CotisationUseCase {
     async verifyUnpaidCotisation(): Promise<Cotisation[]> {
         try {
             const cotisations = await this.cotisationRepository.find({
-                where: {status: CotisationStatus.UNPAID},
+                where: {
+                    status: CotisationStatus.UNPAID,
+                    entityType: EntityType.USER
+                },
                 relations: {
                     user: true
                 }
@@ -150,10 +153,6 @@ export class CotisationUseCase {
             const messageUseCase = new MessageUseCase(AppDataSource);
 
             if (cotisation.limitDate < new Date()) {
-                const result = await this.cotisationRepository.delete(cotisation);
-                if (!result) {
-                    throw new Error("Suppression de la cotisation impossible");
-                }
                 await userUseCase.deactivateUserById(cotisation.user.id);
                 await messageUseCase.sendMessage(MessageType.DELETE_COTISATION, cotisation.user, cotisation);
             } else if (cotisation.limitDate > new Date()) {
@@ -171,7 +170,7 @@ export class CotisationUseCase {
             if (entityType === EntityType.USER) {
                 const cotisation = await this.cotisationRepository.createQueryBuilder("cotisation")
                     .leftJoinAndSelect("cotisation.user", "user")
-                    .where("user.id = :id", { id: entityId })
+                    .where("user.id = :id", {id: entityId})
                     .getOne();
 
                 if (!cotisation) {
@@ -246,15 +245,20 @@ export class CotisationUseCase {
 
     async getUsersWithCotisationPaidYesterday(): Promise<User[]> {
         try {
-            const cotisations = await this.cotisationRepository.find({
-                where: {
-                    status: CotisationStatus.PAID,
-                    entityType: EntityType.USER,
-                },
-                relations: {
-                    user: true
-                }
-            })
+            const today = new Date();
+            today.setHours(0, 0, 0, 0)
+            const yesterday = new Date();
+            yesterday.setHours(0, 0, 0, 0);
+            yesterday.setDate(yesterday.getDate() - 1);
+
+            const cotisations = await this.cotisationRepository.createQueryBuilder("cotisation")
+                .leftJoinAndSelect("cotisation.user", "user")
+                .where("cotisation.status = :status", {status: CotisationStatus.PAID})
+                .andWhere("cotisation.entity_type = :entityType", {entityType: EntityType.USER})
+                .andWhere("cotisation.payment_date >= :yesterday", {yesterday: yesterday})
+                .andWhere("cotisation.payment_date <= :today", {today: today})
+                .andWhere("cotisation.generated = false")
+                .getMany();
 
             const users: User[] = [];
             if (cotisations.length === 0) {
@@ -266,4 +270,17 @@ export class CotisationUseCase {
             throw new Error("Impossible de trouver les users: " + error.message);
         }
     }
+
+    async updateCotisation(cotisationId: number, cotisationData: Cotisation): Promise<any> {
+        try {
+            let cotisation = await this.getCotisationById(cotisationId);
+            cotisation.generated = cotisationData.generated;
+            cotisation.status = cotisationData.status;
+            await this.cotisationRepository.update(cotisationId, cotisation);
+        } catch (error: any) {
+            throw new Error("Impossible de mettre à jour cette cotisation")
+        }
+
+    }
+
 }
