@@ -18,10 +18,7 @@ export class EventProposalUseCase {
     constructor(private readonly db: DataSource) {
     }
 
-    async getAllEventProposals(list: ListEventProposalRequest): Promise<{
-        eventProposals: EventProposal[],
-        total: number
-    }> {
+    async getAllEventProposals(list: ListEventProposalRequest): Promise<{ eventProposals: EventProposal[], total: number }> {
         const query = this.db.getRepository(EventProposal).createQueryBuilder('eventProposal')
             .leftJoinAndSelect('eventProposal.club', 'club')
             .leftJoinAndSelect('eventProposal.formationCenter', 'formationCenter')

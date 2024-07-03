@@ -229,7 +229,13 @@ export class EventuseCase {
                 users: [eventProposal.player.user]
             }
 
-            return await this.createEvent(event);
+            const result = await this.createEvent(event);
+
+            if (!result) {
+                throw new Error("Impossible de créer cet evenement");
+            }
+            await eventProposalUseCase.deleteEventProposal(eventProposal.id);
+            return result;
         } catch (error) {
             throw new Error();
         }

@@ -26,4 +26,5 @@ export class AdminUseCase {
             throw error;
         }
     }
+
 }

@@ -21,7 +21,10 @@ export class PlayerProposalUseCase {
         this.db = db;
     }
 
-    async getAllPlayerProposals(listplayer: ListPlayerProposal): Promise<{ playerProposals: PlayerProposal[], total: number }> {
+    async getAllPlayerProposals(listplayer: ListPlayerProposal): Promise<{
+        playerProposals: PlayerProposal[],
+        total: number
+    }> {
 
         const query = this.db.getRepository(PlayerProposal).createQueryBuilder('playerProposal')
             .leftJoinAndSelect('playerProposal.formationCenter', 'formationCenter')
@@ -85,6 +88,8 @@ export class PlayerProposalUseCase {
             if (!result) {
                 throw new Error("Impossible de créer un joueur à partir de cette proposition");
             }
+
+            await this.deletePlayerProposal(pp.id);
             return result;
         } catch (error) {
             throw new Error("Impossible de créer un joueur à partir de cette proposition");

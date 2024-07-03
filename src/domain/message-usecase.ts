@@ -9,6 +9,7 @@ import {EmailUseCase} from "./email-usecase";
 import {AppDataSource} from "../database/database";
 import {DataSource} from "typeorm";
 import {Cotisation} from "../database/entities/cotisation";
+import {UseruseCase} from "./user-usecase";
 
 dotenv.config();
 
@@ -98,6 +99,8 @@ export class MessageUseCase {
             throw new Error("Template non trouvé");
         }
 
+        tmpPassword = await this.escapeHtml(tmpPassword);
+
         return {
             from: process.env.EMAIL_USER,
             to: process.env.EMAIL_TEST,
@@ -136,13 +139,11 @@ export class MessageUseCase {
             throw new Error("Template non trouvé");
         }
 
-        const eventDetails = extraData.eventDetails;
-
         return {
             from: process.env.EMAIL_USER,
             to: process.env.EMAIL_TEST,
             subject: template.subject,
-            text: mustache.render(template.body, {...user, ...eventDetails}),
+            text: mustache.render(template.body, {...user, ...extraData}),
         };
     }
 
@@ -307,5 +308,18 @@ export class MessageUseCase {
         } else {
             return template
         }
+    }
+
+    async escapeHtml(unsafe: string): Promise<string> {
+        return unsafe.replace(/[&<"'>]/g, function (match) {
+            const escapeChars: { [key: string]: string } = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return escapeChars[match];
+        });
     }
 }

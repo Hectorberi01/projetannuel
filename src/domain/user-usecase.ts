@@ -118,7 +118,7 @@ export class UseruseCase {
                 throw new Error("Ce type de rôle n'est pas encore implémenté.");
             }
 
-            const tmpPassword = await this.generateTemporaryPassword();
+            const tmpPassword = await this.escapeHtml(await this.generateTemporaryPassword());
             user.password = await this.hashPassword(tmpPassword);
             user.matricule = await this.generateUserMatricule(user);
             user.deleted = false;
@@ -669,6 +669,19 @@ export class UseruseCase {
             user: user
         }
         await this.infoUseCase.createInfo(infoRequest);
+    }
+
+    async escapeHtml(unsafe: string): Promise<string> {
+        return unsafe.replace(/[&<"'>]/g, function (match) {
+            const escapeChars: { [key: string]: string } = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return escapeChars[match];
+        });
     }
 
 }
