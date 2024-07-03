@@ -113,3 +113,11 @@ export const invitedUserValidation = Joi.object<InvitedUserRequest>({
     address: Joi.string().required(),
     birthDate: Joi.date().required(),
 })
+
+export interface EmailUserRequest {
+    email: string,
+}
+
+export const emailUserValidation = Joi.object<EmailUserRequest>({
+    email: Joi.string().required(),
+})

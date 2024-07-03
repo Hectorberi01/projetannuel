@@ -9,7 +9,6 @@ import {EmailUseCase} from "./email-usecase";
 import {AppDataSource} from "../database/database";
 import {DataSource} from "typeorm";
 import {Cotisation} from "../database/entities/cotisation";
-import {UseruseCase} from "./user-usecase";
 
 dotenv.config();
 
@@ -85,6 +84,10 @@ export class MessageUseCase {
                 break;
             case MessageType.USER_REACTIVATE:
                 mailOptions = await this.createUserReactivateMessage(user);
+                await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 0);
+                break;
+            case MessageType.LOST_PASSWORD:
+                mailOptions = await this.createLostPasswordMessage(user, extraData);
                 await sendDelayedMessage('email_queue', JSON.stringify(mailOptions), 0);
                 break;
             default:
@@ -282,6 +285,20 @@ export class MessageUseCase {
             to: process.env.EMAIL_TEST,
             subject: template.subject,
             text: mustache.render(template.body, {user})
+        }
+    }
+
+    private async createLostPasswordMessage(user: User, password: string): Promise<nodemailer.SendMailOptions> {
+        const template = await this.getTemplate(MessageType.LOST_PASSWORD);
+        if (!template) {
+            throw new Error("Template non trouvé")
+        }
+
+        return {
+            from: process.env.EMAIL_USER,
+            to: process.env.EMAIL_TEST,
+            subject: template.subject,
+            text: mustache.render(template.body, {user, password})
         }
     }
 

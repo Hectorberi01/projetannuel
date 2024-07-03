@@ -7,6 +7,7 @@ import {
     a2fUserValidation,
     changePasswordValidation,
     createUserValidation,
+    emailUserValidation,
     fcUserValidation,
     idUserValidation,
     invitedUserValidation,
@@ -308,6 +309,20 @@ export const userRoutes = (app: express.Express) => {
             res.status(200).send(result);
         } catch (error: any) {
             return res.status(500).json({message: error.message});
+        }
+    })
+
+    app.put("/users/auth/lost-password", async (req: Request, res: Response) => {
+        try {
+            const emailValidate = emailUserValidation.validate(req.body);
+            if (emailValidate.error) {
+                return res.status(400).send(generateValidationErrorMessage(emailValidate.error.details));
+            }
+            const useCase = new UseruseCase(AppDataSource);
+            await useCase.lostPassword(emailValidate.value.email);
+            res.status(200).send();
+        } catch (error) {
+            res.status(200).send();
         }
     })
 

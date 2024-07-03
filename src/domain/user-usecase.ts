@@ -282,6 +282,14 @@ export class UseruseCase {
         }
         await this.messageUseCase.sendMessage(MessageType.PASSWORD_CHANGED, user, null);
 
+        let infoRequest: CreateInfoRequest = {
+            type: InfoType.USER_CHANGE_PASSWORD,
+            level: InfoLevel.MODERATE,
+            text: `utilisateur ${user.firstname} ${user.lastname} [${user.id}] a changé son mot de passe`,
+            user: user
+        }
+        await this.infoUseCase.createInfo(infoRequest);
+
         return result;
     }
 
@@ -684,6 +692,25 @@ export class UseruseCase {
         });
     }
 
+    async lostPassword(email: string): Promise<void> {
+        const user = await this.getUserByEmail(email);
+        if (!user) {
+            throw new Error("Utilisateur inconnu");
+        }
+        const tmpPassword = await this.generateTemporaryPassword();
+        user.firstConnection = false;
+        user.password = await this.hashPassword(tmpPassword);
+        await this.userRepository.save(user);
+        await this.messageUseCase.sendMessage(MessageType.LOST_PASSWORD, user, tmpPassword);
+
+        let infoRequest: CreateInfoRequest = {
+            type: InfoType.USER_ASK_CHANGE_PASSWORD,
+            level: InfoLevel.HIGH,
+            text: `utilisateur ${user.firstname} ${user.lastname} [${user.id}] a demander un changement de mot de passe`,
+            user: user
+        }
+        await this.infoUseCase.createInfo(infoRequest);
+    }
 }
 
 
