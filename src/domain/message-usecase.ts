@@ -93,7 +93,8 @@ export class MessageUseCase {
             default:
                 throw new Error('Unknown message type');
         }
-        await emailUseCase.createEmail(user, messageType);
+        // @ts-ignore
+        await emailUseCase.createEmail(user, messageType, mailOptions.text);
     }
 
     private async createFirstConnectionMessage(user: any, tmpPassword: any): Promise<nodemailer.SendMailOptions> {
@@ -164,24 +165,17 @@ export class MessageUseCase {
         }
     }
 
-    private async createCanceledEventAlertMessage(user: any, extraData: any): Promise<nodemailer.SendMailOptions> {
+    private async createCanceledEventAlertMessage(user: any, event: any): Promise<nodemailer.SendMailOptions> {
         const template = await this.getTemplate(MessageType.CANCELED_EVENT_ALERT);
         if (!template) {
             throw new Error("Template non trouvé");
         }
 
-        const eventTitle = extraData.title;
-        const eventDateTime = extraData.startDate.toLocaleString();
-
         return {
             from: process.env.EMAIL_USER,
             to: process.env.EMAIL_TEST,
-            subject: mustache.render(template.subject, {eventTitle}),
-            text: mustache.render(template.body, {
-                ...user,
-                eventTitle,
-                eventDateTime
-            }),
+            subject: mustache.render(template.subject, {event}),
+            text: mustache.render(template.body, {user, event}),
         };
     }
 
@@ -293,6 +287,8 @@ export class MessageUseCase {
         if (!template) {
             throw new Error("Template non trouvé")
         }
+
+        password = await this.escapeHtml(password)
 
         return {
             from: process.env.EMAIL_USER,

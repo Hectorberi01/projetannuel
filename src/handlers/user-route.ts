@@ -25,24 +25,28 @@ export const userRoutes = (app: express.Express) => {
     //Obternir la liste de tout les utlisateurs
     app.get("/users", async (req: Request, res: Response) => {
         try {
-            const listUserValidate = listUserValidation.validate(req.query)
+            const listUserValidate = listUserValidation.validate(req.query);
             if (listUserValidate.error) {
-                res.status(400).send(generateValidationErrorMessage(listUserValidate.error.details))
-                return
+                res.status(400).send(generateValidationErrorMessage(listUserValidate.error.details));
+                return;
             }
 
-            let limit = 50
-            if (listUserValidate.value.limit) {
-                limit = listUserValidate.value.limit
-            }
-            const page = listUserValidate.value.page ?? 1
-            const userUseCase = new UseruseCase(AppDataSource)
-            const listUser = await userUseCase.getAllUsers({...listUserValidate, page, limit})
-            res.status(200).send(listUser)
+            let limit = listUserValidate.value.limit ?? 5;
+            const page = listUserValidate.value.page ?? 1;
+            const filters = {
+                ...listUserValidate.value,
+                page,
+                limit
+            };
+
+            const userUseCase = new UseruseCase(AppDataSource);
+            const listUser = await userUseCase.getAllUsers(filters);
+            res.status(200).send(listUser);
         } catch (error) {
-            res.status(500).send({"error": "internal error retry later"})
+            res.status(500).send({ "error": "internal error retry later" });
         }
-    })
+    });
+
 
     app.get("/users/recents", async (req: Request, res: Response) => {
 
@@ -318,6 +322,8 @@ export const userRoutes = (app: express.Express) => {
             if (emailValidate.error) {
                 return res.status(400).send(generateValidationErrorMessage(emailValidate.error.details));
             }
+            const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+
             const useCase = new UseruseCase(AppDataSource);
             await useCase.lostPassword(emailValidate.value.email);
             res.status(200).send();

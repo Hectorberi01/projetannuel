@@ -34,7 +34,10 @@ export class Transaction {
     @OneToOne(() => Cotisation, cotisation => cotisation.transaction)
     cotisation!: Cotisation;
 
-    constructor(id?: number, orderId?: string, status?: string, amount?: number, currency?: string, donorName?: string, donorEmail?: string, createdAt?: Date, cotisation?: Cotisation, type?: TransactionType) {
+    @Column()
+    ipAddress!: string;
+
+    constructor(id?: number, orderId?: string, status?: string, amount?: number, currency?: string, donorName?: string, donorEmail?: string, createdAt?: Date, cotisation?: Cotisation, type?: TransactionType, ipAddress?: string) {
         if (id) this.id = id;
         if (orderId) this.orderId = orderId;
         if (status) this.status = status;
@@ -45,5 +48,6 @@ export class Transaction {
         if (createdAt) this.createdAt = createdAt
         if (cotisation) this.cotisation = cotisation;
         if (type) this.type = type;
+        if (ipAddress) this.ipAddress = ipAddress;
     }
 }

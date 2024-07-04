@@ -134,23 +134,31 @@ export class EventuseCase {
         return event;
     }
 
-    async deleteEvent(eventid: number): Promise<DeleteResult> {
+    async deleteEvent(eventId: number): Promise<DeleteResult> {
 
         const eventRepository = this.db.getRepository(Event);
+        const messageUseCase = new MessageUseCase(AppDataSource);
 
         try {
-            const event = await eventRepository.findOne({
-                where: {id: eventid},
-                relations: ['participants', 'clubs', 'trainingCenters']
-            });
+            const event = await this.getEventById(eventId);
 
             if (!event) {
-                throw new Error(`Event with ID ${eventid} not found`);
+                throw new Error(`Event with ID ${eventId} not found`);
             }
 
-            return await eventRepository.delete(eventid);
+            const result = await eventRepository.delete(eventId);
+
+            if (!result) {
+                throw new Error("Impossible de supprimer cet evenement");
+            }
+
+            for (const user of event.participants) {
+                await messageUseCase.sendMessage(MessageType.CANCELED_EVENT_ALERT, user, event);
+            }
+
+            return result;
         } catch (error) {
-            console.error("Failed to delete event with ID:", eventid, error);
+            console.error("Failed to delete event with ID:", eventId, error);
             throw error;
         }
 

@@ -31,11 +31,17 @@ import {AppDataSource} from "../database/database";
 import {Email} from "../database/entities/email";
 import {DocumentUseCase} from "./documents-usecase";
 import {FormationCenter} from "../database/entities/formationcenter";
+import List = Mocha.reporters.List;
 
 
-export interface ListUserCase {
+export interface ListUserRequest {
     limit: number;
     page: number;
+    deleted?: boolean
+    firstName?: string
+    lastName?: string
+    email?: string
+    roleId?: number
 }
 
 export class UseruseCase {
@@ -68,14 +74,31 @@ export class UseruseCase {
         this.playerRepository = this.db.getRepository(Player);
     }
 
-    async getAllUsers(listuser: ListUserCase): Promise<{ user: User[], total: number }> {
 
+    async getAllUsers(filters: ListUserRequest): Promise<{ user: User[], total: number }> {
         const query = this.userRepository.createQueryBuilder('user')
             .leftJoinAndSelect('user.role', 'role')
-            .leftJoinAndSelect('user.events', 'events')
-            .where('user.deleted = false or user.deleted = null')
-            .skip((listuser.page - 1) * listuser.limit)
-            .take(listuser.limit);
+            .where('user.deleted = :deleted', { deleted: filters.deleted ?? false });
+
+        if (filters.firstName) {
+            query.andWhere('user.firstName LIKE :firstName', { firstName: `%${filters.firstName}%` });
+        }
+
+        if (filters.lastName) {
+            query.andWhere('user.lastName LIKE :lastName', { lastName: `%${filters.lastName}%` });
+        }
+
+        if (filters.email) {
+            query.andWhere('user.email LIKE :email', { email: `%${filters.email}%` });
+        }
+
+        if (filters.roleId) {
+            query.andWhere('role.id = :roleId', { roleId: filters.roleId });
+        }
+
+        query.skip((filters.page - 1) * filters.limit)
+            .take(filters.limit);
+
         const [user, total] = await query.getManyAndCount();
         return {
             user,

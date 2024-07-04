@@ -5,6 +5,11 @@ import {CreateInfoRequest} from "../handlers/validator/info-validator";
 export interface ListInfosRequest {
     limit: number;
     page: number;
+    userId?: number;
+    level?: string;
+    type?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
 }
 
 
@@ -14,13 +19,34 @@ export class InfoUseCase {
 
     async getAllInfos(list: ListInfosRequest): Promise<{ infos: Info[], total: number }> {
         const repo = this.db.getRepository(Info);
-        const [infos, total] = await repo.findAndCount({
-            skip: (list.page - 1) * list.limit,
-            take: list.limit,
-            relations: ['user'],
-            order: {date: "DESC"}
-        });
-        return {infos, total};
+        const queryBuilder = repo.createQueryBuilder('info')
+            .leftJoinAndSelect('info.user', 'user')
+            .orderBy('info.date', 'DESC')
+            .skip((list.page - 1) * list.limit)
+            .take(list.limit);
+
+        if (list.userId) {
+            queryBuilder.andWhere('user.id = :userId', { userId: list.userId });
+        }
+
+        if (list.level) {
+            queryBuilder.andWhere('info.level = :level', { level: list.level });
+        }
+
+        if (list.type) {
+            queryBuilder.andWhere('info.type = :type', { type: list.type });
+        }
+
+        if (list.dateFrom) {
+            queryBuilder.andWhere('info.date >= :dateFrom', { dateFrom: list.dateFrom });
+        }
+
+        if (list.dateTo) {
+            queryBuilder.andWhere('info.date <= :dateTo', { dateTo: list.dateTo });
+        }
+
+        const [infos, total] = await queryBuilder.getManyAndCount();
+        return { infos, total };
     }
 
     async createInfo(infoData: CreateInfoRequest): Promise<Info> {

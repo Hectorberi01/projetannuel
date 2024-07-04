@@ -140,15 +140,8 @@ export const eventsRoutes = (app: express.Express) => {
             }
 
             const eventUsecase = new EventuseCase(AppDataSource);
-            const userid = eventidvalidation.value.id;
-            const event = await eventUsecase.deleteEvent(userid)
-
-            // Vérifier si l'utilisateur a été supprimé avec succès
-            if (event.affected === 0) {
-                return res.status(404).json({error: 'User not found'});
-            }
-            // Répondre avec succès
-            return res.status(200).json({message: 'User deleted successfully'});
+            const result = await eventUsecase.deleteEvent(eventidvalidation.value.id);
+            return res.status(200).send(result);
         } catch (error) {
             res.status(500).send({"error": "internal error retry later"})
         }

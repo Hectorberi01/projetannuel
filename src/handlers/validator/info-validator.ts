@@ -24,11 +24,21 @@ export interface CreateInfoRequest {
 export const listInfoValidation = Joi.object<ListInfoRequest>({
     page: Joi.number().min(1).optional(),
     limit: Joi.number().min(1).optional(),
+    userId: Joi.number().optional(),
+    level: Joi.string().valid(...Object.values(InfoLevel)).optional(),
+    type: Joi.string().valid(...Object.values(InfoType)).optional(),
+    dateFrom: Joi.date().optional(),
+    dateTo: Joi.date().optional(),
 })
 
 export interface ListInfoRequest {
-    page?: number
-    limit?: number
+    page?: number;
+    limit?: number;
+    userId?: number;
+    level?: string;
+    type?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
 }
 
 export const idInfoValidation = Joi.object<IdInfoRequest>({

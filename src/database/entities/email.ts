@@ -18,11 +18,18 @@ export class Email {
     @Column()
     type!: MessageType;
 
-    constructor(id?: number, user?: User, status?: EmailStatus, type?: MessageType) {
+    @Column()
+    text!: string;
+
+    @Column()
+    sentDate!: Date
+
+    constructor(id?: number, user?: User, status?: EmailStatus, type?: MessageType, text?: string, sentDate?: Date) {
         if (id) this.id = id;
         if (user) this.user = user;
         if (status) this.status = status;
         if (type) this.type = type;
+        if (text) this.text = text;
+        if (sentDate) this.sentDate = sentDate;
     }
-
 }

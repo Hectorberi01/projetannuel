@@ -1,19 +1,21 @@
 import Joi from "joi";
 
-export const listTransactionValidation = Joi.object<ListTransactionsRequest>({
+export const listEmailsValidation = Joi.object<ListEmailsRequest>({
     page: Joi.number().min(1).optional(),
     limit: Joi.number().min(1).optional(),
     status: Joi.string().optional(),
-    donorEmail: Joi.string().email().optional(),
+    type: Joi.string().optional(),
+    email: Joi.string().optional(),
     dateFrom: Joi.date().optional(),
     dateTo: Joi.date().optional()
-})
+});
 
-export interface ListTransactionsRequest {
+export interface ListEmailsRequest {
     page?: number;
     limit?: number;
     status?: string;
-    donorEmail?: string;
+    type?: string;
+    email?: string;
     dateFrom?: string;
     dateTo?: string;
 }

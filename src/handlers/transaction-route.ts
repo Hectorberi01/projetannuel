@@ -8,9 +8,12 @@ export const transactionRoute = (app: express.Express) => {
 
     app.post("/transactions/create-paypal-order", async (req: Request, res: Response) => {
         try {
+
             const transactionUseCase = new TransactionUseCase(AppDataSource);
             const { amount, type } = req.body;
-            const order = await transactionUseCase.createOrder(amount, 'EUR', type);
+            const ipAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+            // @ts-ignore
+            const order = await transactionUseCase.createOrder(amount, 'EUR', type, ipAddress);
             res.json(order);
         } catch (error: any) {
             res.status(500).send(error.message);
@@ -39,12 +42,12 @@ export const transactionRoute = (app: express.Express) => {
                 return;
             }
 
-            const listeventRequest = listTransactionValidate.value;
-            const limit = listeventRequest.limit ?? 50;
-            const page = listeventRequest.page ?? 1;
+            const listTransactionsRequest = listTransactionValidate.value;
+            const limit = listTransactionsRequest.limit ?? 5;
+            const page = listTransactionsRequest.page ?? 1;
 
             const transactionUseCase = new TransactionUseCase(AppDataSource);
-            const listEvent = await transactionUseCase.getAllTransactions({...transactionUseCase, page, limit});
+            const listEvent = await transactionUseCase.getAllTransactions({...listTransactionsRequest, page, limit});
             res.status(200).send(listEvent);
         } catch (error) {
             console.log('Error fetching events:', error);

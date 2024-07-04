@@ -15,16 +15,20 @@ if (!clientId || !clientSecret) {
 const environment = new paypal.core.SandboxEnvironment(clientId, clientSecret);
 const client = new paypal.core.PayPalHttpClient(environment);
 
-export interface ListTransactionUseCase {
-    limit: number;
+export interface ListTransactionsRequest {
     page: number;
+    limit: number;
+    status?: string;
+    donorEmail?: string;
+    dateFrom?: string;
+    dateTo?: string;
 }
 
 export class TransactionUseCase {
     constructor(private readonly db: DataSource) {
     }
 
-    async createOrder(amount: number, currency: string, type: TransactionType): Promise<any> {
+    async createOrder(amount: number, currency: string, type: TransactionType, ipAddress?: string): Promise<any> {
         const request = new paypal.orders.OrdersCreateRequest();
         request.requestBody({
             intent: 'CAPTURE',
@@ -37,7 +41,7 @@ export class TransactionUseCase {
         });
 
         const order = await client.execute(request);
-        await this.createTransaction(amount, currency, type, order.result.id);
+        await this.createTransaction(amount, currency, type, order.result.id, ipAddress);
         return order.result;
     }
 
@@ -65,19 +69,29 @@ export class TransactionUseCase {
         return capture.result;
     }
 
-    async getAllTransactions(listTransactions: ListTransactionUseCase): Promise<{
-        transactions: Transaction[],
-        total: number
-    }> {
+    async getAllTransactions(listTransactions: ListTransactionsRequest): Promise<{ transactions: Transaction[], total: number }> {
         const query = this.db.getRepository(Transaction).createQueryBuilder('transaction')
             .skip((listTransactions.page - 1) * listTransactions.limit)
             .take(listTransactions.limit);
 
-        console.log('Executing query:', query.getQuery());
+        if (listTransactions.status) {
+            query.andWhere('transaction.status = :status', { status: listTransactions.status });
+        }
+
+        if (listTransactions.donorEmail) {
+            query.andWhere('transaction.donorEmail = :donorEmail', { donorEmail: listTransactions.donorEmail });
+        }
+
+        if (listTransactions.dateFrom) {
+            query.andWhere('transaction.createdAt >= :dateFrom', { dateFrom: listTransactions.dateFrom });
+        }
+
+        if (listTransactions.dateTo) {
+            query.andWhere('transaction.createdAt <= :dateTo', { dateTo: listTransactions.dateTo });
+        }
 
         try {
             const [transactions, total] = await query.getManyAndCount();
-            console.log('Query result:', transactions, total);
             return {
                 transactions,
                 total
@@ -88,7 +102,7 @@ export class TransactionUseCase {
         }
     }
 
-    async createTransaction(amount: number, currency: string, type: TransactionType, orderId: string): Promise<Transaction> {
+    async createTransaction(amount: number, currency: string, type: TransactionType, orderId: string, ipAddress?: string): Promise<Transaction> {
         try {
             const transactionRepository = this.db.getRepository(Transaction);
 
@@ -101,6 +115,7 @@ export class TransactionUseCase {
             transaction.donorName = "Pending";
             transaction.donorEmail = "Pending";
             transaction.createdAt = new Date();
+            if (ipAddress) transaction.ipAddress = ipAddress;
 
             return await transactionRepository.save(transaction);
         } catch (error: any) {

@@ -21,14 +21,14 @@ export const infoRoute = (app: express.Express) => {
             }
 
             const listRequest = listvalidator.value;
-            const limit = listRequest.limit ?? 50;
+            const limit = listRequest.limit ?? 5;
             const page = listRequest.page ?? 1;
 
             const useCase = new InfoUseCase(AppDataSource);
-            const listEvent = await useCase.getAllInfos({...listRequest, page, limit});
+            const listEvent = await useCase.getAllInfos({ ...listRequest, page, limit });
             res.status(200).send(listEvent);
         } catch (error) {
-            res.status(500).send({"error": "Internal error for list event, please retry later"});
+            res.status(500).send({ "error": "Internal error for list event, please retry later" });
         }
-    })
+    });
 }

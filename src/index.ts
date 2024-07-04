@@ -23,6 +23,7 @@ import {infoRoute} from "./handlers/info-route";
 import {cotisationRoute} from "./handlers/cotisation-route";
 import {adminRoute} from "./handlers/admin-route";
 import {playerproposalRoutes} from "./handlers/playerproposal-route";
+import {messageRoute} from "./handlers/message-route";
 
 dotenv.config();
 
@@ -91,6 +92,7 @@ const main = async () => {
         infoRoute(app);
         cotisationRoute(app);
         playerproposalRoutes(app);
+        messageRoute(app);
         console.log("Routes are set up successfully");
     } catch (error) {
         console.error("Error setting up routes:", error);

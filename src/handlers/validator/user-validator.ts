@@ -3,11 +3,21 @@ import Joi from "joi";
 export const listUserValidation = Joi.object<ListUserRequest>({
     page: Joi.number().min(1).optional(),
     limit: Joi.number().min(1).optional(),
-})
+    deleted: Joi.boolean().optional(),
+    firstName: Joi.string().optional(),
+    lastName: Joi.string().optional(),
+    email: Joi.string().email().optional(),
+    roleId: Joi.number().optional()
+});
 
 export interface ListUserRequest {
     page?: number
     limit?: number
+    deleted?: boolean
+    firstName?: string
+    lastName?: string
+    email?: string
+    roleId?: number
 }
 
 export interface CreateUserRequest {
