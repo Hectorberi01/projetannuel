@@ -39,6 +39,16 @@ export const clubRoutes = (app: express.Express) => {
         }
     });
 
+    app.get("/clubs/recents", async (req: Request, res: Response) => {
+        try {
+            const useCase = new ClubUseCase(AppDataSource);
+            const result = await useCase.getRecentClubs();
+            res.status(200).send(result);
+        } catch (error: any) {
+            res.status(500).send(error.message)
+        }
+    })
+
     app.get("/clubs/:id", async (req: Request, res: Response) => {
         try {
             const idSportValidate = idClubValidation.validate(req.params)

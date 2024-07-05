@@ -61,10 +61,6 @@ export class DocumentUseCase {
     * Initialisation des parametre de connexion pour l'utilisation de l'API GOOGLE Drive
     */
     initDriveClient() {
-        const CLIENT_ID = '521771635926-eapkcq4qp6lqkdvcibrd65qc34mv2v84.apps.googleusercontent.com';
-        const CLIENT_SECRET = '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';
-        const REDIRECT_URI = 'https://developers.google.com/oauthplayground';
-        const REFRESH_TOKEN = '1//04vaSjG0wSTLnCgYIARAAGAQSNwF-L9IrYFzaPUQGUvmiukpebyvdBSoayaPZMAwUpsx0uvDIEZLyKLbLCjNp6p8N2a0iS94DPek';
 
         this.oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
         this.oauth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });

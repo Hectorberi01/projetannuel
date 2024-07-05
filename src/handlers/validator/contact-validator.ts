@@ -20,7 +20,7 @@ export const listContactValidation = Joi.object<ListContactRequest>({
 })
 
 export interface CreateContactRequest {
-    role: string,
+    role?: string,
     name: string,
     email: string,
     subject: string,
@@ -28,7 +28,7 @@ export interface CreateContactRequest {
 }
 
 export const createContactValidation = Joi.object<CreateContactRequest>({
-    role: Joi.string().required(),
+    role: Joi.string().optional(),
     name: Joi.string().required(),
     email: Joi.string().required(),
     subject: Joi.string().required(),

@@ -54,9 +54,10 @@ export class ContactUseCase {
             let contact = new Contact();
             contact.name = contactRequest.name;
             contact.email = contactRequest.email;
-            contact.role = contactRequest.role;
+            if (contactRequest.role) contact.role = contactRequest.role;
             contact.subject = contactRequest.subject;
             contact.content = contactRequest.content;
+            contact.sentAt = new Date();
 
             return await repo.save(contact);
         } catch (error: any) {

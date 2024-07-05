@@ -44,6 +44,20 @@ export const messageRoute = (app: express.Express) => {
         }
     })
 
+    app.get("/contacts/:id", async (req: express.Request, res: express.Response) => {
+        try {
+            const idContactValidate = idContactValidation.validate(req.params);
+            if (idContactValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(idContactValidate.error.details));
+            }
+            const useCase = new ContactUseCase(AppDataSource);
+            const result = await useCase.getContactById(idContactValidate.value.id);
+            res.status(200).send(result);
+        } catch (error: any) {
+            res.status(500).send({error: error.message});
+        }
+    })
+
     app.delete("/contacts/:id", async (req: express.Request, res: express.Response) => {
         try {
             const idContactValidate = idContactValidation.validate(req.params);

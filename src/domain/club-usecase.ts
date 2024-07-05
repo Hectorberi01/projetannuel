@@ -174,4 +174,10 @@ export class ClubUseCase {
         const userUseCase = this.getUserUseCase();
         return await userUseCase.getAllClubUsers(club);
     }
+
+    async getRecentClubs(): Promise<Club[]> {
+        const query = this.clubRepository.createQueryBuilder('Club');
+        query.take(3);
+        return await query.getMany();
+    }
 }
