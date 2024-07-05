@@ -67,7 +67,6 @@ export class EventuseCase {
 
             return await this.fillUpInvitedUsers(newEvent, eventData.users);
         } catch (error) {
-            console.error("Erreur lors de la création de l'événement:", error);
             throw new Error("Impossible de créer cet événement");
         }
     }

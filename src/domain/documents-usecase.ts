@@ -1,19 +1,14 @@
-import { DataSource } from "typeorm";
-import { Document } from "../database/entities/document";
-import { R2 } from "node-cloudflare-r2";
-import { Readable } from "stream";
-import { createReadStream } from "fs";
-import { unlink } from "fs/promises";
-import { google, drive_v3 } from "googleapis";
+import {DataSource} from "typeorm";
+import {Document} from "../database/entities/document";
+import {Readable} from "stream";
+import {google} from "googleapis";
 import path from "path";
-import fs from 'fs';
-import { Stream } from "nodemailer/lib/xoauth2";
+import {Stream} from "nodemailer/lib/xoauth2";
 import dotenv from 'dotenv'
-import { Folder } from "../database/entities/Folder";
-import { Storage } from '@google-cloud/storage';
-import { OAuth2Client } from 'google-auth-library';
-import { networksecurity } from "googleapis/build/src/apis/networksecurity";
-import { User } from "../database/entities/user";
+import {Folder} from "../database/entities/Folder";
+import {OAuth2Client} from 'google-auth-library';
+import {User} from "../database/entities/user";
+
 dotenv.config()
 
 export interface ListDocumentsRequest {
@@ -33,9 +28,9 @@ const auth = new google.auth.GoogleAuth({
     scopes: SCOPES,
 })
 
-const CLIENT_ID = process.env.CLIENT_ID
-const CLIENT_SECRET = process.env.CLIENT_SECRET
-const REDIRECT_URI = process.env.REDIRECT_URI
+const CLIENT_ID = process.env.GOOGLE_CLIENT_ID
+const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET
+const REDIRECT_URI = process.env.GOOGLE_REDIRECT_URL
 const REFRESH_TOKEN = process.env.REFRESH_TOKEN
 
 /****************************************************************************************** */
@@ -52,63 +47,68 @@ export class DocumentUseCase {
             CLIENT_SECRET,
             REDIRECT_URI
         );
-        this.oauth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+        this.oauth2Client.setCredentials({refresh_token: REFRESH_TOKEN});
 
         this.initDriveClient();
     }
 
     /**
-    * Initialisation des parametre de connexion pour l'utilisation de l'API GOOGLE Drive
-    */
+     * Initialisation des parametre de connexion pour l'utilisation de l'API GOOGLE Drive
+     */
     initDriveClient() {
 
         this.oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
-        this.oauth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+        this.oauth2Client.setCredentials({refresh_token: REFRESH_TOKEN});
 
-        this.driveClient = google.drive({ version: 'v3', auth: this.oauth2Client });
+        this.driveClient = google.drive({version: 'v3', auth: this.oauth2Client});
     }
 
-   /**
-    * cette methode renvoie la liste des documents ainsi que les documents rattacher
-    * à un utilisateur. Si l'utilisateur est un admin, il pourra voir tout les documents et dossier
-    * Si ADMIN_FORMATIONCENTER il verra la liste des (files & doc) de tout les utilisateurs ayant pour 
-    * role ADMIN_FORMATIONCENTER et FORMATIONCENTER
-    * il est de même pour ADMIN_CLUB,
-    * pour les utilisateurs simple n'ayant pas de role admin il verrons que leurs propre (doc &files)
-    * @param listDocuments 
-    * @param userRole 
-    * @returns 
-    */
-    async getAllDocuments(listDocuments: ListDocumentsRequest, userRole: string): Promise<{ documents: Document[], folders: Folder[], totalDocuments: number, totalFolders: number }> {
-    
+    /**
+     * cette methode renvoie la liste des documents ainsi que les documents rattacher
+     * à un utilisateur. Si l'utilisateur est un admin, il pourra voir tout les documents et dossier
+     * Si ADMIN_FORMATIONCENTER il verra la liste des (files & doc) de tout les utilisateurs ayant pour
+     * role ADMIN_FORMATIONCENTER et FORMATIONCENTER
+     * il est de même pour ADMIN_CLUB,
+     * pour les utilisateurs simple n'ayant pas de role admin il verrons que leurs propre (doc &files)
+     * @param listDocuments
+     * @param userRole
+     * @returns
+     */
+    async getAllDocuments(listDocuments: ListDocumentsRequest, userRole: string): Promise<{
+        documents: Document[],
+        folders: Folder[],
+        totalDocuments: number,
+        totalFolders: number
+    }> {
+
         let documentsQuery = this.db.getRepository(Document).createQueryBuilder('document')
             .leftJoinAndSelect('document.user', 'user');
-        
+
         let foldersQuery = this.db.getRepository(Folder).createQueryBuilder('folder')
             .leftJoinAndSelect('folder.user', 'user');
 
         if (userRole === 'ADMIN') {
             documentsQuery = documentsQuery
             foldersQuery = foldersQuery
-        }else if (userRole === 'ADMIN_CLUB') {
+        } else if (userRole === 'ADMIN_CLUB') {
 
-            documentsQuery = documentsQuery.where('user.role = :role', { role: 'CLUB' });
-            foldersQuery = foldersQuery.where('user.role = :role', { role: 'CLUB' });
+            documentsQuery = documentsQuery.where('user.role = :role', {role: 'CLUB'});
+            foldersQuery = foldersQuery.where('user.role = :role', {role: 'CLUB'});
 
-        }else if (userRole === 'ADMIN_FORMATIONCENTER') {
+        } else if (userRole === 'ADMIN_FORMATIONCENTER') {
 
-            documentsQuery = documentsQuery.where('user.role = :role', { role: 'FORMATIONCENTER' });
-            foldersQuery = foldersQuery.where('user.role = :role', { role: 'FORMATIONCENTER' });
+            documentsQuery = documentsQuery.where('user.role = :role', {role: 'FORMATIONCENTER'});
+            foldersQuery = foldersQuery.where('user.role = :role', {role: 'FORMATIONCENTER'});
 
         } else if (userRole === 'CLUB' || userRole === 'FORMATIONCENTER') {
 
-            documentsQuery = documentsQuery.where('user.id = :userId', { userId: listDocuments.userId });
-            foldersQuery = foldersQuery.where('user.id = :userId', { userId: listDocuments.userId });
+            documentsQuery = documentsQuery.where('user.id = :userId', {userId: listDocuments.userId});
+            foldersQuery = foldersQuery.where('user.id = :userId', {userId: listDocuments.userId});
 
         } else {
             throw new Error('Invalid role');
         }
-        
+
         documentsQuery.skip((listDocuments.page - 1) * listDocuments.limit).take(listDocuments.limit);
         foldersQuery.skip((listDocuments.page - 1) * listDocuments.limit).take(listDocuments.limit);
 
@@ -116,7 +116,7 @@ export class DocumentUseCase {
         const [folders, totalFolders] = await foldersQuery.getManyAndCount();
 
         return {
-            documents ,
+            documents,
             folders,
             totalDocuments,
             totalFolders
@@ -124,15 +124,15 @@ export class DocumentUseCase {
     }
 
     /**
-    * Permet de récupérer un document par son ID
-    * @param documentId Id qui corresponds au document
-    * @returns 
-    */
+     * Permet de récupérer un document par son ID
+     * @param documentId Id qui corresponds au document
+     * @returns
+     */
     async getDocumentById(documentId: number): Promise<Document> {
         const documentRepository = this.db.getRepository(Document);
 
         const document = await documentRepository.findOne({
-            where: { id: documentId }
+            where: {id: documentId}
         });
 
         if (!document) {
@@ -144,15 +144,15 @@ export class DocumentUseCase {
 
 
     /**
-    * Téléchargement du document depuis google grive
-    * @param documentId Id du document en base de données et non l'id google grive 
-    * @returns le document en format buffer
-    */
+     * Téléchargement du document depuis google grive
+     * @param documentId Id du document en base de données et non l'id google grive
+     * @returns le document en format buffer
+     */
     async downloadFile(documentId: number): Promise<Readable> {
         const documentRepository = this.db.getRepository(Document)
         const document = await documentRepository.createQueryBuilder('document')
             .leftJoinAndSelect('document.folder', 'folder')
-            .where('document.id = :id', { id: documentId })
+            .where('document.id = :id', {id: documentId})
             .getOne();
 
         if (!document) {
@@ -166,8 +166,8 @@ export class DocumentUseCase {
         }
 
         const response = await this.driveClient.files.get(
-            { fileId: fileId, alt: 'media' },
-            { responseType: 'stream' }
+            {fileId: fileId, alt: 'media'},
+            {responseType: 'stream'}
         );
 
         return response.data as Readable;
@@ -178,7 +178,7 @@ export class DocumentUseCase {
         const nodeStream = new Readable({
             async read() {
                 try {
-                    const { done, value } = await reader.read();
+                    const {done, value} = await reader.read();
                     if (done) {
                         this.push(null);
                     } else {
@@ -195,12 +195,12 @@ export class DocumentUseCase {
 
 
     /**
-     * Création d'un dossier dans google drive 
-     * @param foldername nom du dossier 
-     * @returns  Folder 
+     * Création d'un dossier dans google drive
+     * @param foldername nom du dossier
+     * @returns  Folder
      */
     async createFolder(foldername: string, userId: number) {
-        
+
         try {
             const fileMetadata = {
                 name: foldername,
@@ -220,7 +220,7 @@ export class DocumentUseCase {
             });
 
             const userRepository = this.db.getRepository(User);
-            const user = await userRepository.findOne({ where: { id: userId } });
+            const user = await userRepository.findOne({where: {id: userId}});
             if (!user) {
                 throw new Error(`User not found: ${userId}`);
             }
@@ -240,7 +240,7 @@ export class DocumentUseCase {
 
     /**
      * Cette méthode permet de télécharger le fichier dans un dossier spécifique
-     * @param folderId  l'id google drive qui corespond au dossier 
+     * @param folderId  l'id google drive qui corespond au dossier
      * @param file le fichier à télécharger dans google drive
      * @returns l'objet document et l'url complet de drive qui corresponds au fichier
      */
@@ -249,7 +249,7 @@ export class DocumentUseCase {
         const folderRepository = this.db.getRepository(Folder)
 
         const folder = await folderRepository.findOne({
-            where: { googleId: folderId },
+            where: {googleId: folderId},
             relations: ['user']
         })
 
@@ -263,7 +263,7 @@ export class DocumentUseCase {
 
         // Vérifiez si le dossier existe
         try {
-            await this.driveClient.files.get({ fileId: folderId });
+            await this.driveClient.files.get({fileId: folderId});
         } catch (error) {
             throw new Error(`Folder not found: ${folderId}`);
         }
@@ -273,7 +273,7 @@ export class DocumentUseCase {
         bufferStream.end(file.buffer);
 
         // Téléchargez le fichier sur Google Drive
-        const { data } = await this.driveClient.files.create({
+        const {data} = await this.driveClient.files.create({
             media: {
                 mimeType: file.mimetype,
                 body: bufferStream,
@@ -303,7 +303,7 @@ export class DocumentUseCase {
         document.folder = folder
 
         const userRepository = this.db.getRepository(User);
-        const user = await userRepository.findOne({ where: { id: userId } });
+        const user = await userRepository.findOne({where: {id: userId}});
         if (!user) {
             throw new Error(`User not found: ${userId}`);
         }
@@ -312,23 +312,23 @@ export class DocumentUseCase {
         const savedDocument = await documentRepository.save(document);
         const viewUrl = `https://drive.google.com/file/d/${data.id}/view?usp=sharing`;
 
-        return { document: savedDocument, viewUrl };
+        return {document: savedDocument, viewUrl};
     }
 
 
     /**
-    * Cette méthode permet de déplacer le fichier dans un autre dossier 
-    * @param folderId  l'id google drive qui corespond au dossier dans google drive
-    * @param fileId l'id google drive qui corespond au fichier dans google drive
-    * @param userId identifian de l'utilisateur 
-    * @returns l'objet document et l'url complet de drive qui corresponds au fichier
-    */
+     * Cette méthode permet de déplacer le fichier dans un autre dossier
+     * @param folderId  l'id google drive qui corespond au dossier dans google drive
+     * @param fileId l'id google drive qui corespond au fichier dans google drive
+     * @param userId identifian de l'utilisateur
+     * @returns l'objet document et l'url complet de drive qui corresponds au fichier
+     */
     async moveFileToFolder(fileId: string, folderId: string, userId: number) {
         const folderRepository = this.db.getRepository(Folder);
         const documentRepository = this.db.getRepository(Document);
 
         const folder = await folderRepository.findOne({
-            where: { googleId: folderId },
+            where: {googleId: folderId},
             relations: ['user']
         });
 
@@ -336,24 +336,24 @@ export class DocumentUseCase {
             throw new Error(`Folder with Google Drive ID ${folderId} not found in the database`);
             return
         }
-    
+
         if (folder.user.id !== userId) {
             throw new Error('You do not have permission to move files to this folder');
         }
 
         const document = await documentRepository.findOne({
-            where: { filegoogleId: fileId },
+            where: {filegoogleId: fileId},
             relations: ['user']
         });
-    
+
         if (!document) {
             throw new Error(`Document with Google Drive ID ${fileId} not found in the database`);
         }
-    
+
         if (document.user.id !== userId) {
             throw new Error('You do not have permission to move this file');
         }
-    
+
 
         try {
             // Retrieve the existing parents to remove
@@ -383,11 +383,15 @@ export class DocumentUseCase {
         }
     }
 
-    async uploadToFolderFromBuffer(folderId: number, file: { buffer: Buffer, originalname: string, mimetype: string }, userId: number) {
+    async uploadToFolderFromBuffer(folderId: number, file: {
+        buffer: Buffer,
+        originalname: string,
+        mimetype: string
+    }, userId: number) {
         const folderRepository = this.db.getRepository(Folder)
 
         const folder = await folderRepository.findOne({
-            where: { id: folderId },
+            where: {id: folderId},
             relations: ['user']
         })
 
@@ -401,7 +405,7 @@ export class DocumentUseCase {
 
         // Vérifiez si le dossier existe
         try {
-            await this.driveClient.files.get({ fileId: folder.googleId });
+            await this.driveClient.files.get({fileId: folder.googleId});
         } catch (error) {
             throw new Error(`Folder not found: ${folderId}`);
         }
@@ -411,7 +415,7 @@ export class DocumentUseCase {
         bufferStream.end(file.buffer);
 
         // Téléchargez le fichier sur Google Drive
-        const { data } = await this.driveClient.files.create({
+        const {data} = await this.driveClient.files.create({
             media: {
                 mimeType: file.mimetype,
                 body: bufferStream,
@@ -443,7 +447,7 @@ export class DocumentUseCase {
         document.folder = folder
 
         const userRepository = this.db.getRepository(User);
-        const user = await userRepository.findOne({ where: { id: userId } });
+        const user = await userRepository.findOne({where: {id: userId}});
         if (!user) {
             throw new Error(`User not found: ${userId}`);
         }
@@ -452,7 +456,33 @@ export class DocumentUseCase {
         const savedDocument = await documentRepository.save(document);
         const viewUrl = `https://drive.google.com/file/d/${data.id}/view?usp=sharing`;
 
-        return { document: savedDocument, viewUrl };
+        return {document: savedDocument, viewUrl};
+    }
+
+    async getAll(): Promise<{ folders: Folder[], documents: Document[] }> {
+        const folderRepository = this.db.getRepository(Folder);
+        const documentRespository = this.db.getRepository(Document);
+
+        const folders = await folderRepository.find();
+        const documents = await documentRespository.find({
+            relations: {
+                folder: true
+            },
+        });
+
+        return {
+            folders: folders,
+            documents: documents,
+        }
+    }
+
+    async getAllFolders(): Promise<Folder[]> {
+        const folderRepository = this.db.getRepository(Folder);
+        return await folderRepository.find({
+            relations: {
+                user: true
+            }
+        });
     }
 
 }

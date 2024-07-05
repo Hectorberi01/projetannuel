@@ -1,6 +1,7 @@
 import {Contact} from "../database/entities/contact";
 import {DataSource} from "typeorm";
 import {CreateContactRequest} from "../handlers/validator/contact-validator";
+import {AppDataSource} from "../database/database";
 
 
 export interface ListMessagesRequest {
@@ -48,9 +49,14 @@ export class ContactUseCase {
         };
     }
 
-    async createContact(contactRequest: CreateContactRequest): Promise<Contact> {
+    async createContact(contactRequest: CreateContactRequest): Promise<Contact>     {
+        const queryRunner = AppDataSource.createQueryRunner();
+
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
         try {
-            const repo = this.db.getRepository(Contact);
+            const repo = queryRunner.manager.getRepository(Contact);
             let contact = new Contact();
             contact.name = contactRequest.name;
             contact.email = contactRequest.email;
@@ -59,9 +65,14 @@ export class ContactUseCase {
             contact.content = contactRequest.content;
             contact.sentAt = new Date();
 
-            return await repo.save(contact);
+            const result = await repo.save(contact);
+            await queryRunner.commitTransaction();
+            return result;
         } catch (error: any) {
-            throw new Error("Impossible de créer ce message" + error.message);
+            await queryRunner.rollbackTransaction();
+            throw new Error("Impossible de créer ce message: " + error.message);
+        } finally {
+            await queryRunner.release();
         }
     }
 
