@@ -4,11 +4,10 @@
   "description": "mise en place d'un site pour une organisation",
   "main": "server.js",
   "scripts": {
-    "serve": "node server.js",
+    "build": "tsc",
+    "serve": "node dist/index.js",
     "start:dev": "nodemon -e ts --exec ts-node src/index.ts",
-    "typeorm": "typeorm-ts-node-commonjs",
-    "consume-messages": "ts-node src/middlewares/consumeMessages.ts",
-    "start": "export GOOGLE_APPLICATION_CREDENTIALS='./gcloud.json' && node ./bin/www --exec babel-node --presets babel-preset-env"
+    "start": "npm run build && npm run serve"
   },
   "repository": {
     "type": "git",
