@@ -51,10 +51,13 @@ const main = async () => {
     validateEnvVariables();
 
     const app = express();
-    const port = 4000;
+    const port = 8080;
     try {
         await AppDataSource.initialize();
         console.error("well connected to database");
+
+        await AppDataSource.runMigrations();
+        console.log("Migrations executed successfully");
     } catch (error) {
         console.log(error);
         console.error("Cannot contact database");

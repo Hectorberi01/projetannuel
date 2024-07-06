@@ -5,8 +5,8 @@ import {TransactionType} from "../Enumerators/TransactionType";
 import {CotisationUseCase} from "./cotisation-usecase";
 import {CotisationStatus} from "../Enumerators/CotisationStatus";
 
-const clientId = process.env.PAYPAL_CLIENT_ID;
-const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
+const clientId = "AZM-xhZvk9RPx-koGNixiPRRv_BdF3aTvmrw9hxorpC7ewPymOgJJel1hwh4bDTujpCRT__lro3P6KtD";
+const clientSecret = "EFYmFHEEHacgKj3O0QGMrWZOAJO_9Qauww5rOKNlXzRYT4Px4TDfyVy5ZBJYN7osqzY7cFqxKqXWVE6C";
 
 if (!clientId || !clientSecret) {
     throw new Error('PayPal client ID and secret must be provided as environment variables.');
