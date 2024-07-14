@@ -120,7 +120,12 @@ export class PlayerProposalUseCase {
     async deletePlayerProposal(id: number): Promise<void> {
         try {
             const repo = this.db.getRepository(PlayerProposal);
-            await repo.deleteOne({where: {id: id}});
+            const pp = await this.getPlayerProposalById(id);
+
+            if (!pp) {
+                throw new Error("Player proposal inconnu");
+            }
+            await repo.delete(pp);
         } catch (error) {
             throw new Error("Impossible de supprimer cette proposition");
         }

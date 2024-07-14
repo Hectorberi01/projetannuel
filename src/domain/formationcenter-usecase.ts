@@ -1,4 +1,4 @@
-import {DataSource, DeleteResult, EntityNotFoundError} from "typeorm";
+import {DataSource, DeleteResult, EntityNotFoundError, Repository} from "typeorm";
 import {FormationCenterRequest} from "../handlers/validator/formation-validator";
 import {FormationCenter} from "../database/entities/formationcenter"
 import {Player} from "../database/entities/player";
@@ -8,6 +8,7 @@ import {AppDataSource} from "../database/database";
 import {CotisationUseCase} from "./cotisation-usecase";
 import {EntityType} from "../Enumerators/EntityType";
 import {User} from "../database/entities/user";
+import {ImageUseCase} from "./image-usecase";
 
 export interface ListFormationCenterCase {
     limit: number;
@@ -16,7 +17,10 @@ export interface ListFormationCenterCase {
 
 export class FormationCenterUseCase {
 
+    private fcRepo: Repository<FormationCenter>;
+
     constructor(private readonly db: DataSource) {
+        this.fcRepo = this.db.getRepository(FormationCenter)
     }
 
     private getUserUseCase() {
@@ -77,7 +81,7 @@ export class FormationCenterUseCase {
 
         const fc = await formationRepository.findOne({
             where: {id: id_formation},
-            relations: ['sports', 'users']
+            relations: ['sports', 'users', 'image']
         });
         if (!fc) {
             throw new EntityNotFoundError(FormationCenter, id_formation);
@@ -133,8 +137,8 @@ export class FormationCenterUseCase {
         }
 
         return playerRepository.find({
-            where: { formationCenter: formationCenter },
-            relations: ["sport"]
+            where: {formationCenter: formationCenter},
+            relations: ["sport", "image"]
         });
     }
 
@@ -145,5 +149,30 @@ export class FormationCenterUseCase {
         }
         const userUseCase = this.getUserUseCase();
         return await userUseCase.getAllFCUsers(fc);
+    }
+
+    async modifyFormationCenterPicture(formationCenterId: number, file: Express.Multer.File): Promise<void> {
+        try {
+            const imageUseCase = new ImageUseCase(AppDataSource);
+            let fc = await this.getFormationCenterById(formationCenterId);
+            if (!fc) {
+                throw new Error("Centre de formation inconnu");
+            }
+
+            if (fc.image) {
+                await imageUseCase.deleteImage(fc.image.id);
+            }
+
+            const image = await imageUseCase.createImage(file);
+
+            if (!image || image == null) {
+                throw new Error("Image impossible a uploader");
+            }
+            // @ts-ignore
+            fc.image = image;
+            await this.fcRepo.save(fc);
+        } catch (error: any) {
+            throw new Error(error.message);
+        }
     }
 }

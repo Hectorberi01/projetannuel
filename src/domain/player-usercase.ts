@@ -1,4 +1,4 @@
-import {DeleteResult, EntityNotFoundError} from "typeorm";
+import {DeleteResult, EntityNotFoundError, Repository} from "typeorm";
 import {Player} from "../database/entities/player";
 import {CreatePlayerRequest, UpdatePlayerRequest} from "../handlers/validator/player-validator";
 import {SportUseCase} from "./sport-usecase";
@@ -7,6 +7,7 @@ import {FormationCenterUseCase} from "./formationcenter-usecase";
 import {ImageUseCase} from "./image-usecase";
 import {Role} from "../Enumerators/Role";
 import {UseruseCase} from "./user-usecase";
+import { Image } from '../database/entities/image'
 
 export interface ListPlayerCase {
     limit: number;
@@ -16,9 +17,11 @@ export interface ListPlayerCase {
 export class PlayerUseCase {
 
     private db: any;
+    private playerRepo: Repository<Player>;
 
     constructor(db: any) {
         this.db = db;
+        this.playerRepo = this.db.getRepository(Player);
     }
 
     async getAllPlayers(listplayer: ListPlayerCase): Promise<{ players: Player[], total: number }> {
@@ -97,7 +100,7 @@ export class PlayerUseCase {
 
         const player = await playerRepository.findOne({
             where: {id: playerId},
-            relations: ['formationCenter', 'sport']
+            relations: ['formationCenter', 'sport', 'image']
         });
         if (!player) {
             throw new EntityNotFoundError(Player, playerId);
@@ -166,5 +169,56 @@ export class PlayerUseCase {
         }
 
         await playerRepository.update(playerId, player);
+    }
+
+    async modifyPlayerPicture(playerId: number, index: number, file: Express.Multer.File): Promise<void> {
+        try {
+            const imageUseCase = new ImageUseCase(AppDataSource);
+            let player = await this.getPlayerById(playerId);
+            if (!player) {
+                throw new Error("Centre de formation inconnu");
+            }
+
+            const image = await imageUseCase.createImage(file);
+
+            if (!image || image == null) {
+                throw new Error("Image impossible a uploader");
+            }
+
+            if (!player.image){
+                player.image = [];
+            }
+
+            // @ts-ignore
+            player.image[index] = image;
+            await this.playerRepo.save(player);
+        } catch (error: any) {
+            throw new Error(error.message);
+        }
+    }
+
+    async getPlayerByUser(userId: number): Promise<Player> {
+        const userUseCase = new UseruseCase(AppDataSource);
+        const user = await userUseCase.getUserById(userId);
+        if (!user) {
+            throw new Error("No user found");
+        }
+        const player = await this.playerRepo.findOne(
+            {
+                where: {user: user},
+                relations: {
+                    image: true,
+                    sport: true,
+                    formationCenter: true,
+                    eventProposals: true
+                }
+            }
+        )
+
+        if (!player){
+            throw new Error("No player found");
+        }
+
+        return player;
     }
 }

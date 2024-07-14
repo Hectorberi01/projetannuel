@@ -8,6 +8,8 @@ import {InfoType} from "../Enumerators/InfoType";
 import {InfoLevel} from "../Enumerators/InfoLevel";
 import {EntityType} from "../Enumerators/EntityType";
 import {Role} from "../Enumerators/Role";
+import {ImageUseCase} from "./image-usecase";
+import {AppDataSource} from "../database/database";
 
 export interface ListClubRequest {
     limit: number;
@@ -179,5 +181,30 @@ export class ClubUseCase {
         const query = this.clubRepository.createQueryBuilder('Club');
         query.take(3);
         return await query.getMany();
+    }
+
+    async modifyClubPicture(clubId: number, file: Express.Multer.File): Promise<void> {
+        try {
+            const imageUseCase = new ImageUseCase(AppDataSource);
+            let club = await this.getClubById(clubId);
+            if (!club) {
+                throw new Error("Centre de formation inconnu");
+            }
+
+            if (club.image) {
+                await imageUseCase.deleteImage(club.image.id);
+            }
+
+            const image = await imageUseCase.createImage(file);
+
+            if (!image || image == null) {
+                throw new Error("Image impossible a uploader");
+            }
+            // @ts-ignore
+            club.image = image;
+            await this.clubRepository.save(club);
+        } catch (error: any) {
+            throw new Error(error.message);
+        }
     }
 }

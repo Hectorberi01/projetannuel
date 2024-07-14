@@ -31,7 +31,6 @@ import {AppDataSource} from "../database/database";
 import {Email} from "../database/entities/email";
 import {DocumentUseCase} from "./documents-usecase";
 import {FormationCenter} from "../database/entities/formationcenter";
-import List = Mocha.reporters.List;
 
 
 export interface ListUserRequest {
@@ -78,22 +77,22 @@ export class UseruseCase {
     async getAllUsers(filters: ListUserRequest): Promise<{ user: User[], total: number }> {
         const query = this.userRepository.createQueryBuilder('user')
             .leftJoinAndSelect('user.role', 'role')
-            .where('user.deleted = :deleted', { deleted: filters.deleted ?? false });
+            .where('user.deleted = :deleted', {deleted: filters.deleted ?? false});
 
         if (filters.firstName) {
-            query.andWhere('user.firstName LIKE :firstName', { firstName: `%${filters.firstName}%` });
+            query.andWhere('user.firstName LIKE :firstName', {firstName: `%${filters.firstName}%`});
         }
 
         if (filters.lastName) {
-            query.andWhere('user.lastName LIKE :lastName', { lastName: `%${filters.lastName}%` });
+            query.andWhere('user.lastName LIKE :lastName', {lastName: `%${filters.lastName}%`});
         }
 
         if (filters.email) {
-            query.andWhere('user.email LIKE :email', { email: `%${filters.email}%` });
+            query.andWhere('user.email LIKE :email', {email: `%${filters.email}%`});
         }
 
         if (filters.roleId) {
-            query.andWhere('role.id = :roleId', { roleId: filters.roleId });
+            query.andWhere('role.id = :roleId', {roleId: filters.roleId});
         }
 
         query.skip((filters.page - 1) * filters.limit)
@@ -328,7 +327,7 @@ export class UseruseCase {
 
         let infoRequest: CreateInfoRequest = {
             type: InfoType.USER_DEACTIVATE,
-            level: InfoLevel.LOW,
+            level: InfoLevel.HIGH,
             text: `Utilisateur ${user.firstname} ${user.lastname} [${user.id}] a bien été désactivé`,
             user: user
         }
@@ -554,6 +553,19 @@ export class UseruseCase {
         }
     }
 
+    async getPlayerByUser(userId: number): Promise<Player> {
+        try {
+            const user = await this.getUserById(userId);
+            if (!user) {
+                throw new Error("Utilisateur inconnu");
+            }
+
+            return user.player;
+        } catch (error) {
+            throw new Error("Erreur lors de la récupération du club")
+        }
+    }
+
     async getFormationCenterByUser(userId: number): Promise<FormationCenter> {
         try {
             const user = await this.getUserById(userId);
@@ -733,6 +745,31 @@ export class UseruseCase {
             user: user
         }
         await this.infoUseCase.createInfo(infoRequest);
+    }
+
+    async modifyUserProfilePicture(userId: number, file: Express.Multer.File): Promise<void> {
+        try {
+            const imageUseCase = new ImageUseCase(AppDataSource);
+            let user = await this.getUserById(userId);
+            if (!user) {
+                throw new Error("Utilisateur inconnu");
+            }
+
+            if (user.image) {
+                //await imageUseCase.deleteImage(user.image.id);
+            }
+
+            const image = await imageUseCase.createImage(file);
+
+            if (!image || image == null) {
+                throw new Error("Image impossible a uploader");
+            }
+            // @ts-ignore
+            user.image = image;
+            await this.userRepository.save(user);
+        } catch (error: any) {
+            throw new Error(error.message);
+        }
     }
 }
 

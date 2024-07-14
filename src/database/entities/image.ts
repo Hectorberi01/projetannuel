@@ -3,6 +3,7 @@ import {Column, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn}
 import {User} from "./user";
 import {Player} from "./player";
 import {Club} from "./club";
+import {FormationCenter} from "./formationcenter";
 
 @Entity()
 export class Image {
@@ -30,7 +31,11 @@ export class Image {
     @JoinColumn()
     club!: Club;
 
-    constructor(id?: number, name?: string, extension?: string, path?: string, user?: User, player?: Player, club?: Club) {
+    @OneToOne(() => FormationCenter, fc => fc.image)
+    @JoinColumn()
+    fc!: FormationCenter;
+
+    constructor(id?: number, name?: string, extension?: string, path?: string, user?: User, player?: Player, club?: Club, fc?: FormationCenter) {
         if (id) this.id = id;
         if (name) this.name = name;
         if (extension) this.extension = extension;
@@ -38,5 +43,6 @@ export class Image {
         if (user) this.user = user;
         if (player) this.player = player;
         if (club) this.club = club;
+        if (fc) this.fc = fc;
     }
 }

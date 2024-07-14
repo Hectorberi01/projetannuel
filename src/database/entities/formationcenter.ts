@@ -1,4 +1,4 @@
-import {Column, Entity, JoinTable, ManyToMany, OneToMany, PrimaryGeneratedColumn} from 'typeorm';
+import {Column, Entity, JoinTable, ManyToMany, OneToMany, OneToOne, PrimaryGeneratedColumn} from 'typeorm';
 import {Sport} from './sport';
 import {Player} from './player';
 import {Event} from './event';
@@ -6,6 +6,7 @@ import {User} from './user';
 import {EventProposal} from "./eventProposal";
 import {Cotisation} from "./cotisation";
 import {PlayerProposal} from "./playerproposal";
+import {Image} from "./image"
 
 @Entity()
 export class FormationCenter {
@@ -46,7 +47,10 @@ export class FormationCenter {
     @OneToMany(type => PlayerProposal, playerProposal => playerProposal.formationCenter)
     playerProposals!: PlayerProposal[];
 
-    constructor(id?: number, name?: string, address?: string, sport?: Sport[], creationDate?: Date, email?: string, users?: User[], eventProposals?: EventProposal[], cotisations?: Cotisation[], playerProposals?: PlayerProposal[]) {
+    @OneToOne(() => Image, image => image.fc)
+    image!: Image
+
+    constructor(id?: number, name?: string, address?: string, sport?: Sport[], creationDate?: Date, email?: string, users?: User[], eventProposals?: EventProposal[], cotisations?: Cotisation[], playerProposals?: PlayerProposal[], image?: Image) {
         if (id) this.id = id;
         if (name) this.name = name;
         if (address) this.address = address;
@@ -57,5 +61,6 @@ export class FormationCenter {
         if (eventProposals) this.eventProposals = eventProposals;
         if (cotisations) this.cotisations = cotisations;
         if (playerProposals) this.playerProposals = playerProposals;
+        if (image) this.image = image
     }
 }

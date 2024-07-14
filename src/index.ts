@@ -24,10 +24,10 @@ import {cotisationRoute} from "./handlers/cotisation-route";
 import {adminRoute} from "./handlers/admin-route";
 import {playerproposalRoutes} from "./handlers/playerproposal-route";
 import {messageRoute} from "./handlers/message-route";
+import {imageRoute} from "./handlers/image-route";
+import cors from 'cors';
 
 dotenv.config();
-
-const cors = require('cors');
 
 const validateEnvVariables = () => {
     const requiredEnvVars = [
@@ -51,7 +51,7 @@ const main = async () => {
     validateEnvVariables();
 
     const app = express();
-    const port = 8080;
+    const port = 3030;
     try {
         await AppDataSource.initialize();
         console.error("well connected to database");
@@ -72,7 +72,14 @@ const main = async () => {
     app.use(express.json());
     app.use('/images', express.static(path.join(__dirname, 'images')));
 
-    app.use(cors());
+
+    // Configuration de CORS
+    const corsOptions = {
+        origin: 'http://localhost:3000', // Remplacez par l'URL de votre front-end React
+        methods: ['GET', 'POST', 'PUT', 'DELETE'],
+        allowedHeaders: ['Content-Type', 'Authorization']
+    };
+    app.use(cors(corsOptions));
 
     console.log("Setting up routes...");
     try {
@@ -96,6 +103,7 @@ const main = async () => {
         cotisationRoute(app);
         playerproposalRoutes(app);
         messageRoute(app);
+        imageRoute(app);
         console.log("Routes are set up successfully");
     } catch (error) {
         console.error("Error setting up routes:", error);

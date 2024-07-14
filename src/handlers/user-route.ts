@@ -19,6 +19,7 @@ import {upload} from "../middlewares/multer-config";
 import {EventInvitationUseCase} from "../domain/eventinvitation-usecase";
 import {CotisationUseCase} from "../domain/cotisation-usecase";
 import {EntityType} from "../Enumerators/EntityType";
+import {PlayerUseCase} from "../domain/player-usercase";
 
 export const userRoutes = (app: express.Express) => {
 
@@ -31,7 +32,7 @@ export const userRoutes = (app: express.Express) => {
                 return;
             }
 
-            let limit = listUserValidate.value.limit ?? 5;
+            let limit = listUserValidate.value.limit ?? 50;
             const page = listUserValidate.value.page ?? 1;
             const filters = {
                 ...listUserValidate.value,
@@ -43,7 +44,7 @@ export const userRoutes = (app: express.Express) => {
             const listUser = await userUseCase.getAllUsers(filters);
             res.status(200).send(listUser);
         } catch (error) {
-            res.status(500).send({ "error": "internal error retry later" });
+            res.status(500).send({"error": "internal error retry later"});
         }
     });
 
@@ -329,6 +330,35 @@ export const userRoutes = (app: express.Express) => {
             res.status(200).send();
         } catch (error) {
             res.status(200).send();
+        }
+    })
+
+    app.get("/users/:id/player", async (req: Request, res: Response) => {
+
+        try {
+            const idUserValidate = idUserValidation.validate(req.params);
+            if (idUserValidate.error) {
+                return res.status(400).send(generateValidationErrorMessage(idUserValidate.error.details));
+            }
+            const useCase = new PlayerUseCase(AppDataSource);
+            const result = await useCase.getPlayerByUser(idUserValidate.value.id);
+            res.status(200).send(result);
+        } catch (error: any) {
+            return res.status(500).json({message: error.message});
+        }
+    })
+
+    app.put("/users/:id/recreate-cotisation", async (req: Request, res: Response) => {
+        try {
+            const idUserValidate = idUserValidation.validate(req.params);
+            if (idUserValidate.error) {
+                return res.status(400).send(generateValidationErrorMessage(idUserValidate.error.details));
+            }
+            const useCase = new CotisationUseCase(AppDataSource);
+            const result = await useCase.createCotisation(EntityType.USER, idUserValidate.value.id);
+            res.status(200).send(result);
+        } catch (error: any) {
+            return res.status(500).json({message: error.message});
         }
     })
 
