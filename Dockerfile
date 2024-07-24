@@ -13,6 +13,9 @@ RUN apt-get update && apt-get install -y \
   && wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O /cloud_sql_proxy \
   && chmod +x /cloud_sql_proxy
 
+# Créer le répertoire /cloudsql
+RUN mkdir /cloudsql
+
 # Définir le répertoire de travail
 WORKDIR /usr/src/app
 
