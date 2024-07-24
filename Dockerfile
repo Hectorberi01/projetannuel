@@ -26,10 +26,10 @@ RUN npm install
 COPY . .
 
 # Compiler le code TypeScript
-RUN npm run build
+RUN node --max-old-space-size=2048 ./node_modules/typescript/bin/tsc
 
 # Exposer le port de l'application
 EXPOSE 8080
 
 # Démarrer l'application
-CMD ["/bin/bash", "-c", "/cloud_sql_proxy -dir=/cloudsql -instances=sport-vision-428517:europe-west3:sportvision & npm run serve"]
+CMD ["sh", "-c", "/cloud_sql_proxy -dir=/cloudsql -instances=sport-vision-428517:europe-west3:sportvision & npm run serve"]

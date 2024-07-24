@@ -175,4 +175,15 @@ export class FormationCenterUseCase {
             throw new Error(error.message);
         }
     }
+
+    async getAllUserIdsByFC(fcId: number): Promise<number[]> {
+        const userRepository = this.db.getRepository(User);
+
+        const users = await userRepository.createQueryBuilder('user')
+            .select('user.id')
+            .where('user.formationCenter.id = :clubId', {fcId})
+            .getMany();
+
+        return users.map(user => user.id);
+    }
 }

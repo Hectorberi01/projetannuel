@@ -7,7 +7,6 @@ import {FormationCenterUseCase} from "./formationcenter-usecase";
 import {ImageUseCase} from "./image-usecase";
 import {Role} from "../Enumerators/Role";
 import {UseruseCase} from "./user-usecase";
-import { Image } from '../database/entities/image'
 
 export interface ListPlayerCase {
     limit: number;
@@ -28,6 +27,7 @@ export class PlayerUseCase {
 
         const query = this.db.getRepository(Player).createQueryBuilder('player')
             .leftJoinAndSelect('player.formationCenter', 'formationCenter')
+            .leftJoinAndSelect('player.image', 'image')
             .leftJoinAndSelect('player.sport', 'sport')
             .skip((listplayer.page - 1) * listplayer.limit)
             .take(listplayer.limit);
@@ -168,7 +168,7 @@ export class PlayerUseCase {
             player.sport = sport;
         }
 
-        await playerRepository.update(playerId, player);
+        await playerRepository.save(player);
     }
 
     async modifyPlayerPicture(playerId: number, index: number, file: Express.Multer.File): Promise<void> {
@@ -185,7 +185,7 @@ export class PlayerUseCase {
                 throw new Error("Image impossible a uploader");
             }
 
-            if (!player.image){
+            if (!player.image) {
                 player.image = [];
             }
 
@@ -200,25 +200,37 @@ export class PlayerUseCase {
     async getPlayerByUser(userId: number): Promise<Player> {
         const userUseCase = new UseruseCase(AppDataSource);
         const user = await userUseCase.getUserById(userId);
+
         if (!user) {
             throw new Error("No user found");
         }
-        const player = await this.playerRepo.findOne(
-            {
-                where: {user: user},
-                relations: {
-                    image: true,
-                    sport: true,
-                    formationCenter: true,
-                    eventProposals: true
-                }
-            }
-        )
 
-        if (!player){
+        const playerRepository = this.db.getRepository(Player);
+
+        const player = await playerRepository
+            .createQueryBuilder('player')
+            .leftJoinAndSelect('player.image', 'image')
+            .leftJoinAndSelect('player.sport', 'sport')
+            .leftJoinAndSelect('player.formationCenter', 'formationCenter')
+            .leftJoinAndSelect('player.eventProposals', 'eventProposals')
+            .where('player.user.id = :userId', {userId: user.id})
+            .getOne();
+
+        if (!player) {
             throw new Error("No player found");
+        }
+
+        // Parsing JSON stats field if necessary
+        if (player.stats) {
+            try {
+                player.stats = JSON.parse(player.stats);
+            } catch (e) {
+                console.error('Error parsing stats JSON:', e);
+                throw new Error('Invalid stats JSON format');
+            }
         }
 
         return player;
     }
+
 }

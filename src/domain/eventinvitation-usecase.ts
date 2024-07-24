@@ -98,22 +98,22 @@ export class EventInvitationUseCase {
     }
 
     async getInvitationByUserId(userId: number): Promise<EventInvitation[]> {
-
         try {
-            const userUseCase = new UseruseCase(AppDataSource);
+            const userUseCase = new UseruseCase(this.db);
             const user = await userUseCase.getUserById(userId);
             if (!user) {
                 throw new Error("Utilisateur inconnu");
             }
+
             const repo = this.db.getRepository(EventInvitation);
-            return await repo.find({
-                where: {user: user},
-                relations: {
-                    event: true
-                }
-            })
+            const query = repo.createQueryBuilder('invitation')
+                .leftJoinAndSelect('invitation.event', 'event')
+                .where('invitation.user.id = :userId', { userId });
+
+            return await query.getMany();
         } catch (error) {
-            throw error
+            console.error('Erreur lors de la récupération des invitations:', error);
+            throw error;
         }
     }
 }

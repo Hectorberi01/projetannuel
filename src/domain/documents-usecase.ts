@@ -100,7 +100,7 @@ export class DocumentUseCase {
             documentsQuery = documentsQuery.where('user.role = :role', {role: 'FORMATIONCENTER'});
             foldersQuery = foldersQuery.where('user.role = :role', {role: 'FORMATIONCENTER'});
 
-        } else if (userRole === 'CLUB' || userRole === 'FORMATIONCENTER') {
+        } else if (userRole === 'CLUB' || userRole === 'FORMATIONCENTER' || userRole === 'PLAYER') {
 
             documentsQuery = documentsQuery.where('user.id = :userId', {userId: listDocuments.userId});
             foldersQuery = foldersQuery.where('user.id = :userId', {userId: listDocuments.userId});

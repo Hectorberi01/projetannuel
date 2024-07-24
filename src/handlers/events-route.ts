@@ -4,33 +4,10 @@ import {generateValidationErrorMessage} from "./validator/generate-validation-me
 import {AppDataSource} from "../database/database";
 import {EventuseCase} from "../domain/events-usecase";
 import {EventInvitationUseCase} from "../domain/eventinvitation-usecase";
+import {idUserValidation} from "./validator/user-validator";
 
 
 export const eventsRoutes = (app: express.Express) => {
-
-    app.get("/events", async (req: Request, res: Response) => {
-        try {
-            const eventvalidator = listEventValidation.validate(req.query);
-            if (eventvalidator.error) {
-                res.status(400).send({
-                    error: "Invalid query parameters",
-                    details: eventvalidator.error.details
-                });
-                return;
-            }
-
-            const listeventRequest = eventvalidator.value;
-            const limit = listeventRequest.limit ?? 50;
-            const page = listeventRequest.page ?? 1;
-
-            const eventUseCase = new EventuseCase(AppDataSource);
-            const listEvent = await eventUseCase.getAllEvents({...listeventRequest, page, limit});
-            res.status(200).send(listEvent);
-        } catch (error) {
-            console.log('Error fetching events:', error);
-            res.status(500).send({"error": "Internal error for list event, please retry later"});
-        }
-    });
 
     app.get("/events/recents", async (req: Request, res: Response) => {
 
@@ -44,6 +21,39 @@ export const eventsRoutes = (app: express.Express) => {
     })
 
     app.get("/events/:id", async (req: Request, res: Response) => {
+        try {
+            const userIdValidate = idUserValidation.validate(req.params);
+            const eventvalidator = listEventValidation.validate(req.query);
+            if (eventvalidator.error) {
+                res.status(400).send({
+                    error: "Invalid query parameters",
+                    details: eventvalidator.error.details
+                });
+                return;
+            }
+
+            if (userIdValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(userIdValidate.error.details))
+            }
+
+            const listeventRequest = eventvalidator.value;
+            const limit = listeventRequest.limit ?? 100;
+            const page = listeventRequest.page ?? 1;
+
+            const eventUseCase = new EventuseCase(AppDataSource);
+            const listEvent = await eventUseCase.getAllEvents({
+                ...listeventRequest,
+                page,
+                limit
+            }, userIdValidate.value.id);
+            res.status(200).send(listEvent);
+        } catch (error) {
+            console.log('Error fetching events:', error);
+            res.status(500).send({"error": "Internal error for list event, please retry later"});
+        }
+    });
+
+    app.get("/event/:id", async (req: Request, res: Response) => {
         try {
             const eventidvalidation = EventIdValidation.validate(req.params)
 
@@ -98,7 +108,6 @@ export const eventsRoutes = (app: express.Express) => {
             const eventidvalidation = EventIdValidation.validate(req.params)
 
             if (eventidvalidation.error) {
-                console.log("eventidvalidation", eventidvalidation)
                 res.status(400).send(generateValidationErrorMessage(eventidvalidation.error.details))
             }
 
