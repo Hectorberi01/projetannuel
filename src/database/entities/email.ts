@@ -18,7 +18,7 @@ export class Email {
     @Column()
     type!: MessageType;
 
-    @Column()
+    @Column({type: 'text', nullable: true})
     text!: string;
 
     @Column()

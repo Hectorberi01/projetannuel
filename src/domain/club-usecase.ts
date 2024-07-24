@@ -207,4 +207,15 @@ export class ClubUseCase {
             throw new Error(error.message);
         }
     }
+
+    async getAllUserIdsByClub(clubId: number): Promise<number[]> {
+        const userRepository = this.db.getRepository(User);
+
+        const users = await userRepository.createQueryBuilder('user')
+            .select('user.id')
+            .where('user.club.id = :clubId', {clubId})
+            .getMany();
+
+        return users.map(user => user.id);
+    }
 }

@@ -128,6 +128,6 @@ export interface EmailUserRequest {
     email: string,
 }
 
-export const emailUserValidation = Joi.object<EmailUserRequest>({
+export const    emailUserValidation = Joi.object<EmailUserRequest>({
     email: Joi.string().required(),
 })

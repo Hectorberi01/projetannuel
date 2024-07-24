@@ -145,8 +145,8 @@ export class CotisationUseCase {
 
     async manageUnpaidCotisation(cotisation: Cotisation): Promise<void> {
         try {
-            if (!cotisation) {
-                throw new Error("Cotisation incorrecte");
+            if (!cotisation || cotisation.user.deleted) {
+                throw new Error("Cotisation incorrecte ou utilisateur supprimé");
             }
 
             const userUseCase = new UseruseCase(AppDataSource);
@@ -253,6 +253,7 @@ export class CotisationUseCase {
 
             const cotisations = await this.cotisationRepository.createQueryBuilder("cotisation")
                 .leftJoinAndSelect("cotisation.user", "user")
+                .where ("user.deleted = false")
                 .where("cotisation.status = :status", {status: CotisationStatus.PAID})
                 .andWhere("cotisation.entity_type = :entityType", {entityType: EntityType.USER})
                 .andWhere("cotisation.payment_date >= :yesterday", {yesterday: yesterday})

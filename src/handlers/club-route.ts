@@ -150,4 +150,18 @@ export const clubRoutes = (app: express.Express) => {
             res.status(500).send({"error": "internal error retry later"})
         }
     })
+
+    app.put("/clubs/:id/recreate-cotisation", async (req: Request, res: Response) => {
+        try {
+            const idClubValidate = idClubValidation.validate(req.params)
+            if (idClubValidate.error) {
+                res.status(400).send(generateValidationErrorMessage(idClubValidate.error.details))
+            }
+            const cotisationUseCase = new CotisationUseCase(AppDataSource);
+            const result = await cotisationUseCase.createCotisation(EntityType.CLUB, idClubValidate.value.id);
+            res.status(200).send(result);
+        } catch (error: any) {
+            res.status(500).send({"error": "internal error retry later"})
+        }
+    })
 }

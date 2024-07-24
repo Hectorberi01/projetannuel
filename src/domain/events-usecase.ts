@@ -11,6 +11,7 @@ import {ClubUseCase} from "./club-usecase";
 import {FormationCenterUseCase} from "./formationcenter-usecase";
 import {EventProposalUseCase} from "./eventproposal-usecase";
 import {EventProposal} from "../database/entities/eventProposal";
+import {UseruseCase} from "./user-usecase";
 
 
 export interface ListEventUseCase {
@@ -22,24 +23,48 @@ export class EventuseCase {
     constructor(private readonly db: DataSource) {
     }
 
-    async getAllEvents(listevent: ListEventUseCase): Promise<{ events: Event[], total: number }> {
+    async getAllEvents(listevent: ListEventUseCase, userId: number): Promise<{ events: Event[], total: number }> {
+        const userUseCase = new UseruseCase(AppDataSource);
+        let ids: Set<number> = new Set();
+
+        const user = await userUseCase.getUserById(userId);
+        if (!user) {
+            throw new Error("Invalid User");
+        }
+
+        if (user.role.role === "ADMIN_CLUB") {
+            const clubUseCase = new ClubUseCase(AppDataSource);
+            const userIds = await clubUseCase.getAllUserIdsByClub(user.club.id);
+            userIds.forEach(id => ids.add(id));
+        } else if (user.role.role === "ADMIN_FORMATIONCENTER") {
+            const fcUseCase = new FormationCenterUseCase(AppDataSource);
+            const userIds = await fcUseCase.getAllUserIdsByFC(user.formationCenter.id);
+            userIds.forEach(id => ids.add(id));
+        } else if (user.role.role === "ADMIN") {
+            // Admin gets all events, so no need to add user IDs
+        } else {
+            ids.add(user.id);
+        }
+
         const query = this.db.getRepository(Event).createQueryBuilder('event')
             .leftJoinAndSelect('event.clubs', 'club')
             .leftJoinAndSelect('event.trainingCenters', 'trainingCenter')
+            .leftJoinAndSelect('event.participants', 'participant')
             .skip((listevent.page - 1) * listevent.limit)
             .take(listevent.limit);
 
-        console.log('Executing query:', query.getQuery());
+        if (user.role.role !== "ADMIN") {
+            query.where('participant.id IN (:...ids)', {ids: Array.from(ids)});
+        }
 
         try {
             const [events, total] = await query.getManyAndCount();
-            console.log('Query result:', events, total);
             return {
-                events,
+                events: Array.from(new Set(events)),  // Removing duplicates
                 total
             };
         } catch (error) {
-            console.error('Error executing query:', error);
+            console.error('Error fetching events:', error);
             throw error;
         }
     }

@@ -38,7 +38,13 @@ export class EmailUseCase {
             email.text = text;
             email.sentDate = new Date();
 
-            return await repo.save(email);
+            const result = await repo.save(email);
+
+            if (!result) {
+                throw new Error("Impossible de créer ce mail");
+            } else {
+                return result;
+            }
         } catch (error) {
             throw new Error("Impossible de créer ce mail");
         }
@@ -73,16 +79,24 @@ export class EmailUseCase {
     }
 
     async getEmailsByUser(user: User): Promise<Email[]> {
-        const repo = this.db.getRepository(Email);
-        const result = await repo.find({
-            where: {user: user}
-        });
+        const entityManager = this.db.manager;
+
+        const query = `
+            SELECT email.*
+            FROM email
+            INNER JOIN user ON email.user_id = user.id
+            WHERE user.id = ?
+        `;
+
+        const result = await entityManager.query(query, [user.id]);
 
         if (!result) {
             throw new Error("Erreur lors de la récupération des mails");
         }
+
         return result;
     }
+
 
     async getAllEmails(listRequest: ListEmailsRequest): Promise<{ emails: Email[], count: number }> {
         const repo = this.db.getRepository(Email);
@@ -93,27 +107,27 @@ export class EmailUseCase {
             .take(listRequest.limit);
 
         if (listRequest.status) {
-            query.andWhere('email.status = :status', { status: listRequest.status });
+            query.andWhere('email.status = :status', {status: listRequest.status});
         }
 
         if (listRequest.type) {
-            query.andWhere('email.type = :type', { type: listRequest.type });
+            query.andWhere('email.type = :type', {type: listRequest.type});
         }
 
         if (listRequest.email) {
-            query.andWhere('user.email LIKE :email', { email: `%${listRequest.email}%` });
+            query.andWhere('user.email LIKE :email', {email: `%${listRequest.email}%`});
         }
 
         if (listRequest.dateFrom) {
-            query.andWhere('email.sentDate >= :dateFrom', { dateFrom: listRequest.dateFrom });
+            query.andWhere('email.sentDate >= :dateFrom', {dateFrom: listRequest.dateFrom});
         }
 
         if (listRequest.dateTo) {
-            query.andWhere('email.sentDate <= :dateTo', { dateTo: listRequest.dateTo });
+            query.andWhere('email.sentDate <= :dateTo', {dateTo: listRequest.dateTo});
         }
 
         const [emails, count] = await query.getManyAndCount();
 
-        return { emails, count };
+        return {emails, count};
     }
 }
