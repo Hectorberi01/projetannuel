@@ -4,6 +4,7 @@ import paypal from '@paypal/checkout-server-sdk';
 import {TransactionType} from "../Enumerators/TransactionType";
 import {CotisationUseCase} from "./cotisation-usecase";
 import {CotisationStatus} from "../Enumerators/CotisationStatus";
+import {EntityType} from "../Enumerators/EntityType";
 
 const clientId = "AZM-xhZvk9RPx-koGNixiPRRv_BdF3aTvmrw9hxorpC7ewPymOgJJel1hwh4bDTujpCRT__lro3P6KtD";
 const clientSecret = "EFYmFHEEHacgKj3O0QGMrWZOAJO_9Qauww5rOKNlXzRYT4Px4TDfyVy5ZBJYN7osqzY7cFqxKqXWVE6C";
@@ -63,31 +64,43 @@ export class TransactionUseCase {
 
         if (transaction.type === TransactionType.COTISATION && cotisationId) {
             const cotisationUseCase = new CotisationUseCase(this.db);
-            await cotisationUseCase.updateCotisationStatus(cotisationId, CotisationStatus.PAID);
+
+            const cotisation = await cotisationUseCase.getCotisationById(cotisationId);
+            if (!cotisation) {
+                throw new Error("Cotisation inconnue");
+            }
+            if (cotisation.entityType === EntityType.CLUB || cotisation.entityType === EntityType.FORMATIONCENTER) {
+                await cotisationUseCase.updateCotisationStatusWithoutLogs(cotisationId, CotisationStatus.PAID);
+            } else {
+                await cotisationUseCase.updateCotisationStatus(cotisationId, CotisationStatus.PAID);
+            }
         }
 
         return capture.result;
     }
 
-    async getAllTransactions(listTransactions: ListTransactionsRequest): Promise<{ transactions: Transaction[], total: number }> {
+    async getAllTransactions(listTransactions: ListTransactionsRequest): Promise<{
+        transactions: Transaction[],
+        total: number
+    }> {
         const query = this.db.getRepository(Transaction).createQueryBuilder('transaction')
             .skip((listTransactions.page - 1) * listTransactions.limit)
             .take(listTransactions.limit);
 
         if (listTransactions.status) {
-            query.andWhere('transaction.status = :status', { status: listTransactions.status });
+            query.andWhere('transaction.status = :status', {status: listTransactions.status});
         }
 
         if (listTransactions.donorEmail) {
-            query.andWhere('transaction.donorEmail = :donorEmail', { donorEmail: listTransactions.donorEmail });
+            query.andWhere('transaction.donorEmail = :donorEmail', {donorEmail: listTransactions.donorEmail});
         }
 
         if (listTransactions.dateFrom) {
-            query.andWhere('transaction.createdAt >= :dateFrom', { dateFrom: listTransactions.dateFrom });
+            query.andWhere('transaction.createdAt >= :dateFrom', {dateFrom: listTransactions.dateFrom});
         }
 
         if (listTransactions.dateTo) {
-            query.andWhere('transaction.createdAt <= :dateTo', { dateTo: listTransactions.dateTo });
+            query.andWhere('transaction.createdAt <= :dateTo', {dateTo: listTransactions.dateTo});
         }
 
         try {

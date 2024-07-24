@@ -243,6 +243,22 @@ export class CotisationUseCase {
         }
     }
 
+    async updateCotisationStatusWithoutLogs(cotisationId: number, status: CotisationStatus): Promise<Cotisation> {
+        try {
+            const cotisation = await this.getCotisationById(cotisationId);
+
+            if (!cotisation) {
+                throw new Error("Cotisation inconnu");
+            }
+
+            cotisation.status = status;
+            cotisation.paymentDate = new Date();
+            return await this.cotisationRepository.save(cotisation);
+        } catch (error: any) {
+            throw new Error("Maj impossible de la cotisation: " + error.message);
+        }
+    }
+
     async getUsersWithCotisationPaidYesterday(): Promise<User[]> {
         try {
             const today = new Date();
@@ -253,7 +269,7 @@ export class CotisationUseCase {
 
             const cotisations = await this.cotisationRepository.createQueryBuilder("cotisation")
                 .leftJoinAndSelect("cotisation.user", "user")
-                .where ("user.deleted = false")
+                .where("user.deleted = false")
                 .where("cotisation.status = :status", {status: CotisationStatus.PAID})
                 .andWhere("cotisation.entity_type = :entityType", {entityType: EntityType.USER})
                 .andWhere("cotisation.payment_date >= :yesterday", {yesterday: yesterday})
