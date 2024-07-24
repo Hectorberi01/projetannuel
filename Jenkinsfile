@@ -45,7 +45,7 @@ pipeline {
         stage('Check Application Status') {
             steps {
                 script {
-                    def response = sh(script: "curl -s -o /dev/null -w '%{http_code}' http://localhost:4000/health", returnStdout: true).trim()
+                    def response = sh(script: "curl -s -o /dev/null -w '%{http_code}' http://localhost:3030/health", returnStdout: true).trim()
                     if (response != '200') {
                         error "Application did not start correctly. HTTP response code: ${response}"
                     }

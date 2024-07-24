@@ -75,7 +75,7 @@ const main = async () => {
 
     // Configuration de CORS
     const corsOptions = {
-        origin: 'http://localhost:3000', // Remplacez par l'URL de votre front-end React
+        origin: '*', // Remplacez par l'URL de votre front-end React
         methods: ['GET', 'POST', 'PUT', 'DELETE'],
         allowedHeaders: ['Content-Type', 'Authorization']
     };

@@ -107,7 +107,7 @@ export class MessageUseCase {
 
         return {
             from: process.env.EMAIL_USER,
-            to: process.env.EMAIL_TEST,
+            to: user.email,
             subject: template.subject,
             text: mustache.render(template.body, {...user, tmpPassword}),
         };
@@ -121,7 +121,7 @@ export class MessageUseCase {
 
         return {
             from: process.env.EMAIL_USER,
-            to: process.env.EMAIL_TEST,
+            to: user.email,
             subject: template.subject,
             text: mustache.render(template.body, {...user, a2fCode}),
         };
@@ -131,7 +131,7 @@ export class MessageUseCase {
 
         return {
             from: process.env.EMAIL_USER,
-            to: process.env.EMAIL_TEST,
+            to: user.email,
             subject: subject,
             text: text,
         }
@@ -145,7 +145,7 @@ export class MessageUseCase {
 
         return {
             from: process.env.EMAIL_USER,
-            to: process.env.EMAIL_TEST,
+            to: user.email,
             subject: template.subject,
             text: mustache.render(template.body, {...user, ...extraData}),
         };
@@ -159,7 +159,7 @@ export class MessageUseCase {
 
         return {
             from: process.env.EMAIL_USER,
-            to: process.env.EMAIL_TEST,
+            to: user.email,
             subject: template.subject,
             text: mustache.render(template.body, {...user}),
         }
@@ -173,7 +173,7 @@ export class MessageUseCase {
 
         return {
             from: process.env.EMAIL_USER,
-            to: process.env.EMAIL_TEST,
+            to: user.email,
             subject: mustache.render(template.subject, {event}),
             text: mustache.render(template.body, {user, event}),
         };
@@ -187,7 +187,7 @@ export class MessageUseCase {
 
         return {
             from: process.env.EMAIL_USER,
-            to: process.env.EMAIL_TEST,
+            to: user.email,
             subject: template.subject,
             text: mustache.render(template.body, {user})
         }
@@ -204,7 +204,7 @@ export class MessageUseCase {
 
         return {
             from: process.env.EMAIL_USER,
-            to: process.env.EMAIL_TEST,
+            to: user.email,
             subject: template.subject,
             text: mustache.render(template.body, {user, cotisation, daysLeft})
         };
@@ -218,7 +218,7 @@ export class MessageUseCase {
 
         return {
             from: process.env.EMAIL_USER,
-            to: process.env.EMAIL_TEST,
+            to: user.email,
             subject: template.subject,
             text: mustache.render(template.body, {user})
         }
@@ -234,7 +234,7 @@ export class MessageUseCase {
 
         return {
             from: process.env.EMAIL_USER,
-            to: process.env.EMAIL_TEST,
+            to: user.email,
             subject: template.subject,
             text: mustache.render(template.body, {user, cotisation})
         };
@@ -248,7 +248,7 @@ export class MessageUseCase {
 
         return {
             from: process.env.EMAIL_USER,
-            to: process.env.EMAIL_TEST,
+            to: user.email,
             subject: template.subject,
             text: mustache.render(template.body, {user})
         }
@@ -262,7 +262,7 @@ export class MessageUseCase {
 
         return {
             from: process.env.EMAIL_USER,
-            to: process.env.EMAIL_TEST,
+            to: user.email,
             subject: template.subject,
             text: mustache.render(template.body, {user})
         }
@@ -276,7 +276,7 @@ export class MessageUseCase {
 
         return {
             from: process.env.EMAIL_USER,
-            to: process.env.EMAIL_TEST,
+            to: user.email,
             subject: template.subject,
             text: mustache.render(template.body, {user})
         }
@@ -292,7 +292,7 @@ export class MessageUseCase {
 
         return {
             from: process.env.EMAIL_USER,
-            to: process.env.EMAIL_TEST,
+            to: user.email,
             subject: template.subject,
             text: mustache.render(template.body, {user, password})
         }
