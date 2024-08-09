@@ -31,6 +31,9 @@ export class Folder {
     @CreateDateColumn()
     createdAt!: Date;
 
+    @Column()
+    familyName!: string
+
     constructor(
         name?: string,
         googleId?: string,
