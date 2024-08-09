@@ -15,21 +15,6 @@ export class Folder {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @Column()
-    googleId!: string;
-
-    @Column()
-    name!: string;
-
-    @OneToMany(() => Document, document => document.folder)
-    documents!: Document[];
-
-    @ManyToOne(() => User, user => user.folders, { nullable: false })
-    @JoinColumn({ name: 'userId' })
-    user!: User;
-
-    @CreateDateColumn()
-    createdAt!: Date;
 
     @Column()
     familyName!: string
